@@ -1,6 +1,7 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { DrawerActions, useNavigation } from '@react-navigation/native';
 import { Stack } from 'expo-router';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -25,8 +26,17 @@ export default function TripScreen() {
   const c = Colors[scheme];
   const user = useUser();
 
-  const { data: trip, isLoading, isRefetching, refetch } = useActiveTrip();
+  const { data: trip, isLoading, refetch } = useActiveTrip();
   const updateStatus = useUpdateMyTripStatus();
+
+  // Separate manual-pull state from background polling so the spinner only
+  // appears when the user explicitly pulls down — not on every 20 s poll.
+  const [manualRefreshing, setManualRefreshing] = useState(false);
+  const handleManualRefresh = async () => {
+    setManualRefreshing(true);
+    await refetch();
+    setManualRefreshing(false);
+  };
 
   const handleStatusChange = (next: TripStatus) => {
     if (!trip) return;
@@ -59,7 +69,7 @@ export default function TripScreen() {
         <ScrollView
           contentContainerStyle={{ flexGrow: 1 }}
           refreshControl={
-            <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
+            <RefreshControl refreshing={manualRefreshing} onRefresh={handleManualRefresh} />
           }
         >
           <ScreenPlaceholder
@@ -72,7 +82,7 @@ export default function TripScreen() {
         <ScrollView
           contentContainerStyle={styles.body}
           refreshControl={
-            <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
+            <RefreshControl refreshing={manualRefreshing} onRefresh={handleManualRefresh} />
           }
         >
           <TripInfoCard trip={trip} />

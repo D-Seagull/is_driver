@@ -5,6 +5,7 @@ import {
   FlatList,
   Pressable,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -20,8 +21,15 @@ import { Trip } from '@/lib/types';
 
 export default function TripsScreen() {
   const c = Colors[useColorScheme() ?? 'light'];
-  const { data: trips = [], isLoading, isRefetching, refetch } = useMyTrips();
+  const { data: trips = [], isLoading, refetch } = useMyTrips();
   const [query, setQuery] = useState('');
+  const [manualRefreshing, setManualRefreshing] = useState(false);
+
+  const handleManualRefresh = async () => {
+    setManualRefreshing(true);
+    await refetch();
+    setManualRefreshing(false);
+  };
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -63,52 +71,58 @@ export default function TripsScreen() {
           <ActivityIndicator color={c.primary} />
         </View>
       ) : trips.length === 0 ? (
-        <ScreenPlaceholder
-          icon="list-outline"
-          title="No trips yet"
-          subtitle="Trips assigned to you will appear here."
-        />
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1 }}
+          refreshControl={
+            <RefreshControl refreshing={manualRefreshing} onRefresh={handleManualRefresh} />
+          }
+        >
+          <ScreenPlaceholder
+            icon="list-outline"
+            title="No trips yet"
+            subtitle="Trips assigned to you will appear here."
+          />
+        </ScrollView>
       ) : filtered.length === 0 ? (
-        <ScreenPlaceholder
-          icon="search-outline"
-          title="No matches"
-          subtitle="Try a different search."
-        />
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1 }}
+          refreshControl={
+            <RefreshControl refreshing={manualRefreshing} onRefresh={handleManualRefresh} />
+          }
+        >
+          <ScreenPlaceholder
+            icon="search-outline"
+            title="No matches"
+            subtitle="Try a different search."
+          />
+        </ScrollView>
       ) : (
         <FlatList
           data={filtered}
           keyExtractor={(t) => t.id}
           contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.sm }}
           refreshControl={
-            <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
+            <RefreshControl refreshing={manualRefreshing} onRefresh={handleManualRefresh} />
           }
-          renderItem={({ item }) => (
-            <TripRow
-              trip={item}
-              // TODO: open per-trip detail screen once it exists.
-              onPress={() => {}}
-            />
-          )}
+          renderItem={({ item }) => <TripRow trip={item} />}
         />
       )}
     </View>
   );
 }
 
-function TripRow({ trip, onPress }: { trip: Trip; onPress: () => void }) {
+function TripRow({ trip }: { trip: Trip }) {
   const c = Colors[useColorScheme() ?? 'light'];
-  const date = new Date(trip.createdAt).toLocaleDateString();
+  const date = new Date(trip.createdAt).toLocaleDateString(undefined, {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
+    <View
+      style={[
         styles.row,
-        {
-          backgroundColor: c.card,
-          borderColor: c.border,
-          borderRadius: Radius.md,
-          opacity: pressed ? 0.85 : 1,
-        },
+        { backgroundColor: c.card, borderColor: c.border, borderRadius: Radius.md },
       ]}
     >
       <View style={{ flex: 1, gap: 4 }}>
@@ -121,14 +135,14 @@ function TripRow({ trip, onPress }: { trip: Trip; onPress: () => void }) {
         </Text>
       </View>
       <StatusBadge status={trip.status} />
-    </Pressable>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   searchWrap: {
     margin: Spacing.lg,
-    marginBottom: 0,
+    marginBottom: Spacing.sm,
     paddingHorizontal: Spacing.md,
     paddingVertical: 10,
     borderWidth: StyleSheet.hairlineWidth,
@@ -137,9 +151,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   searchInput: { flex: 1, fontSize: 14, padding: 0 },
-
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-
   row: {
     flexDirection: 'row',
     alignItems: 'center',

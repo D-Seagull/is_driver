@@ -118,7 +118,13 @@ export default function TruckScreen() {
   const c = Colors[useColorScheme() ?? 'light'];
   const user = useUser();
 
-  const { data: truck, isLoading, isRefetching, refetch } = useDriverTruck();
+  const { data: truck, isLoading, refetch } = useDriverTruck();
+  const [manualRefreshing, setManualRefreshing] = useState(false);
+  const handleManualRefresh = async () => {
+    setManualRefreshing(true);
+    await refetch();
+    setManualRefreshing(false);
+  };
   const createNote = useCreateTruckNote(truck?.id);
   const deleteNote = useDeleteTruckNote(truck?.id);
 
@@ -164,7 +170,7 @@ export default function TruckScreen() {
         style={{ flex: 1, backgroundColor: c.background }}
         contentContainerStyle={{ flexGrow: 1 }}
         refreshControl={
-          <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
+          <RefreshControl refreshing={manualRefreshing} onRefresh={handleManualRefresh} />
         }
       >
         <ScreenPlaceholder
@@ -184,7 +190,7 @@ export default function TruckScreen() {
       style={{ flex: 1, backgroundColor: c.background }}
       contentContainerStyle={styles.body}
       refreshControl={
-        <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
+        <RefreshControl refreshing={manualRefreshing} onRefresh={handleManualRefresh} />
       }
       keyboardShouldPersistTaps="handled"
     >

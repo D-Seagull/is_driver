@@ -16,12 +16,20 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ThemeProvider } from '@/hooks/use-theme';
 import { queryClient } from '@/lib/query';
 
-// Tell React Query when the app comes back to foreground so it can refetch
-// stale data (the default window-focus listener doesn't fire in React Native).
+// Tell React Query when the app returns to foreground from background.
+// We track the PREVIOUS state so we only trigger on a real background→active
+// transition, not on every 'active' event iOS fires (keyboard, notifications…).
 function useAppStateRefetch() {
   useEffect(() => {
-    const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
-      focusManager.setFocused(state === 'active');
+    let prevState = AppState.currentState;
+    const sub = AppState.addEventListener('change', (next: AppStateStatus) => {
+      if (
+        (prevState === 'background' || prevState === 'inactive') &&
+        next === 'active'
+      ) {
+        focusManager.setFocused(true);
+      }
+      prevState = next;
     });
     return () => sub.remove();
   }, []);
