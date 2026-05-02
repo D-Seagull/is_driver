@@ -10,10 +10,18 @@ export interface ChatMessage {
   senderId: string;
   content: string;
   createdAt: string;
+  isRead?: boolean;
   sender: { id: string; name: string | null; role: string };
 }
 
-export function useTripChat(tripId: string | null | undefined) {
+export function useTripChat(
+  tripId: string | null | undefined,
+  options: { isFocused?: boolean } = {},
+) {
+  // When `isFocused` is false (drawer opened a different screen), we still
+  // listen for messages but stop auto-acknowledging them — otherwise the
+  // sender sees ✓✓ even though the driver hasn't seen the message yet.
+  const { isFocused = true } = options;
   const token = useAuthStore((s) => s.token);
   const user = useAuthStore((s) => s.user);
   const myId = user?.id ?? '';
@@ -27,6 +35,20 @@ export function useTripChat(tripId: string | null | undefined) {
   // onNewMessage calls (StrictMode double-effect, transport upgrade reconnect, etc.)
   // cannot both pass the prev.some() check on the same React snapshot.
   const seenIds = useRef(new Set<string>());
+
+  // Keep myId out of socket effect deps — auth hydrates after mount and would
+  // otherwise tear down/re-create listeners (and re-fetch history) every time.
+  const myIdRef = useRef(myId);
+  useEffect(() => {
+    myIdRef.current = myId;
+  }, [myId]);
+
+  // Same trick for focus — read via ref inside the socket effect so changing
+  // focus doesn't tear down/re-attach listeners.
+  const focusedRef = useRef(isFocused);
+  useEffect(() => {
+    focusedRef.current = isFocused;
+  }, [isFocused]);
 
   // Filter: own + dispatcher messages only
   const visible = messages.filter(
@@ -44,7 +66,7 @@ export function useTripChat(tripId: string | null | undefined) {
     setIsLoading(true);
     setError(null);
     fetchTripMessages(tripId)
-      .then((h) => {
+      .then((h: ChatMessage[]) => {
         if (!cancelled) {
           // Pre-populate seen set so real-time events don't duplicate history
           h.forEach((m) => seenIds.current.add(m.id));
@@ -62,9 +84,17 @@ export function useTripChat(tripId: string | null | undefined) {
       sock.emit('joinTrip', { tripId });
     };
 
+    // Only mark messages as read while the chat screen is actually focused —
+    // otherwise the sender thinks the driver has seen them.
+    const markRead = () => {
+      if (!focusedRef.current) return;
+      sock.emit('markTripRead', { tripId });
+    };
+
     const onConnect = () => {
       setConnected(true);
       joinRoom(); // re-join after every (re)connect
+      markRead();
     };
 
     const onDisconnect = () => setConnected(false);
@@ -77,16 +107,32 @@ export function useTripChat(tripId: string | null | undefined) {
       if (seenIds.current.has(msg.id)) return;
       seenIds.current.add(msg.id);
       setMessages((prev) => [...prev, msg]);
+      // Inbound message while screen is open → ack immediately so the sender
+      // sees ✓✓.
+      if (msg.senderId !== myIdRef.current) markRead();
+    };
+
+    const onMessagesRead = (payload: {
+      tripId: string;
+      messageIds: string[];
+    }) => {
+      if (payload.tripId !== tripId) return;
+      const ids = new Set(payload.messageIds);
+      setMessages((prev) =>
+        prev.map((m) => (ids.has(m.id) ? { ...m, isRead: true } : m)),
+      );
     };
 
     sock.on('connect', onConnect);
     sock.on('disconnect', onDisconnect);
     sock.on('newMessage', onNewMessage);
+    sock.on('tripMessagesRead', onMessagesRead);
 
     // If already connected — join immediately
     if (sock.connected) {
       setConnected(true);
       joinRoom();
+      markRead();
     }
 
     return () => {
@@ -94,8 +140,17 @@ export function useTripChat(tripId: string | null | undefined) {
       sock.off('connect', onConnect);
       sock.off('disconnect', onDisconnect);
       sock.off('newMessage', onNewMessage);
+      sock.off('tripMessagesRead', onMessagesRead);
     };
   }, [tripId, token]);
+
+  // When focus returns (driver navigates back to the trip screen), catch up
+  // any messages that arrived while away.
+  useEffect(() => {
+    if (!isFocused || !tripId) return;
+    const sock = getSocket(token ?? undefined);
+    if (sock.connected) sock.emit('markTripRead', { tripId });
+  }, [isFocused, tripId, token]);
 
   // ── Send ────────────────────────────────────────────────────────────────
   // No optimistic insert — server echoes the message back via `newMessage`,

@@ -21,14 +21,17 @@ type SidebarItem = {
   renderIcon: (color: string, size: number) => React.ReactNode;
 };
 
+// These are render-prop factories, not components — display-name doesn't apply.
 const ion =
   (n: React.ComponentProps<typeof Ionicons>["name"]) =>
+  // eslint-disable-next-line react/display-name
   (color: string, size: number) => (
     <Ionicons name={n} size={size} color={color} />
   );
 
 const mci =
   (n: React.ComponentProps<typeof MaterialCommunityIcons>["name"]) =>
+  // eslint-disable-next-line react/display-name
   (color: string, size: number) => (
     <MaterialCommunityIcons name={n} size={size} color={color} />
   );
@@ -37,11 +40,11 @@ const ITEMS: SidebarItem[] = [
   { name: "trip", label: "Trip", renderIcon: ion("navigate-outline") },
   { name: "trips", label: "My Trips", renderIcon: ion("list-outline") },
   { name: "truck", label: "My Truck", renderIcon: mci("truck-outline") },
+  { name: "documents", label: "Documents", renderIcon: ion("folder-outline") },
   { name: "chat", label: "Drivers", renderIcon: ion("chatbubbles-outline") },
   { name: "groups", label: "Groups", renderIcon: ion("people-outline") },
   { name: "alarm", label: "Alarm", renderIcon: ion("alarm-outline") },
 ];
-
 
 export default function DriverLayout() {
   const scheme = useColorScheme() ?? "light";
@@ -207,11 +210,7 @@ function DriverFooter({ colors: c }: { colors: ThemeColors }) {
           },
         ]}
       >
-        <Ionicons
-          name="log-out-outline"
-          size={20}
-          color={c.mutedForeground}
-        />
+        <Ionicons name="log-out-outline" size={20} color={c.mutedForeground} />
       </Pressable>
     </View>
   );

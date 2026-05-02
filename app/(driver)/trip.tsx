@@ -1,12 +1,18 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { DrawerActions, useNavigation } from '@react-navigation/native';
+import { DrawerActions, useIsFocused, useNavigation } from '@react-navigation/native';
+import * as DocumentPicker from 'expo-document-picker';
+import * as ImagePicker from 'expo-image-picker';
 import { Stack } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import * as WebBrowser from 'expo-web-browser';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
+  Image,
   Keyboard,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   RefreshControl,
@@ -16,6 +22,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import EmojiPicker from 'rn-emoji-keyboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ScreenPlaceholder } from '@/components/screen-placeholder';
@@ -23,8 +30,10 @@ import { StatusPicker } from '@/components/status-picker';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { TripStatus } from '@/constants/trip-status';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTripDocuments, useUploadDocuments } from '@/hooks/use-documents';
 import { useActiveTrip, useUpdateMyTripStatus } from '@/hooks/use-trips';
 import { useTripChat, ChatMessage } from '@/hooks/use-trip-chat';
+import { DriverDocument, UploadFileLocal } from '@/lib/documents-api';
 import { Trip } from '@/lib/types';
 import { useUser } from '@/store/auth';
 
@@ -110,12 +119,35 @@ function TripWithChat({
   const c = Colors[useColorScheme() ?? 'light'];
   const user = useUser();
   const insets = useSafeAreaInsets();
-  const { messages, isLoading: chatLoading, connected, sendMessage } = useTripChat(trip.id);
+  const isFocused = useIsFocused();
+  const { messages, isLoading: chatLoading, connected, sendMessage } = useTripChat(
+    trip.id,
+    { isFocused },
+  );
+  const { data: tripDocs = [] } = useTripDocuments(trip.id);
+  const upload = useUploadDocuments();
   const [text, setText] = useState('');
   const listRef = useRef<FlatList>(null);
   // True while the list is scrolled within ~80px of the bottom. Used to
   // suppress auto-scroll when the user has scrolled up to read history.
   const nearBottomRef = useRef(true);
+
+  // Unified timeline: messages + documents sorted by createdAt.
+  type TimelineItem =
+    | { kind: 'msg'; data: ChatMessage }
+    | { kind: 'doc'; data: DriverDocument };
+
+  const timeline: TimelineItem[] = useMemo(() => {
+    const items: TimelineItem[] = [
+      ...messages.map((m) => ({ kind: 'msg' as const, data: m })),
+      ...tripDocs.map((d) => ({ kind: 'doc' as const, data: d })),
+    ];
+    items.sort(
+      (a, b) =>
+        new Date(a.data.createdAt).getTime() - new Date(b.data.createdAt).getTime(),
+    );
+    return items;
+  }, [messages, tripDocs]);
 
   // Track keyboard so the input doesn't keep its safe-area paddingBottom
   // while the keyboard is up (KAV already lifts the input above the keyboard;
@@ -132,14 +164,14 @@ function TripWithChat({
     };
   }, []);
 
-  // Auto-scroll on new messages, but only if the user is already near the
-  // bottom — don't yank them away from history they're reading.
+  // Auto-scroll on new timeline items (messages OR docs), but only if the
+  // user is already near the bottom.
   useEffect(() => {
-    if (messages.length === 0) return;
+    if (timeline.length === 0) return;
     if (!nearBottomRef.current) return;
     const id = setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 50);
     return () => clearTimeout(id);
-  }, [messages.length]);
+  }, [timeline.length]);
 
   const handleSend = () => {
     const trimmed = text.trim();
@@ -148,6 +180,75 @@ function TripWithChat({
     sendMessage(trimmed);
     // Sending always pulls the user back down — they clearly want to see it.
     nearBottomRef.current = true;
+  };
+
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  const [docsOpen, setDocsOpen] = useState(false);
+
+  // ── Upload flow ─────────────────────────────────────────────────────────
+  const pickAndUpload = async (source: 'camera' | 'gallery' | 'document') => {
+    let files: UploadFileLocal[] = [];
+    try {
+      if (source === 'camera') {
+        const perm = await ImagePicker.requestCameraPermissionsAsync();
+        if (!perm.granted) return;
+        const r = await ImagePicker.launchCameraAsync({ quality: 0.8 });
+        if (r.canceled) return;
+        files = r.assets.map((a) => ({
+          uri: a.uri,
+          name: a.fileName ?? `photo-${Date.now()}.jpg`,
+          mimeType: a.mimeType ?? 'image/jpeg',
+        }));
+      } else if (source === 'gallery') {
+        const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!perm.granted) return;
+        const r = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images'],
+          allowsMultipleSelection: true,
+          quality: 0.8,
+        });
+        if (r.canceled) return;
+        files = r.assets.map((a) => ({
+          uri: a.uri,
+          name: a.fileName ?? `photo-${Date.now()}.jpg`,
+          mimeType: a.mimeType ?? 'image/jpeg',
+        }));
+      } else {
+        const r = await DocumentPicker.getDocumentAsync({
+          multiple: true,
+          copyToCacheDirectory: true,
+          type: '*/*',
+        });
+        if (r.canceled) return;
+        files = r.assets.map((a) => ({
+          uri: a.uri,
+          name: a.name,
+          mimeType: a.mimeType ?? 'application/octet-stream',
+        }));
+      }
+      if (files.length === 0) return;
+      await upload.mutateAsync({ tripId: trip.id, files });
+      nearBottomRef.current = true;
+    } catch (e) {
+      Alert.alert('Upload failed', (e as Error).message);
+    }
+  };
+
+  const showUploadSheet = () => {
+    Alert.alert('Attach', 'Choose source', [
+      { text: 'Camera', onPress: () => pickAndUpload('camera') },
+      { text: 'Gallery', onPress: () => pickAndUpload('gallery') },
+      { text: 'File', onPress: () => pickAndUpload('document') },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
+  const handleOpenDoc = async (doc: DriverDocument) => {
+    try {
+      await WebBrowser.openBrowserAsync(doc.signedUrl);
+    } catch (e) {
+      Alert.alert('Cannot open', (e as Error).message);
+    }
   };
 
   return (
@@ -168,14 +269,25 @@ function TripWithChat({
           <Text style={[styles.chatLabelText, { color: connected ? '#10B981' : '#EF4444' }]}>
             {connected ? 'online' : 'connecting…'}
           </Text>
+          <View style={{ flex: 1 }} />
+          <Pressable
+            onPress={() => setDocsOpen(true)}
+            hitSlop={6}
+            style={({ pressed }) => [styles.folderBtn, { opacity: pressed ? 0.6 : 1 }]}
+          >
+            <Ionicons name="folder-outline" size={16} color={c.mutedForeground} />
+            <Text style={[styles.chatLabelText, { color: c.mutedForeground }]}>
+              {tripDocs.length}
+            </Text>
+          </Pressable>
         </View>
 
-        {/* Messages */}
+        {/* Timeline (messages + docs) */}
         {chatLoading ? (
           <View style={styles.center}>
             <ActivityIndicator size="small" color={c.primary} />
           </View>
-        ) : messages.length === 0 ? (
+        ) : timeline.length === 0 ? (
           <View style={styles.emptyChat}>
             <Text style={[styles.emptyChatText, { color: c.mutedForeground }]}>
               No messages yet. Start the conversation.
@@ -184,9 +296,11 @@ function TripWithChat({
         ) : (
           <FlatList
             ref={listRef}
-            data={messages}
+            data={timeline}
             style={styles.messageListFlex}
-            keyExtractor={(m) => m.id}
+            keyExtractor={(item) =>
+              item.kind === 'msg' ? `m-${item.data.id}` : `d-${item.data.id}`
+            }
             contentContainerStyle={styles.messageList}
             onScroll={(e) => {
               const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
@@ -201,12 +315,20 @@ function TripWithChat({
             keyboardShouldPersistTaps="handled"
             automaticallyAdjustContentInsets={false}
             contentInsetAdjustmentBehavior="never"
-            renderItem={({ item }) => (
-              <MessageBubble
-                message={item}
-                isMe={item.senderId === user?.id}
-              />
-            )}
+            renderItem={({ item }) =>
+              item.kind === 'msg' ? (
+                <MessageBubble
+                  message={item.data}
+                  isMe={item.data.senderId === user?.id}
+                />
+              ) : (
+                <DocBubble
+                  doc={item.data}
+                  isMe={item.data.uploadedBy === user?.id}
+                  onOpen={() => handleOpenDoc(item.data)}
+                />
+              )
+            }
           />
         )}
 
@@ -221,6 +343,31 @@ function TripWithChat({
             },
           ]}
         >
+          <Pressable
+            onPress={showUploadSheet}
+            disabled={upload.isPending}
+            hitSlop={6}
+            style={({ pressed }) => [
+              styles.iconBtn,
+              { opacity: pressed || upload.isPending ? 0.5 : 1 },
+            ]}
+          >
+            {upload.isPending ? (
+              <ActivityIndicator size="small" color={c.mutedForeground} />
+            ) : (
+              <Ionicons name="attach" size={22} color={c.mutedForeground} />
+            )}
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              Keyboard.dismiss();
+              setEmojiOpen(true);
+            }}
+            hitSlop={6}
+            style={({ pressed }) => [styles.iconBtn, { opacity: pressed ? 0.6 : 1 }]}
+          >
+            <Ionicons name="happy-outline" size={22} color={c.mutedForeground} />
+          </Pressable>
           <TextInput
             value={text}
             onChangeText={setText}
@@ -247,6 +394,21 @@ function TripWithChat({
           </Pressable>
         </View>
       </View>
+
+      <EmojiPicker
+        open={emojiOpen}
+        onClose={() => setEmojiOpen(false)}
+        onEmojiSelected={(e) => setText((t) => t + e.emoji)}
+      />
+
+      <TripDocsModal
+        open={docsOpen}
+        onClose={() => setDocsOpen(false)}
+        docs={tripDocs}
+        onUpload={showUploadSheet}
+        uploading={upload.isPending}
+        onOpenDoc={handleOpenDoc}
+      />
     </View>
   );
 }
@@ -290,6 +452,236 @@ function MessageBubble({ message, isMe }: { message: ChatMessage; isMe: boolean 
             {message.content}
           </Text>
         </View>
+        <View style={styles.bubbleMetaRow}>
+          <Text style={[styles.bubbleTime, { color: c.mutedForeground }]}>{time}</Text>
+          {isMe && (
+            <Text
+              style={[
+                styles.bubbleTick,
+                { color: message.isRead ? c.primary : c.mutedForeground },
+              ]}
+            >
+              {message.isRead ? '✓✓' : '✓'}
+            </Text>
+          )}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+// ─── Trip docs modal (folder button → tabs) ─────────────────────────────────
+
+type DocTab = 'ALL' | 'PHOTO' | 'DOCUMENT';
+
+function TripDocsModal({
+  open,
+  onClose,
+  docs,
+  onUpload,
+  uploading,
+  onOpenDoc,
+}: {
+  open: boolean;
+  onClose: () => void;
+  docs: DriverDocument[];
+  onUpload: () => void;
+  uploading: boolean;
+  onOpenDoc: (d: DriverDocument) => void;
+}) {
+  const c = Colors[useColorScheme() ?? 'light'];
+  const insets = useSafeAreaInsets();
+  const [tab, setTab] = useState<DocTab>('ALL');
+
+  const photos = docs.filter((d) => d.fileType === 'PHOTO');
+  const documents = docs.filter((d) => d.fileType === 'DOCUMENT');
+  const filtered = tab === 'ALL' ? docs : tab === 'PHOTO' ? photos : documents;
+  const counts = { ALL: docs.length, PHOTO: photos.length, DOCUMENT: documents.length };
+
+  return (
+    <Modal visible={open} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <View style={{ flex: 1, backgroundColor: c.background }}>
+        <View
+          style={[
+            styles.docsHeader,
+            { backgroundColor: c.card, borderBottomColor: c.border, paddingTop: insets.top + Spacing.sm },
+          ]}
+        >
+          <Pressable onPress={onClose} hitSlop={8} style={({ pressed }) => [{ opacity: pressed ? 0.6 : 1, padding: 4 }]}>
+            <Ionicons name="close" size={24} color={c.foreground} />
+          </Pressable>
+          <Text style={[styles.docsTitle, { color: c.foreground }]}>Trip documents</Text>
+          <Pressable
+            onPress={onUpload}
+            disabled={uploading}
+            hitSlop={8}
+            style={({ pressed }) => [
+              styles.uploadBtn,
+              { backgroundColor: c.primary, opacity: pressed || uploading ? 0.85 : 1 },
+            ]}
+          >
+            {uploading ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Ionicons name="cloud-upload-outline" size={16} color="#fff" />
+            )}
+            <Text style={styles.uploadText}>Upload</Text>
+          </Pressable>
+        </View>
+
+        {/* Tabs */}
+        <View style={[styles.docsTabs, { borderBottomColor: c.border }]}>
+          {(['ALL', 'PHOTO', 'DOCUMENT'] as DocTab[]).map((t) => {
+            const active = t === tab;
+            const label = t === 'ALL' ? 'All' : t === 'PHOTO' ? 'Photos' : 'Documents';
+            return (
+              <Pressable
+                key={t}
+                onPress={() => setTab(t)}
+                style={[styles.docsTab, active && { borderBottomColor: c.primary, borderBottomWidth: 2 }]}
+              >
+                <Text
+                  style={[
+                    styles.docsTabText,
+                    { color: active ? c.primary : c.mutedForeground, fontWeight: active ? '700' : '500' },
+                  ]}
+                >
+                  {label} ({counts[t]})
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {filtered.length === 0 ? (
+          <View style={styles.center}>
+            <Text style={{ color: c.mutedForeground }}>Nothing here yet.</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={filtered}
+            keyExtractor={(d) => d.id}
+            contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.sm }}
+            renderItem={({ item }) => (
+              <Pressable
+                onPress={() => onOpenDoc(item)}
+                style={({ pressed }) => [
+                  styles.docRow,
+                  {
+                    backgroundColor: c.card,
+                    borderColor: c.border,
+                    borderRadius: Radius.md,
+                    opacity: pressed ? 0.92 : 1,
+                  },
+                ]}
+              >
+                {item.fileType === 'PHOTO' ? (
+                  <Image source={{ uri: item.signedUrl }} style={styles.docRowThumb} />
+                ) : (
+                  <View
+                    style={[
+                      styles.docRowThumb,
+                      { backgroundColor: c.muted, alignItems: 'center', justifyContent: 'center' },
+                    ]}
+                  >
+                    <Ionicons name="document-text-outline" size={24} color={c.mutedForeground} />
+                  </View>
+                )}
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.docFileName, { color: c.foreground }]} numberOfLines={2}>
+                    {item.fileName}
+                  </Text>
+                  <Text style={[styles.docFileMeta, { color: c.mutedForeground }]}>
+                    {new Date(item.createdAt).toLocaleDateString()}
+                    {item.uploader?.name ? ` · ${item.uploader.name}` : ''}
+                  </Text>
+                </View>
+              </Pressable>
+            )}
+          />
+        )}
+      </View>
+    </Modal>
+  );
+}
+
+// ─── Doc bubble (inline file in chat timeline) ──────────────────────────────
+
+function DocBubble({
+  doc,
+  isMe,
+  onOpen,
+}: {
+  doc: DriverDocument;
+  isMe: boolean;
+  onOpen: () => void;
+}) {
+  const c = Colors[useColorScheme() ?? 'light'];
+  const isPhoto = doc.fileType === 'PHOTO';
+  const time = new Date(doc.createdAt).toLocaleTimeString(undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  const isDispatcher = doc.uploader?.role !== 'DRIVER';
+  const ext = doc.fileName.split('.').pop()?.toUpperCase() ?? 'FILE';
+
+  return (
+    <View style={[styles.bubbleRow, isMe ? styles.bubbleRowMe : styles.bubbleRowOther]}>
+      {!isMe && (
+        <View style={[styles.avatar, { backgroundColor: isDispatcher ? c.primary : c.muted }]}>
+          <Ionicons
+            name={isDispatcher ? 'headset-outline' : 'person-outline'}
+            size={12}
+            color={isDispatcher ? '#fff' : c.mutedForeground}
+          />
+        </View>
+      )}
+      <View style={styles.bubbleCol}>
+        {!isMe && (
+          <Text style={[styles.bubbleSender, { color: c.mutedForeground }]}>
+            {doc.uploader?.name ?? (isDispatcher ? 'Dispatcher' : 'Driver')}
+          </Text>
+        )}
+        <Pressable onPress={onOpen}>
+          {isPhoto ? (
+            <Image source={{ uri: doc.signedUrl }} style={styles.docThumb} />
+          ) : (
+            <View
+              style={[
+                styles.docBubble,
+                isMe
+                  ? { backgroundColor: c.primary }
+                  : {
+                      backgroundColor: c.card,
+                      borderWidth: StyleSheet.hairlineWidth,
+                      borderColor: c.border,
+                    },
+              ]}
+            >
+              <Ionicons
+                name="document-text-outline"
+                size={20}
+                color={isMe ? '#fff' : c.foreground}
+              />
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={[styles.docFileName, { color: isMe ? '#fff' : c.foreground }]}
+                  numberOfLines={2}
+                >
+                  {doc.fileName}
+                </Text>
+                <Text
+                  style={[
+                    styles.docFileMeta,
+                    { color: isMe ? 'rgba(255,255,255,0.7)' : c.mutedForeground },
+                  ]}
+                >
+                  {ext}
+                </Text>
+              </View>
+            </View>
+          )}
+        </Pressable>
         <Text style={[styles.bubbleTime, { color: c.mutedForeground }]}>{time}</Text>
       </View>
     </View>
@@ -536,13 +928,15 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   bubbleSender: { fontSize: 10, fontWeight: '600', paddingLeft: 4 },
+  bubbleMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingLeft: 4 },
+  bubbleTick: { fontSize: 10, fontWeight: '700' },
   bubble: {
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: Radius.lg,
   },
   bubbleText: { fontSize: 14, lineHeight: 20 },
-  bubbleTime: { fontSize: 10, paddingLeft: 4 },
+  bubbleTime: { fontSize: 10 },
 
   // Input bar
   inputWrap: {
@@ -568,4 +962,64 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  iconBtn: {
+    width: 38,
+    height: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  folderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  // TripDocsModal
+  docsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  docsTitle: { flex: 1, fontSize: 16, fontWeight: '700' },
+  uploadBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 8,
+    borderRadius: Radius.md,
+  },
+  uploadText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  docsTabs: { flexDirection: 'row', borderBottomWidth: StyleSheet.hairlineWidth },
+  docsTab: { flex: 1, paddingVertical: Spacing.md, alignItems: 'center' },
+  docsTabText: { fontSize: 13 },
+  docRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    padding: Spacing.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  docRowThumb: { width: 56, height: 56, borderRadius: Radius.sm },
+  // Doc bubble
+  docBubble: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: Radius.lg,
+    minWidth: 160,
+  },
+  docThumb: {
+    width: 160,
+    height: 120,
+    borderRadius: Radius.md,
+  },
+  docFileName: { fontSize: 13, fontWeight: '600' },
+  docFileMeta: { fontSize: 10, marginTop: 2 },
 });
