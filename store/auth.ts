@@ -4,6 +4,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { configureApiAuth } from '@/lib/api';
 import { AuthUser, fetchMe, requestOtp, verifyOtp } from '@/lib/auth-api';
+import { disconnectSocket, getSocket } from '@/lib/socket';
 
 interface AuthState {
   user: AuthUser | null;
@@ -41,6 +42,8 @@ export const useAuthStore = create<AuthState>()(
         } catch {
           // Non-fatal — basic user from verify is enough to proceed.
         }
+        // Open socket connection now that we have a token
+        getSocket(get().token ?? undefined);
       },
 
       hydrate: async () => {
@@ -58,6 +61,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
+        disconnectSocket();
         set({ user: null, token: null, isLoading: false });
       },
     }),
