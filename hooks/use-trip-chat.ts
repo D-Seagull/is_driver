@@ -19,12 +19,18 @@ export interface ChatMessage {
 
 export function useTripChat(
   tripId: string | null | undefined,
-  options: { isFocused?: boolean } = {},
+  options: {
+    isFocused?: boolean;
+    /** Pass the same nearBottomRef used by the FlatList. When provided,
+     *  inbound messages are only acknowledged (markTripRead) when the user
+     *  is actually scrolled to the bottom — i.e. they can see the message. */
+    nearBottomRef?: { current: boolean };
+  } = {},
 ) {
   // When `isFocused` is false (drawer opened a different screen), we still
   // listen for messages but stop auto-acknowledging them — otherwise the
   // sender sees ✓✓ even though the driver hasn't seen the message yet.
-  const { isFocused = true } = options;
+  const { isFocused = true, nearBottomRef } = options;
   const qc = useQueryClient();
   const token = useAuthStore((s) => s.token);
   const user = useAuthStore((s) => s.user);
@@ -39,6 +45,10 @@ export function useTripChat(
   // onNewMessage calls (StrictMode double-effect, transport upgrade reconnect, etc.)
   // cannot both pass the prev.some() check on the same React snapshot.
   const seenIds = useRef(new Set<string>());
+
+  // Stable ref to the latest markRead fn — lets the UI call markReadNow()
+  // from scroll/pill handlers without needing a hook re-render.
+  const markReadFnRef = useRef<() => void>(() => {});
 
   // Keep myId out of socket effect deps — auth hydrates after mount and would
   // otherwise tear down/re-create listeners (and re-fetch history) every time.
@@ -94,11 +104,14 @@ export function useTripChat(
       if (!focusedRef.current) return;
       sock.emit('markTripRead', { tripId });
     };
+    // Keep the ref up-to-date so markReadNow() always calls the right closure.
+    markReadFnRef.current = markRead;
 
     const onConnect = () => {
       setConnected(true);
       joinRoom(); // re-join after every (re)connect
-      markRead();
+      // On reconnect the user might be scrolled up — only ack if visible.
+      if (!nearBottomRef || nearBottomRef.current) markRead();
     };
 
     const onDisconnect = () => setConnected(false);
@@ -111,9 +124,12 @@ export function useTripChat(
       if (seenIds.current.has(msg.id)) return;
       seenIds.current.add(msg.id);
       setMessages((prev) => [...prev, msg]);
-      // Inbound message while screen is open → ack immediately so the sender
-      // sees ✓✓.
-      if (msg.senderId !== myIdRef.current) markRead();
+      // Ack only when the user can actually see the message (near bottom).
+      // If scrolled up the "↓ N new" pill will appear; markReadNow() fires
+      // when they scroll back down or tap the pill.
+      if (msg.senderId !== myIdRef.current) {
+        if (!nearBottomRef || nearBottomRef.current) markRead();
+      }
     };
 
     const onMessagesRead = (payload: {
@@ -148,8 +164,9 @@ export function useTripChat(
       );
       // Truck-scoped + global lists (used by Documents screen) just refetch.
       qc.invalidateQueries({ queryKey: documentKeys.all });
-      // Auto-ack inbound docs while focused — keeps ✓✓ in sync with messages.
-      if (doc.uploadedBy !== myIdRef.current) markRead();
+      if (doc.uploadedBy !== myIdRef.current) {
+        if (!nearBottomRef || nearBottomRef.current) markRead();
+      }
     };
 
     const onMessageDeleted = (payload: { tripId: string; messageId: string }) => {
@@ -178,7 +195,7 @@ export function useTripChat(
     if (sock.connected) {
       setConnected(true);
       joinRoom();
-      markRead();
+      if (!nearBottomRef || nearBottomRef.current) markRead();
     }
 
     return () => {
@@ -194,11 +211,14 @@ export function useTripChat(
   }, [tripId, token, qc]);
 
   // When focus returns (driver navigates back to the trip screen), catch up
-  // any messages that arrived while away.
+  // any messages that arrived while away — but only if they're visible
+  // (user is near the bottom). If scrolled up, markReadNow() fires on scroll.
   useEffect(() => {
     if (!isFocused || !tripId) return;
     const sock = getSocket(token ?? undefined);
-    if (sock.connected) sock.emit('markTripRead', { tripId });
+    if (sock.connected && (!nearBottomRef || nearBottomRef.current)) {
+      sock.emit('markTripRead', { tripId });
+    }
   }, [isFocused, tripId, token]);
 
   // ── Send ────────────────────────────────────────────────────────────────
@@ -253,5 +273,8 @@ export function useTripChat(
     sendMessage,
     deleteMessage,
     removeDocument,
+    /** Call when the user scrolls to bottom or taps the "↓ new" pill so that
+     *  messages that arrived while scrolled-up get marked as read. */
+    markReadNow: () => markReadFnRef.current(),
   };
 }

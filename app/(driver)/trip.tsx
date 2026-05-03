@@ -33,6 +33,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTripDocuments, useUploadDocuments } from '@/hooks/use-documents';
 import { useActiveTrip, useUpdateMyTripStatus } from '@/hooks/use-trips';
 import { useTripChat, ChatMessage } from '@/hooks/use-trip-chat';
+import { useDriverUnread } from '@/hooks/use-driver-unread';
 import { DriverDocument, UploadFileLocal } from '@/lib/documents-api';
 import { Trip } from '@/lib/types';
 import { useUser } from '@/store/auth';
@@ -46,6 +47,7 @@ export default function TripScreen() {
 
   const { data: trip, isLoading, refetch } = useActiveTrip();
   const updateStatus = useUpdateMyTripStatus();
+  const { data: unreadData } = useDriverUnread();
 
   const [manualRefreshing, setManualRefreshing] = useState(false);
   const handleManualRefresh = async () => {
@@ -79,6 +81,7 @@ export default function TripScreen() {
         status={status}
         onChangeStatus={handleStatusChange}
         canEditStatus={!!trip}
+        unreadCount={unreadData?.activeTripUnread}
       />
 
       {isLoading ? (
@@ -120,6 +123,23 @@ function TripWithChat({
   const user = useUser();
   const insets = useSafeAreaInsets();
   const isFocused = useIsFocused();
+  const [text, setText] = useState('');
+  const [newMsgCount, setNewMsgCount] = useState(0);
+  const listRef = useRef<FlatList>(null);
+  // True while the list is scrolled within ~80px of the bottom. Used to
+  // suppress auto-scroll when the user has scrolled up to read history.
+  const nearBottomRef = useRef(true);
+  // False until the first scroll-to-bottom completes — so the initial jump
+  // is instant (no visible scroll-from-top animation).
+  const initialScrollDone = useRef(false);
+  // True once the FlatList has fired its first onLayout — i.e. it has been
+  // measured and is ready to accept scrollToEnd commands.  On Android the
+  // layout pass often completes AFTER the data useEffect fires, so we gate
+  // the effect on this flag and let onLayout drive the initial scroll instead.
+  const listLaidOut = useRef(false);
+
+  // nearBottomRef must be declared BEFORE useTripChat so the hook receives
+  // the real ref object (not undefined due to Babel var-hoisting).
   const {
     messages,
     isLoading: chatLoading,
@@ -127,14 +147,10 @@ function TripWithChat({
     sendMessage,
     deleteMessage,
     removeDocument,
-  } = useTripChat(trip.id, { isFocused });
+    markReadNow,
+  } = useTripChat(trip.id, { isFocused, nearBottomRef });
   const { data: tripDocs = [] } = useTripDocuments(trip.id);
   const upload = useUploadDocuments();
-  const [text, setText] = useState('');
-  const listRef = useRef<FlatList>(null);
-  // True while the list is scrolled within ~80px of the bottom. Used to
-  // suppress auto-scroll when the user has scrolled up to read history.
-  const nearBottomRef = useRef(true);
 
   // Unified timeline: messages + documents sorted by createdAt.
   type TimelineItem =
@@ -168,14 +184,42 @@ function TripWithChat({
     };
   }, []);
 
-  // Auto-scroll on new timeline items (messages OR docs), but only if the
-  // user is already near the bottom.
+  // Auto-scroll when new timeline items arrive (messages OR docs), but only
+  // if the user is already near the bottom.
+  // • First scroll: instant (no visible scroll-from-top animation).
+  // • Subsequent scrolls (new messages): animated glide.
+  // • Android: the FlatList layout pass often completes AFTER this effect fires
+  //   on initial load, so we skip if not yet laid out — onLayout will call
+  //   the initial scroll instead once the list is ready.
   useEffect(() => {
     if (timeline.length === 0) return;
-    if (!nearBottomRef.current) return;
-    const id = setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 50);
-    return () => clearTimeout(id);
+    if (!listLaidOut.current) return; // onLayout will handle the first scroll
+    if (nearBottomRef.current) {
+      // User is at/near the bottom — auto-scroll to new content.
+      const animated = initialScrollDone.current; // false → instant on first load
+      initialScrollDone.current = true;
+      const delay = Platform.OS === 'android' ? 150 : 50;
+      const id = setTimeout(() => listRef.current?.scrollToEnd({ animated }), delay);
+      return () => clearTimeout(id);
+    } else if (initialScrollDone.current) {
+      // User has scrolled up to read history — show "↓ N new" pill instead
+      // of yanking them back down (Viber/Telegram pattern).
+      setNewMsgCount((n) => n + 1);
+    }
   }, [timeline.length]);
+
+  // Re-scroll to bottom when the screen regains focus (e.g. user navigated
+  // away to Trips and came back).  Only if already near the bottom so we
+  // don't interrupt manual scroll-up history reading.
+  useEffect(() => {
+    if (!isFocused) return;
+    const id = setTimeout(() => {
+      if (nearBottomRef.current) {
+        listRef.current?.scrollToEnd({ animated: false });
+      }
+    }, 100);
+    return () => clearTimeout(id);
+  }, [isFocused]);
 
   const handleSend = () => {
     const trimmed = text.trim();
@@ -269,6 +313,15 @@ function TripWithChat({
     ]);
   };
 
+  // Dynamic bottom offset for the "↓ N new" pill so it always floats
+  // above the input bar regardless of safe-area or keyboard state.
+  //   38 = sendBtn height
+  //    8 = paddingVertical top
+  //   +N = paddingBottom (safe-area or keyboard)
+  //   12 = gap between pill and input bar
+  const pillBottom =
+    38 + Spacing.sm + (kbOpen ? Spacing.sm : Math.max(insets.bottom, Spacing.sm)) + Spacing.md;
+
   return (
     <View style={{ flex: 1 }}>
       {/* Trip info — collapses to make room for chat */}
@@ -283,8 +336,8 @@ function TripWithChat({
             Trip chat
           </Text>
           {/* Connection indicator */}
-          <View style={[styles.dot, { backgroundColor: connected ? '#10B981' : '#EF4444' }]} />
-          <Text style={[styles.chatLabelText, { color: connected ? '#10B981' : '#EF4444' }]}>
+          <View style={[styles.dot, { backgroundColor: connected ? '#10B981' : '#f87171' }]} />
+          <Text style={[styles.chatLabelText, { color: connected ? '#10B981' : '#f87171' }]}>
             {connected ? 'online' : 'connecting…'}
           </Text>
           <View style={{ flex: 1 }} />
@@ -324,16 +377,38 @@ function TripWithChat({
               const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
               const distanceFromBottom =
                 contentSize.height - (contentOffset.y + layoutMeasurement.height);
+              const wasNearBottom = nearBottomRef.current;
               nearBottomRef.current = distanceFromBottom < 80;
+              if (!wasNearBottom && nearBottomRef.current) {
+                // User scrolled back to bottom — dismiss pill and ack messages
+                setNewMsgCount(0);
+                markReadNow();
+              }
+            }}
+            // Called once the FlatList has been measured and is ready to
+            // scroll.  On Android this fires AFTER the data useEffect, so
+            // we do the initial scroll here if it hasn't happened yet.
+            onLayout={() => {
+              if (listLaidOut.current) return;
+              listLaidOut.current = true;
+              if (timeline.length > 0 && nearBottomRef.current && !initialScrollDone.current) {
+                // Extra tick for Android to commit the full render tree
+                setTimeout(() => {
+                  listRef.current?.scrollToEnd({ animated: false });
+                  initialScrollDone.current = true;
+                }, Platform.OS === 'android' ? 120 : 0);
+              }
             }}
             // Photos in doc bubbles load asynchronously — when the image
-            // loads, contentSize grows AFTER our 50ms scrollToEnd already
-            // ran, leaving the doc tucked under the input. This re-scrolls
-            // any time the content size grows while we're near the bottom.
+            // loads, contentSize grows AFTER our scrollToEnd already ran,
+            // leaving the doc tucked under the input. Re-scroll whenever
+            // content grows while we're near the bottom.
+            // On Android: wrap in setTimeout to avoid calling during an
+            // active layout pass (causes silent scroll failures).
             onContentSizeChange={() => {
-              if (nearBottomRef.current) {
-                listRef.current?.scrollToEnd({ animated: false });
-              }
+              if (!nearBottomRef.current) return;
+              const scroll = () => listRef.current?.scrollToEnd({ animated: false });
+              Platform.OS === 'android' ? setTimeout(scroll, 50) : scroll();
             }}
             scrollEventThrottle={64}
             // iOS: prevent the list's gesture/inset behavior from swallowing
@@ -364,6 +439,22 @@ function TripWithChat({
               );
             }}
           />
+        )}
+        {/* "↓ N new" pill — absolute overlay above the input bar, never inside
+            the FlatList hierarchy so it cannot interfere with iOS touch routing. */}
+        {newMsgCount > 0 && (
+          <Pressable
+            style={[styles.scrollDownBtn, { backgroundColor: c.primary, bottom: pillBottom }]}
+            onPress={() => {
+              nearBottomRef.current = true;
+              setNewMsgCount(0);
+              markReadNow();
+              listRef.current?.scrollToEnd({ animated: true });
+            }}
+          >
+            <Ionicons name="chevron-down" size={16} color="#fff" />
+            <Text style={styles.scrollDownText}>{newMsgCount} new</Text>
+          </Pressable>
         )}
 
         {/* Input bar — paddingBottom: safe area when keyboard closed, small when keyboard open */}
@@ -792,7 +883,7 @@ function TripInfoCard({
             <StopsBlock label="Loading" color="#10B981" stops={loading} />
           )}
           {unloading.length > 0 && (
-            <StopsBlock label="Unloading" color="#EF4444" stops={unloading} />
+            <StopsBlock label="Unloading" color="#f87171" stops={unloading} />
           )}
           {trip.notes ? (
             <View style={[styles.notes, { borderTopColor: c.border }]}>
@@ -847,16 +938,19 @@ function TripHeader({
   status,
   onChangeStatus,
   canEditStatus,
+  unreadCount,
 }: {
   truck: string;
   driver: string;
   status: TripStatus;
   onChangeStatus: (s: TripStatus) => void;
   canEditStatus: boolean;
+  unreadCount?: number;
 }) {
   const c = Colors[useColorScheme() ?? 'light'];
   const navigation = useNavigation();
   const { top } = useSafeAreaInsets();
+  const hasUnread = (unreadCount ?? 0) > 0;
   return (
     <View style={[styles.header, { backgroundColor: c.card, borderBottomColor: c.border, paddingTop: top + Spacing.sm }]}>
       <View style={styles.row}>
@@ -871,6 +965,15 @@ function TripHeader({
         <View style={styles.truckBlock}>
           <MaterialCommunityIcons name="truck-outline" size={20} color={c.foreground} />
           <Text style={[styles.truck, { color: c.foreground }]}>{truck}</Text>
+          {/* unread bell badge */}
+          <View style={styles.bellWrap}>
+            <Ionicons name="notifications-outline" size={18} color={hasUnread ? '#f87171' : c.mutedForeground} />
+            {hasUnread && (
+              <View style={styles.bellBadge}>
+                <Text style={styles.bellBadgeText}>{unreadCount! > 99 ? '99+' : unreadCount}</Text>
+              </View>
+            )}
+          </View>
         </View>
 
         {canEditStatus ? (
@@ -902,6 +1005,14 @@ const styles = StyleSheet.create({
   truckBlock: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
   truck: { fontSize: 16, fontWeight: '700' },
   driver: { flex: 1, textAlign: 'right', fontSize: 14, fontWeight: '500' },
+  bellWrap: { position: 'relative', width: 22, height: 22, alignItems: 'center', justifyContent: 'center' },
+  bellBadge: {
+    position: 'absolute', top: -3, right: -4,
+    minWidth: 14, height: 14, borderRadius: 7,
+    backgroundColor: '#f87171',
+    alignItems: 'center', justifyContent: 'center', paddingHorizontal: 2,
+  },
+  bellBadgeText: { color: '#fff', fontSize: 8, fontWeight: '700', lineHeight: 10 },
 
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
@@ -965,6 +1076,22 @@ const styles = StyleSheet.create({
   // to full content height, overflows the parent, and its scroll area swallows
   // all taps to the inputWrap below it (iOS) or pushes input off screen (Android)
   messageListFlex: { flex: 1 },
+  scrollDownBtn: {
+    position: 'absolute',
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 5,
+  },
+  scrollDownText: { color: '#fff', fontSize: 12, fontWeight: '700' },
   messageList: { padding: Spacing.md, gap: Spacing.sm, paddingBottom: Spacing.lg },
 
   // Bubbles

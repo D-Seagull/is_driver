@@ -1,18 +1,19 @@
+import React from "react";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import {
   DrawerContentComponentProps,
   DrawerContentScrollView,
-  DrawerItem,
 } from "@react-navigation/drawer";
 import { Redirect } from "expo-router";
 import { Drawer } from "expo-router/drawer";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Colors, Radius, Spacing, ThemeColors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeMode } from "@/hooks/use-theme";
 import { useDriverTruck } from "@/hooks/use-truck";
+import { useDriverUnread, useDriverUnreadSync } from "@/hooks/use-driver-unread";
 import { useAuthStore, useUser } from "@/store/auth";
 
 type SidebarItem = {
@@ -92,8 +93,16 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
   const insets = useSafeAreaInsets();
   const currentRoute = props.state.routeNames[props.state.index];
   const { data: truck } = useDriverTruck();
+  const { data: unread } = useDriverUnread();
+  useDriverUnreadSync();
 
   const dispatcher = truck?.dispatcher ?? null;
+  const activeTripUnread = unread?.activeTripUnread ?? 0;
+  const pastTripsUnread = unread?.pastTripsUnread ?? 0;
+  const totalUnread = unread?.total ?? 0;
+  const unreadItems = unread?.items ?? [];
+
+  const [bellOpen, setBellOpen] = React.useState(false);
 
   return (
     <View style={[styles.container, { backgroundColor: c.sidebar }]}>
@@ -104,6 +113,7 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
           { paddingTop: insets.top + Spacing.sm, borderColor: c.sidebarBorder },
         ]}
       >
+        {/* ── Brand row ── */}
         <View style={[styles.brand, { borderBottomColor: c.sidebarBorder }]}>
           <View style={styles.brandRow}>
             <View style={{ flex: 1 }}>
@@ -114,40 +124,120 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
                 Driver
               </Text>
             </View>
+            {/* Bell button */}
+            <Pressable
+              onPress={() => setBellOpen((o) => !o)}
+              hitSlop={8}
+              style={({ pressed }) => [
+                styles.bellBtn,
+                {
+                  backgroundColor: pressed || bellOpen ? c.sidebarAccent : "transparent",
+                  borderColor: c.sidebarBorder,
+                  borderRadius: Radius.md,
+                },
+              ]}
+            >
+              <Ionicons
+                name="notifications-outline"
+                size={18}
+                color={c.sidebarForeground}
+              />
+              {totalUnread > 0 && (
+                <View style={styles.bellBadge}>
+                  <Text style={styles.bellBadgeText}>
+                    {totalUnread > 99 ? "99+" : totalUnread}
+                  </Text>
+                </View>
+              )}
+            </Pressable>
             <ThemeToggleButton colors={c} />
           </View>
+
+          {/* ── Bell preview panel ── */}
+          {bellOpen && (
+            <View style={[styles.bellPreview, { backgroundColor: c.card, borderColor: c.sidebarBorder }]}>
+              {unreadItems.length === 0 ? (
+                <Text style={[styles.bellEmptyText, { color: c.mutedForeground }]}>
+                  No unread messages
+                </Text>
+              ) : (
+                <ScrollView style={{ maxHeight: 220 }} nestedScrollEnabled>
+                  {unreadItems.map((item) => (
+                    <Pressable
+                      key={item.tripId}
+                      style={({ pressed }) => [
+                        styles.bellItem,
+                        { borderColor: c.sidebarBorder, backgroundColor: pressed ? c.sidebarAccent : "transparent" },
+                      ]}
+                      onPress={() => {
+                        props.navigation.navigate(item.isActiveTrip ? "trip" : "trips");
+                        setBellOpen(false);
+                      }}
+                    >
+                      <View style={styles.bellItemRow}>
+                        <Text style={[styles.bellItemTitle, { color: c.sidebarForeground }]} numberOfLines={1}>
+                          {item.tripTitle}
+                        </Text>
+                        <View style={styles.bellItemBadge}>
+                          <Text style={styles.bellItemBadgeText}>{item.unread}</Text>
+                        </View>
+                      </View>
+                      {item.latestMessage && (
+                        <Text style={[styles.bellItemMsg, { color: c.mutedForeground }]} numberOfLines={1}>
+                          <Text style={{ fontWeight: "600" }}>{item.latestMessage.senderName}: </Text>
+                          {item.latestMessage.content}
+                        </Text>
+                      )}
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              )}
+            </View>
+          )}
         </View>
 
+        {/* ── Nav items (custom, for badge support) ── */}
         {ITEMS.map((it) => {
           const focused = currentRoute === it.name;
           const tint = focused ? c.sidebarPrimary : c.sidebarForeground;
+          const badge =
+            it.name === "trip" ? activeTripUnread :
+            it.name === "trips" ? pastTripsUnread : 0;
           return (
-            <DrawerItem
+            <Pressable
               key={it.name}
-              label={it.label}
-              focused={focused}
-              // Render icon inside a fixed-width slot so labels line up,
-              // and provide visible spacing between icon and text.
-              icon={({ size }) => (
-                <View style={styles.itemIconSlot}>
-                  {it.renderIcon(tint, size)}
+              onPress={() => props.navigation.navigate(it.name)}
+              style={({ pressed }) => [
+                styles.navItem,
+                {
+                  borderRadius: Radius.md,
+                  marginHorizontal: Spacing.sm,
+                  marginVertical: 2,
+                  backgroundColor: focused
+                    ? c.sidebarAccent
+                    : pressed
+                    ? c.sidebarAccent + "80"
+                    : "transparent",
+                },
+              ]}
+            >
+              <View style={styles.itemIconSlot}>
+                {it.renderIcon(tint, 22)}
+              </View>
+              <Text
+                style={[
+                  styles.navLabel,
+                  { color: tint, fontWeight: focused ? "600" : "500" },
+                ]}
+              >
+                {it.label}
+              </Text>
+              {badge > 0 && (
+                <View style={styles.itemBadge}>
+                  <Text style={styles.itemBadgeText}>{badge}</Text>
                 </View>
               )}
-              labelStyle={{
-                color: tint,
-                fontWeight: focused ? "600" : "500",
-                fontSize: 15,
-                marginLeft: Spacing.sm,
-              }}
-              style={{
-                borderRadius: Radius.md,
-                backgroundColor: focused ? c.sidebarAccent : "transparent",
-                marginHorizontal: Spacing.sm,
-                marginVertical: 2,
-                paddingVertical: 2,
-              }}
-              onPress={() => props.navigation.navigate(it.name)}
-            />
+            </Pressable>
           );
         })}
       </DrawerContentScrollView>
@@ -337,6 +427,62 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  // Custom nav item (replaces DrawerItem for badge support)
+  navItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 10,
+  },
+  navLabel: { flex: 1, fontSize: 15 },
+  itemBadge: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "#f87171",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 5,
+  },
+  itemBadgeText: { color: "#fff", fontSize: 11, fontWeight: "700" },
+  // Bell button
+  bellBtn: {
+    width: 36, height: 36,
+    alignItems: "center", justifyContent: "center",
+    borderWidth: StyleSheet.hairlineWidth,
+    position: "relative",
+  },
+  bellBadge: {
+    position: "absolute", top: 2, right: 2,
+    minWidth: 14, height: 14, borderRadius: 7,
+    backgroundColor: "#f87171",
+    alignItems: "center", justifyContent: "center", paddingHorizontal: 2,
+  },
+  bellBadgeText: { color: "#fff", fontSize: 8, fontWeight: "700" },
+  // Bell preview panel
+  bellPreview: {
+    marginTop: Spacing.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: Radius.md,
+    overflow: "hidden",
+  },
+  bellEmptyText: { fontSize: 13, textAlign: "center", paddingVertical: Spacing.md },
+  bellItem: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: 2,
+  },
+  bellItemRow: { flexDirection: "row", alignItems: "center", gap: Spacing.sm },
+  bellItemTitle: { flex: 1, fontSize: 13, fontWeight: "600" },
+  bellItemBadge: {
+    minWidth: 18, height: 18, borderRadius: 9,
+    backgroundColor: "#f87171",
+    alignItems: "center", justifyContent: "center", paddingHorizontal: 4,
+  },
+  bellItemBadgeText: { color: "#fff", fontSize: 10, fontWeight: "700" },
+  bellItemMsg: { fontSize: 12 },
 
   footer: {
     borderTopWidth: StyleSheet.hairlineWidth,
