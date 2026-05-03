@@ -120,10 +120,14 @@ function TripWithChat({
   const user = useUser();
   const insets = useSafeAreaInsets();
   const isFocused = useIsFocused();
-  const { messages, isLoading: chatLoading, connected, sendMessage } = useTripChat(
-    trip.id,
-    { isFocused },
-  );
+  const {
+    messages,
+    isLoading: chatLoading,
+    connected,
+    sendMessage,
+    deleteMessage,
+    removeDocument,
+  } = useTripChat(trip.id, { isFocused });
   const { data: tripDocs = [] } = useTripDocuments(trip.id);
   const upload = useUploadDocuments();
   const [text, setText] = useState('');
@@ -251,6 +255,20 @@ function TripWithChat({
     }
   };
 
+  const confirmDeleteMessage = (id: string) => {
+    Alert.alert('Delete message?', 'This cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => deleteMessage(id) },
+    ]);
+  };
+
+  const confirmDeleteDoc = (doc: DriverDocument) => {
+    Alert.alert('Delete file?', `${doc.fileName} will be removed.`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => removeDocument(doc.id) },
+    ]);
+  };
+
   return (
     <View style={{ flex: 1 }}>
       {/* Trip info — collapses to make room for chat */}
@@ -324,20 +342,27 @@ function TripWithChat({
             keyboardShouldPersistTaps="handled"
             automaticallyAdjustContentInsets={false}
             contentInsetAdjustmentBehavior="never"
-            renderItem={({ item }) =>
-              item.kind === 'msg' ? (
-                <MessageBubble
-                  message={item.data}
-                  isMe={item.data.senderId === user?.id}
-                />
-              ) : (
+            renderItem={({ item }) => {
+              if (item.kind === 'msg') {
+                const isMe = item.data.senderId === user?.id;
+                return (
+                  <MessageBubble
+                    message={item.data}
+                    isMe={isMe}
+                    onLongPress={isMe ? () => confirmDeleteMessage(item.data.id) : undefined}
+                  />
+                );
+              }
+              const isMe = item.data.uploadedBy === user?.id;
+              return (
                 <DocBubble
                   doc={item.data}
-                  isMe={item.data.uploadedBy === user?.id}
+                  isMe={isMe}
                   onOpen={() => handleOpenDoc(item.data)}
+                  onLongPress={isMe ? () => confirmDeleteDoc(item.data) : undefined}
                 />
-              )
-            }
+              );
+            }}
           />
         )}
 
@@ -424,7 +449,15 @@ function TripWithChat({
 
 // ─── Message bubble ───────────────────────────────────────────────────────────
 
-function MessageBubble({ message, isMe }: { message: ChatMessage; isMe: boolean }) {
+function MessageBubble({
+  message,
+  isMe,
+  onLongPress,
+}: {
+  message: ChatMessage;
+  isMe: boolean;
+  onLongPress?: () => void;
+}) {
   const c = Colors[useColorScheme() ?? 'light'];
   const isDispatcher = message.sender.role !== 'DRIVER';
   const time = new Date(message.createdAt).toLocaleTimeString(undefined, {
@@ -449,7 +482,9 @@ function MessageBubble({ message, isMe }: { message: ChatMessage; isMe: boolean 
             {message.sender.name ?? (isDispatcher ? 'Dispatcher' : 'Driver')}
           </Text>
         )}
-        <View
+        <Pressable
+          onLongPress={onLongPress}
+          delayLongPress={350}
           style={[
             styles.bubble,
             isMe
@@ -460,7 +495,7 @@ function MessageBubble({ message, isMe }: { message: ChatMessage; isMe: boolean 
           <Text style={[styles.bubbleText, { color: isMe ? '#fff' : c.foreground }]}>
             {message.content}
           </Text>
-        </View>
+        </Pressable>
         <View style={styles.bubbleMetaRow}>
           <Text style={[styles.bubbleTime, { color: c.mutedForeground }]}>{time}</Text>
           {isMe && (
@@ -620,10 +655,12 @@ function DocBubble({
   doc,
   isMe,
   onOpen,
+  onLongPress,
 }: {
   doc: DriverDocument;
   isMe: boolean;
   onOpen: () => void;
+  onLongPress?: () => void;
 }) {
   const c = Colors[useColorScheme() ?? 'light'];
   const isPhoto = doc.fileType === 'PHOTO';
@@ -651,7 +688,7 @@ function DocBubble({
             {doc.uploader?.name ?? (isDispatcher ? 'Dispatcher' : 'Driver')}
           </Text>
         )}
-        <Pressable onPress={onOpen}>
+        <Pressable onPress={onOpen} onLongPress={onLongPress} delayLongPress={350}>
           {isPhoto ? (
             <Image source={{ uri: doc.signedUrl }} style={styles.docThumb} />
           ) : (

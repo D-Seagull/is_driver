@@ -21,6 +21,10 @@ export async function fetchTripMessages(id: string) {
   return data;
 }
 
+export async function deleteTripMessage(id: string): Promise<void> {
+  await api.delete(`/messages/${id}`);
+}
+
 export async function updateDriverTripStatus(id: string, status: string) {
   const { data } = await api.patch(`/trips/${id}/driver-status`, { status });
   return data;

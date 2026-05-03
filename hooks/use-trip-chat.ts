@@ -2,8 +2,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 
 import { documentKeys } from '@/hooks/use-documents';
-import { DriverDocument } from '@/lib/documents-api';
-import { fetchTripMessages } from '@/lib/trips-api';
+import { deleteDocument, DriverDocument } from '@/lib/documents-api';
+import { deleteTripMessage, fetchTripMessages } from '@/lib/trips-api';
 import { getSocket } from '@/lib/socket';
 import { useAuthStore } from '@/store/auth';
 
@@ -152,11 +152,27 @@ export function useTripChat(
       if (doc.uploadedBy !== myIdRef.current) markRead();
     };
 
+    const onMessageDeleted = (payload: { tripId: string; messageId: string }) => {
+      if (payload.tripId !== tripId) return;
+      seenIds.current.delete(payload.messageId);
+      setMessages((prev) => prev.filter((m) => m.id !== payload.messageId));
+    };
+
+    const onDocumentDeleted = (payload: { tripId: string; documentId: string }) => {
+      if (payload.tripId !== tripId) return;
+      qc.setQueryData<DriverDocument[]>(documentKeys.trip(tripId), (old = []) =>
+        old.filter((d) => d.id !== payload.documentId),
+      );
+      qc.invalidateQueries({ queryKey: documentKeys.all });
+    };
+
     sock.on('connect', onConnect);
     sock.on('disconnect', onDisconnect);
     sock.on('newMessage', onNewMessage);
     sock.on('newDocument', onNewDocument);
     sock.on('tripMessagesRead', onMessagesRead);
+    sock.on('messageDeleted', onMessageDeleted);
+    sock.on('documentDeleted', onDocumentDeleted);
 
     // If already connected — join immediately
     if (sock.connected) {
@@ -172,6 +188,8 @@ export function useTripChat(
       sock.off('newMessage', onNewMessage);
       sock.off('newDocument', onNewDocument);
       sock.off('tripMessagesRead', onMessagesRead);
+      sock.off('messageDeleted', onMessageDeleted);
+      sock.off('documentDeleted', onDocumentDeleted);
     };
   }, [tripId, token, qc]);
 
@@ -201,5 +219,39 @@ export function useTripChat(
     sock.emit('sendMessage', { tripId, content: trimmed });
   };
 
-  return { messages: visible, isLoading, error, connected, sendMessage };
+  // Delete via HTTP — server then broadcasts `messageDeleted` to the room
+  // and the listener above drops it from local state. We also patch optimistically.
+  const deleteMessage = async (messageId: string) => {
+    if (!tripId) return;
+    setMessages((prev) => prev.filter((m) => m.id !== messageId));
+    seenIds.current.delete(messageId);
+    try {
+      await deleteTripMessage(messageId);
+    } catch (e) {
+      console.warn('[chat] deleteMessage failed', e);
+    }
+  };
+
+  const removeDocument = async (documentId: string) => {
+    if (!tripId) return;
+    qc.setQueryData<DriverDocument[]>(documentKeys.trip(tripId), (old = []) =>
+      old.filter((d) => d.id !== documentId),
+    );
+    try {
+      await deleteDocument(documentId);
+      qc.invalidateQueries({ queryKey: documentKeys.all });
+    } catch (e) {
+      console.warn('[chat] deleteDocument failed', e);
+    }
+  };
+
+  return {
+    messages: visible,
+    isLoading,
+    error,
+    connected,
+    sendMessage,
+    deleteMessage,
+    removeDocument,
+  };
 }
