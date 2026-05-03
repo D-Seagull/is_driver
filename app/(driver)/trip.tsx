@@ -308,6 +308,15 @@ function TripWithChat({
                 contentSize.height - (contentOffset.y + layoutMeasurement.height);
               nearBottomRef.current = distanceFromBottom < 80;
             }}
+            // Photos in doc bubbles load asynchronously — when the image
+            // loads, contentSize grows AFTER our 50ms scrollToEnd already
+            // ran, leaving the doc tucked under the input. This re-scrolls
+            // any time the content size grows while we're near the bottom.
+            onContentSizeChange={() => {
+              if (nearBottomRef.current) {
+                listRef.current?.scrollToEnd({ animated: false });
+              }
+            }}
             scrollEventThrottle={64}
             // iOS: prevent the list's gesture/inset behavior from swallowing
             // taps to the inputWrap below it. `handled` lets bubble taps still
@@ -682,7 +691,19 @@ function DocBubble({
             </View>
           )}
         </Pressable>
-        <Text style={[styles.bubbleTime, { color: c.mutedForeground }]}>{time}</Text>
+        <View style={styles.bubbleMetaRow}>
+          <Text style={[styles.bubbleTime, { color: c.mutedForeground }]}>{time}</Text>
+          {isMe && (
+            <Text
+              style={[
+                styles.bubbleTick,
+                { color: doc.isRead ? c.primary : c.mutedForeground },
+              ]}
+            >
+              {doc.isRead ? '✓✓' : '✓'}
+            </Text>
+          )}
+        </View>
       </View>
     </View>
   );

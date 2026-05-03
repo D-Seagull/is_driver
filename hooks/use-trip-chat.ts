@@ -1,5 +1,8 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 
+import { documentKeys } from '@/hooks/use-documents';
+import { DriverDocument } from '@/lib/documents-api';
 import { fetchTripMessages } from '@/lib/trips-api';
 import { getSocket } from '@/lib/socket';
 import { useAuthStore } from '@/store/auth';
@@ -22,6 +25,7 @@ export function useTripChat(
   // listen for messages but stop auto-acknowledging them — otherwise the
   // sender sees ✓✓ even though the driver hasn't seen the message yet.
   const { isFocused = true } = options;
+  const qc = useQueryClient();
   const token = useAuthStore((s) => s.token);
   const user = useAuthStore((s) => s.user);
   const myId = user?.id ?? '';
@@ -115,17 +119,43 @@ export function useTripChat(
     const onMessagesRead = (payload: {
       tripId: string;
       messageIds: string[];
+      documentIds: string[];
     }) => {
       if (payload.tripId !== tripId) return;
-      const ids = new Set(payload.messageIds);
-      setMessages((prev) =>
-        prev.map((m) => (ids.has(m.id) ? { ...m, isRead: true } : m)),
+      const msgIds = new Set(payload.messageIds ?? []);
+      const docIds = new Set(payload.documentIds ?? []);
+      if (msgIds.size > 0) {
+        setMessages((prev) =>
+          prev.map((m) => (msgIds.has(m.id) ? { ...m, isRead: true } : m)),
+        );
+      }
+      if (docIds.size > 0) {
+        // setQueryData alone sometimes didn't trigger the FlatList re-render
+        // (the array reference is replaced but observers may miss the diff
+        // when the query is also being concurrently fetched). Doing both is
+        // belt-and-suspenders: instant patch + forced refetch from server.
+        qc.setQueryData<DriverDocument[]>(documentKeys.trip(tripId), (old = []) =>
+          old.map((d) => (docIds.has(d.id) ? { ...d, isRead: true } : d)),
+        );
+        qc.invalidateQueries({ queryKey: documentKeys.trip(tripId) });
+      }
+    };
+
+    const onNewDocument = (doc: DriverDocument) => {
+      if (doc.tripId !== tripId) return;
+      qc.setQueryData<DriverDocument[]>(documentKeys.trip(tripId), (old = []) =>
+        old.some((d) => d.id === doc.id) ? old : [...old, doc],
       );
+      // Truck-scoped + global lists (used by Documents screen) just refetch.
+      qc.invalidateQueries({ queryKey: documentKeys.all });
+      // Auto-ack inbound docs while focused — keeps ✓✓ in sync with messages.
+      if (doc.uploadedBy !== myIdRef.current) markRead();
     };
 
     sock.on('connect', onConnect);
     sock.on('disconnect', onDisconnect);
     sock.on('newMessage', onNewMessage);
+    sock.on('newDocument', onNewDocument);
     sock.on('tripMessagesRead', onMessagesRead);
 
     // If already connected — join immediately
@@ -140,9 +170,10 @@ export function useTripChat(
       sock.off('connect', onConnect);
       sock.off('disconnect', onDisconnect);
       sock.off('newMessage', onNewMessage);
+      sock.off('newDocument', onNewDocument);
       sock.off('tripMessagesRead', onMessagesRead);
     };
-  }, [tripId, token]);
+  }, [tripId, token, qc]);
 
   // When focus returns (driver navigates back to the trip screen), catch up
   // any messages that arrived while away.

@@ -7,6 +7,7 @@ export interface DriverDocument {
   fileUrl: string;
   fileType: 'PHOTO' | 'DOCUMENT';
   uploadedBy: string;
+  isRead: boolean;
   createdAt: string;
   signedUrl: string;
   uploader?: { id: string; name: string | null; role: string };
