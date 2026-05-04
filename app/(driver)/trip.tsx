@@ -313,15 +313,6 @@ function TripWithChat({
     ]);
   };
 
-  // Dynamic bottom offset for the "↓ N new" pill so it always floats
-  // above the input bar regardless of safe-area or keyboard state.
-  //   38 = sendBtn height
-  //    8 = paddingVertical top
-  //   +N = paddingBottom (safe-area or keyboard)
-  //   12 = gap between pill and input bar
-  const pillBottom =
-    38 + Spacing.sm + (kbOpen ? Spacing.sm : Math.max(insets.bottom, Spacing.sm)) + Spacing.md;
-
   return (
     <View style={{ flex: 1 }}>
       {/* Trip info — collapses to make room for chat */}
@@ -440,11 +431,13 @@ function TripWithChat({
             }}
           />
         )}
-        {/* "↓ N new" pill — absolute overlay above the input bar, never inside
-            the FlatList hierarchy so it cannot interfere with iOS touch routing. */}
+        {/* "↓ N new" pill — absolute overlay at the bottom of chatWrap (just
+            above where inputWrap begins as a sibling).  Constrained width so
+            its absolute frame can't stretch the full parent and intercept
+            taps meant for the input. */}
         {newMsgCount > 0 && (
           <Pressable
-            style={[styles.scrollDownBtn, { backgroundColor: c.primary, bottom: pillBottom }]}
+            style={[styles.scrollDownBtn, { backgroundColor: c.primary }]}
             onPress={() => {
               nearBottomRef.current = true;
               setNewMsgCount(0);
@@ -456,68 +449,70 @@ function TripWithChat({
             <Text style={styles.scrollDownText}>{newMsgCount} new</Text>
           </Pressable>
         )}
+      </View>
 
-        {/* Input bar — paddingBottom: safe area when keyboard closed, small when keyboard open */}
-        <View
-          style={[
-            styles.inputWrap,
+      {/* Input bar — moved OUT of chatWrap so the FlatList's iOS scroll-content
+          rect can never extend over the TextInput's hit area.
+          paddingBottom: safe area when keyboard closed, small when keyboard open. */}
+      <View
+        style={[
+          styles.inputWrap,
+          {
+            backgroundColor: c.card,
+            borderTopColor: c.border,
+            paddingBottom: kbOpen ? Spacing.sm : Math.max(insets.bottom, Spacing.sm),
+          },
+        ]}
+      >
+        <Pressable
+          onPress={showUploadSheet}
+          disabled={upload.isPending}
+          hitSlop={6}
+          style={({ pressed }) => [
+            styles.iconBtn,
+            { opacity: pressed || upload.isPending ? 0.5 : 1 },
+          ]}
+        >
+          {upload.isPending ? (
+            <ActivityIndicator size="small" color={c.mutedForeground} />
+          ) : (
+            <Ionicons name="attach" size={22} color={c.mutedForeground} />
+          )}
+        </Pressable>
+        <Pressable
+          onPress={() => {
+            Keyboard.dismiss();
+            setEmojiOpen(true);
+          }}
+          hitSlop={6}
+          style={({ pressed }) => [styles.iconBtn, { opacity: pressed ? 0.6 : 1 }]}
+        >
+          <Ionicons name="happy-outline" size={22} color={c.mutedForeground} />
+        </Pressable>
+        <TextInput
+          value={text}
+          onChangeText={setText}
+          placeholder="Message…"
+          placeholderTextColor={c.mutedForeground}
+          style={[styles.input, { color: c.foreground, backgroundColor: c.muted }]}
+          multiline
+          maxLength={1000}
+          returnKeyType="default"
+          blurOnSubmit={false}
+        />
+        <Pressable
+          onPress={handleSend}
+          disabled={!text.trim() || !connected}
+          style={({ pressed }) => [
+            styles.sendBtn,
             {
-              backgroundColor: c.card,
-              borderTopColor: c.border,
-              paddingBottom: kbOpen ? Spacing.sm : Math.max(insets.bottom, Spacing.sm),
+              backgroundColor: text.trim() && connected ? c.primary : c.muted,
+              opacity: pressed ? 0.8 : 1,
             },
           ]}
         >
-          <Pressable
-            onPress={showUploadSheet}
-            disabled={upload.isPending}
-            hitSlop={6}
-            style={({ pressed }) => [
-              styles.iconBtn,
-              { opacity: pressed || upload.isPending ? 0.5 : 1 },
-            ]}
-          >
-            {upload.isPending ? (
-              <ActivityIndicator size="small" color={c.mutedForeground} />
-            ) : (
-              <Ionicons name="attach" size={22} color={c.mutedForeground} />
-            )}
-          </Pressable>
-          <Pressable
-            onPress={() => {
-              Keyboard.dismiss();
-              setEmojiOpen(true);
-            }}
-            hitSlop={6}
-            style={({ pressed }) => [styles.iconBtn, { opacity: pressed ? 0.6 : 1 }]}
-          >
-            <Ionicons name="happy-outline" size={22} color={c.mutedForeground} />
-          </Pressable>
-          <TextInput
-            value={text}
-            onChangeText={setText}
-            placeholder="Message…"
-            placeholderTextColor={c.mutedForeground}
-            style={[styles.input, { color: c.foreground, backgroundColor: c.muted }]}
-            multiline
-            maxLength={1000}
-            returnKeyType="default"
-            blurOnSubmit={false}
-          />
-          <Pressable
-            onPress={handleSend}
-            disabled={!text.trim() || !connected}
-            style={({ pressed }) => [
-              styles.sendBtn,
-              {
-                backgroundColor: text.trim() && connected ? c.primary : c.muted,
-                opacity: pressed ? 0.8 : 1,
-              },
-            ]}
-          >
-            <Ionicons name="send" size={16} color="#fff" />
-          </Pressable>
-        </View>
+          <Ionicons name="send" size={16} color="#fff" />
+        </Pressable>
       </View>
 
       <EmojiPicker
@@ -1079,12 +1074,18 @@ const styles = StyleSheet.create({
   scrollDownBtn: {
     position: 'absolute',
     alignSelf: 'center',
+    bottom: Spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
+    // Without horizontal anchors Yoga can stretch an absolute frame to the
+    // full parent width on iOS — give it a fixed minimum so the hit area
+    // is exactly the pill content, never a hidden full-width row.
+    minWidth: 90,
+    justifyContent: 'center',
     shadowColor: '#000',
     shadowOpacity: 0.2,
     shadowRadius: 6,
