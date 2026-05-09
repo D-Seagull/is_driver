@@ -14,6 +14,8 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeMode } from "@/hooks/use-theme";
 import { useDriverTruck, useTruckChangedSync } from "@/hooks/use-truck";
 import { useDriverUnread, useDriverUnreadSync } from "@/hooks/use-driver-unread";
+import { usePushNotifications } from "@/hooks/use-push-notifications";
+import { PushNoticeOverlay } from "@/components/push-notice-overlay";
 import { useAuthStore, useUser } from "@/store/auth";
 
 type SidebarItem = {
@@ -59,31 +61,35 @@ export default function DriverLayout() {
   }
 
   return (
-    <Drawer
-      drawerContent={(props) => <DriverDrawerContent {...props} />}
-      screenOptions={{
-        headerStyle: { backgroundColor: c.background },
-        headerTintColor: c.foreground,
-        headerTitleStyle: { fontWeight: "600" },
-        sceneStyle: { backgroundColor: c.background },
-        drawerStyle: { backgroundColor: c.sidebar, width: 300 },
-        drawerActiveTintColor: c.sidebarPrimary,
-        drawerInactiveTintColor: c.sidebarForeground,
-        drawerActiveBackgroundColor: c.sidebarAccent,
-      }}
-    >
-      {ITEMS.map((it) => (
-        <Drawer.Screen
-          key={it.name}
-          name={it.name}
-          options={{
-            title: it.label,
-            drawerLabel: it.label,
-            drawerIcon: ({ color, size }) => it.renderIcon(color, size),
-          }}
-        />
-      ))}
-    </Drawer>
+    <>
+      <Drawer
+        drawerContent={(props) => <DriverDrawerContent {...props} />}
+        screenOptions={{
+          headerStyle: { backgroundColor: c.background },
+          headerTintColor: c.foreground,
+          headerTitleStyle: { fontWeight: "600" },
+          sceneStyle: { backgroundColor: c.background },
+          drawerStyle: { backgroundColor: c.sidebar, width: 300 },
+          drawerActiveTintColor: c.sidebarPrimary,
+          drawerInactiveTintColor: c.sidebarForeground,
+          drawerActiveBackgroundColor: c.sidebarAccent,
+        }}
+      >
+        {ITEMS.map((it) => (
+          <Drawer.Screen
+            key={it.name}
+            name={it.name}
+            options={{
+              title: it.label,
+              drawerLabel: it.label,
+              drawerIcon: ({ color, size }) => it.renderIcon(color, size),
+            }}
+          />
+        ))}
+      </Drawer>
+      {/* Foreground push notifications render here (Modal portals over UI). */}
+      <PushNoticeOverlay />
+    </>
   );
 }
 
@@ -96,6 +102,7 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
   const { data: unread } = useDriverUnread();
   useDriverUnreadSync();
   useTruckChangedSync();
+  usePushNotifications();
 
   const dispatcher = truck?.dispatcher ?? null;
   const activeTripUnread = unread?.activeTripUnread ?? 0;
