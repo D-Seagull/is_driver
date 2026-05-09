@@ -1,7 +1,9 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { DrawerActions, useIsFocused, useNavigation } from '@react-navigation/native';
+import * as Clipboard from 'expo-clipboard';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
+import * as Linking from 'expo-linking';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -207,11 +209,27 @@ function TripWithChat({
   // Track keyboard so the input doesn't keep its safe-area paddingBottom
   // while the keyboard is up (KAV already lifts the input above the keyboard;
   // the home-indicator inset is only relevant when the keyboard is closed).
+  // Also: when the keyboard opens, snap the message list to the bottom so
+  // the last message stays visible above the input instead of getting hidden
+  // behind it.
   const [kbOpen, setKbOpen] = useState(false);
   useEffect(() => {
     const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const showSub = Keyboard.addListener(showEvt, () => setKbOpen(true));
+    const showSub = Keyboard.addListener(showEvt, () => {
+      setKbOpen(true);
+      if (nearBottomRef.current) {
+        // Two passes — iOS lays out KAV padding asynchronously; without the
+        // second tick the scroll lands above the new bottom.
+        requestAnimationFrame(() =>
+          listRef.current?.scrollToEnd({ animated: true }),
+        );
+        setTimeout(
+          () => listRef.current?.scrollToEnd({ animated: false }),
+          250,
+        );
+      }
+    });
     const hideSub = Keyboard.addListener(hideEvt, () => setKbOpen(false));
     return () => {
       showSub.remove();
@@ -966,6 +984,22 @@ function TripInfoCard({
 
 // ─── Stops block ─────────────────────────────────────────────────────────────
 
+async function copyToClipboard(value: string) {
+  try {
+    await Clipboard.setStringAsync(value);
+  } catch {
+    /* swallow — copy is a nice-to-have, never crash the chat for it */
+  }
+}
+
+function openInMaps(coords: string) {
+  const trimmed = coords.trim();
+  if (!trimmed) return;
+  // Apple Maps + Google Maps both honour `?q=lat,lng` — universal URL.
+  const url = `https://www.google.com/maps?q=${encodeURIComponent(trimmed)}`;
+  Linking.openURL(url).catch(() => {});
+}
+
 function StopsBlock({
   label,
   color,
@@ -985,11 +1019,75 @@ function StopsBlock({
         </Text>
       </View>
       {stops.map((s, i) => (
-        <View key={s.id} style={styles.stopRow}>
-          <Text style={[styles.stopIndex, { color: c.mutedForeground }]}>{i + 1}.</Text>
-          <Text style={[styles.stopAddress, { color: c.foreground }]} numberOfLines={2}>
-            {s.address ?? '—'}
-          </Text>
+        <View key={s.id} style={styles.stopCard}>
+          <View style={styles.stopRow}>
+            <Text style={[styles.stopIndex, { color: c.mutedForeground }]}>{i + 1}.</Text>
+            {/* Tap anywhere on the address to copy. Copy icon makes that
+                affordance discoverable. selectable would intercept the tap
+                on Android, so we keep it off. */}
+            <Pressable
+              onPress={() => s.address && copyToClipboard(s.address)}
+              style={styles.stopAddressWrap}
+              hitSlop={4}
+            >
+              <Text
+                style={[styles.stopAddress, { color: c.foreground }]}
+                numberOfLines={3}
+              >
+                {s.address ?? '—'}
+              </Text>
+            </Pressable>
+            {s.address ? (
+              <Pressable
+                onPress={() => copyToClipboard(s.address!)}
+                hitSlop={6}
+                style={styles.stopCopyBtn}
+              >
+                <Ionicons name="copy-outline" size={12} color={c.mutedForeground} />
+              </Pressable>
+            ) : null}
+          </View>
+          {(s.ref || s.coords) && (
+            <View style={styles.stopMetaRow}>
+              {s.ref ? (
+                <Pressable
+                  onPress={() => copyToClipboard(s.ref!)}
+                  style={[styles.metaChip, { borderColor: c.border }]}
+                  hitSlop={4}
+                >
+                  <Text style={[styles.metaLabel, { color: c.mutedForeground }]}>
+                    ref:
+                  </Text>
+                  <Text
+                    style={[styles.metaText, { color: c.mutedForeground }]}
+                    numberOfLines={1}
+                    selectable
+                  >
+                    {s.ref}
+                  </Text>
+                  <Ionicons name="copy-outline" size={11} color={c.mutedForeground} />
+                </Pressable>
+              ) : null}
+              {s.coords ? (
+                <View style={[styles.metaChip, { borderColor: c.border }]}>
+                  <Ionicons name="navigate-outline" size={11} color={c.mutedForeground} />
+                  <Text
+                    style={[styles.metaText, { color: c.mutedForeground }]}
+                    numberOfLines={1}
+                    selectable
+                  >
+                    {s.coords}
+                  </Text>
+                  <Pressable onPress={() => copyToClipboard(s.coords!)} hitSlop={6}>
+                    <Ionicons name="copy-outline" size={11} color={c.mutedForeground} />
+                  </Pressable>
+                  <Pressable onPress={() => openInMaps(s.coords!)} hitSlop={6}>
+                    <Ionicons name="open-outline" size={12} color={c.mutedForeground} />
+                  </Pressable>
+                </View>
+              ) : null}
+            </View>
+          )}
         </View>
       ))}
     </View>
@@ -1108,12 +1206,33 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 15, fontWeight: '700' },
   cardSub: { fontSize: 12, fontFamily: 'monospace', marginTop: 2 },
 
-  stopsBlock: { gap: 4 },
+  stopsBlock: { gap: 6 },
   stopsHeader: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   stopsLabel: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
+  stopCard: { gap: 4, paddingVertical: 2 },
   stopRow: { flexDirection: 'row', gap: 6, paddingLeft: 2 },
-  stopIndex: { fontSize: 12, fontWeight: '600', minWidth: 14 },
-  stopAddress: { flex: 1, fontSize: 12 },
+  stopIndex: { fontSize: 12, fontWeight: '600', minWidth: 14, marginTop: 1 },
+  stopAddressWrap: { flex: 1 },
+  stopAddress: { fontSize: 12 },
+  stopCopyBtn: { paddingHorizontal: 4, marginTop: 1 },
+  stopMetaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    paddingLeft: 20,
+  },
+  metaChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 6,
+    maxWidth: '100%',
+  },
+  metaText: { fontSize: 11, fontFamily: 'monospace' },
+  metaLabel: { fontSize: 11, fontWeight: '600' },
 
   notes: { paddingTop: Spacing.sm, borderTopWidth: StyleSheet.hairlineWidth },
   notesText: { fontSize: 12, fontStyle: 'italic' },
