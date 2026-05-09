@@ -1106,13 +1106,13 @@ function StopsBlock({
         <View key={s.id} style={styles.stopCard}>
           <View style={styles.stopRow}>
             <Text style={[styles.stopIndex, { color: c.mutedForeground }]}>{i + 1}.</Text>
-            {/* Tap anywhere on the address to copy. Copy icon makes that
-                affordance discoverable. selectable would intercept the tap
+            {/* Tap anywhere on the address to copy. The icon button is the
+                discoverable affordance; selectable would intercept the tap
                 on Android, so we keep it off. */}
             <Pressable
               onPress={() => s.address && copyToClipboard(s.address)}
               style={styles.stopAddressWrap}
-              hitSlop={4}
+              hitSlop={6}
             >
               <Text
                 style={[styles.stopAddress, { color: c.foreground }]}
@@ -1124,10 +1124,13 @@ function StopsBlock({
             {s.address ? (
               <Pressable
                 onPress={() => copyToClipboard(s.address!)}
-                hitSlop={6}
-                style={styles.stopCopyBtn}
+                hitSlop={10}
+                style={({ pressed }) => [
+                  styles.addrCopyBtn,
+                  { backgroundColor: pressed ? c.muted : 'transparent' },
+                ]}
               >
-                <Ionicons name="copy-outline" size={12} color={c.mutedForeground} />
+                <Ionicons name="copy-outline" size={18} color={c.foreground} />
               </Pressable>
             ) : null}
           </View>
@@ -1136,37 +1139,57 @@ function StopsBlock({
               {s.ref ? (
                 <Pressable
                   onPress={() => copyToClipboard(s.ref!)}
-                  style={[styles.metaChip, { borderColor: c.border }]}
-                  hitSlop={4}
+                  style={({ pressed }) => [
+                    styles.metaChip,
+                    {
+                      borderColor: c.border,
+                      backgroundColor: pressed ? c.muted : 'transparent',
+                    },
+                  ]}
+                  hitSlop={6}
                 >
-                  <Text style={[styles.metaLabel, { color: c.mutedForeground }]}>
+                  <Text style={[styles.metaLabel, { color: c.foreground }]}>
                     ref:
                   </Text>
                   <Text
-                    style={[styles.metaText, { color: c.mutedForeground }]}
+                    style={[styles.metaText, { color: c.foreground }]}
                     numberOfLines={1}
                     selectable
                   >
                     {s.ref}
                   </Text>
-                  <Ionicons name="copy-outline" size={11} color={c.mutedForeground} />
+                  <Ionicons name="copy-outline" size={16} color={c.foreground} />
                 </Pressable>
               ) : null}
               {s.coords ? (
                 <View style={[styles.metaChip, { borderColor: c.border }]}>
-                  <Ionicons name="navigate-outline" size={11} color={c.mutedForeground} />
+                  <Ionicons name="navigate-outline" size={14} color={c.foreground} />
                   <Text
-                    style={[styles.metaText, { color: c.mutedForeground }]}
+                    style={[styles.metaText, { color: c.foreground }]}
                     numberOfLines={1}
                     selectable
                   >
                     {s.coords}
                   </Text>
-                  <Pressable onPress={() => copyToClipboard(s.coords!)} hitSlop={6}>
-                    <Ionicons name="copy-outline" size={11} color={c.mutedForeground} />
+                  <Pressable
+                    onPress={() => copyToClipboard(s.coords!)}
+                    hitSlop={10}
+                    style={({ pressed }) => [
+                      styles.metaActionBtn,
+                      { backgroundColor: pressed ? c.muted : 'transparent' },
+                    ]}
+                  >
+                    <Ionicons name="copy-outline" size={16} color={c.foreground} />
                   </Pressable>
-                  <Pressable onPress={() => openInMaps(s.coords!)} hitSlop={6}>
-                    <Ionicons name="open-outline" size={12} color={c.mutedForeground} />
+                  <Pressable
+                    onPress={() => openInMaps(s.coords!)}
+                    hitSlop={10}
+                    style={({ pressed }) => [
+                      styles.metaActionBtn,
+                      { backgroundColor: pressed ? c.muted : 'transparent' },
+                    ]}
+                  >
+                    <Ionicons name="open-outline" size={16} color={c.foreground} />
                   </Pressable>
                 </View>
               ) : null}
@@ -1290,33 +1313,43 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 15, fontWeight: '700' },
   cardSub: { fontSize: 12, fontFamily: 'monospace', marginTop: 2 },
 
-  stopsBlock: { gap: 6 },
+  stopsBlock: { gap: 8 },
   stopsHeader: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   stopsLabel: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
-  stopCard: { gap: 4, paddingVertical: 2 },
-  stopRow: { flexDirection: 'row', gap: 6, paddingLeft: 2 },
-  stopIndex: { fontSize: 12, fontWeight: '600', minWidth: 14, marginTop: 1 },
+  stopCard: { gap: 6, paddingVertical: 2 },
+  stopRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 2 },
+  stopIndex: { fontSize: 13, fontWeight: '600', minWidth: 16, marginTop: 1 },
   stopAddressWrap: { flex: 1 },
-  stopAddress: { fontSize: 12 },
-  stopCopyBtn: { paddingHorizontal: 4, marginTop: 1 },
+  stopAddress: { fontSize: 13 },
+  addrCopyBtn: {
+    padding: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   stopMetaRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
-    paddingLeft: 20,
+    gap: 8,
+    paddingLeft: 22,
   },
   metaChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 6,
+    borderRadius: 8,
     maxWidth: '100%',
   },
-  metaText: { fontSize: 11, fontFamily: 'monospace' },
-  metaLabel: { fontSize: 11, fontWeight: '600' },
+  metaActionBtn: {
+    padding: 4,
+    marginLeft: 2,
+    borderRadius: 6,
+  },
+  metaText: { fontSize: 13, fontFamily: 'monospace' },
+  metaLabel: { fontSize: 13, fontWeight: '600' },
 
   notes: { paddingTop: Spacing.sm, borderTopWidth: StyleSheet.hairlineWidth },
   notesText: { fontSize: 12, fontStyle: 'italic' },

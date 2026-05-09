@@ -25,11 +25,19 @@ Notifications.setNotificationHandler({
 /**
  * Ask permission, fetch the Expo push token, and register it on the backend.
  * Returns the token (or null if we couldn't acquire one — e.g. emulator,
- * permission denied, missing projectId).
+ * permission denied, missing projectId, or Expo Go on Android post-SDK 53).
  */
 export async function registerForPushNotifications(): Promise<string | null> {
   if (!Device.isDevice) {
     // Push only works on real devices.
+    return null;
+  }
+
+  // Expo Go on Android stopped supporting remote push as of SDK 53.
+  // Skip silently — for production push on Android use a dev/EAS build.
+  const isExpoGo = Constants.appOwnership === 'expo';
+  if (Platform.OS === 'android' && isExpoGo) {
+    console.log('[push] skip register: remote push unsupported in Expo Go on Android (SDK 53+)');
     return null;
   }
 
