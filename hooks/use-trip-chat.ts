@@ -44,6 +44,11 @@ export function useTripChat(
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
+  // Map<userId, displayName> — who's currently typing in this trip.
+  const [typers, setTypers] = useState<Map<string, string>>(new Map());
+  const typerTimeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
+    new Map(),
+  );
 
   // Sync deduplication guard — checked BEFORE setState so that two concurrent
   // onNewMessage calls (StrictMode double-effect, transport upgrade reconnect, etc.)
@@ -196,6 +201,42 @@ export function useTripChat(
       qc.invalidateQueries({ queryKey: documentKeys.all });
     };
 
+    const onUserTyping = (payload: {
+      tripId: string;
+      user: { id: string; name: string | null };
+    }) => {
+      if (payload.tripId !== tripId) return;
+      if (payload.user.id === myIdRef.current) return;
+      setTypers((prev) => {
+        const next = new Map(prev);
+        next.set(payload.user.id, payload.user.name ?? 'Someone');
+        return next;
+      });
+      const prevT = typerTimeoutsRef.current.get(payload.user.id);
+      if (prevT) clearTimeout(prevT);
+      const t = setTimeout(() => {
+        setTypers((p) => {
+          const n = new Map(p);
+          n.delete(payload.user.id);
+          return n;
+        });
+        typerTimeoutsRef.current.delete(payload.user.id);
+      }, 4000);
+      typerTimeoutsRef.current.set(payload.user.id, t);
+    };
+
+    const onUserStopTyping = (payload: { tripId: string; userId: string }) => {
+      if (payload.tripId !== tripId) return;
+      const t = typerTimeoutsRef.current.get(payload.userId);
+      if (t) clearTimeout(t);
+      typerTimeoutsRef.current.delete(payload.userId);
+      setTypers((prev) => {
+        const next = new Map(prev);
+        next.delete(payload.userId);
+        return next;
+      });
+    };
+
     sock.on('connect', onConnect);
     sock.on('disconnect', onDisconnect);
     sock.on('newMessage', onNewMessage);
@@ -203,6 +244,8 @@ export function useTripChat(
     sock.on('tripMessagesRead', onMessagesRead);
     sock.on('messageDeleted', onMessageDeleted);
     sock.on('documentDeleted', onDocumentDeleted);
+    sock.on('userTyping', onUserTyping);
+    sock.on('userStopTyping', onUserStopTyping);
 
     // If already connected — join immediately
     if (sock.connected) {
@@ -220,6 +263,10 @@ export function useTripChat(
       sock.off('tripMessagesRead', onMessagesRead);
       sock.off('messageDeleted', onMessageDeleted);
       sock.off('documentDeleted', onDocumentDeleted);
+      sock.off('userTyping', onUserTyping);
+      sock.off('userStopTyping', onUserStopTyping);
+      typerTimeoutsRef.current.forEach((t) => clearTimeout(t));
+      typerTimeoutsRef.current.clear();
     };
   }, [tripId, token, qc]);
 
@@ -250,7 +297,45 @@ export function useTripChat(
 
     console.log('[chat] emit sendMessage tripId=', tripId, 'content=', trimmed.slice(0, 30));
     sock.emit('sendMessage', { tripId, content: trimmed });
+    notifyStopTyping();
   };
+
+  // ── Typing emit (debounced) ─────────────────────────────────────────────
+  const isTypingRef = useRef(false);
+  const stopTypingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const notifyTyping = () => {
+    if (!tripId) return;
+    const sock = getSocket(token ?? undefined);
+    if (!sock.connected) return;
+    if (!isTypingRef.current) {
+      sock.emit('typing', { tripId });
+      isTypingRef.current = true;
+    }
+    if (stopTypingTimeoutRef.current) clearTimeout(stopTypingTimeoutRef.current);
+    stopTypingTimeoutRef.current = setTimeout(() => {
+      sock.emit('stopTyping', { tripId });
+      isTypingRef.current = false;
+    }, 2000);
+  };
+  const notifyStopTyping = () => {
+    if (!tripId) return;
+    if (stopTypingTimeoutRef.current) clearTimeout(stopTypingTimeoutRef.current);
+    if (isTypingRef.current) {
+      const sock = getSocket(token ?? undefined);
+      sock.emit('stopTyping', { tripId });
+      isTypingRef.current = false;
+    }
+  };
+  // Cleanup on trip switch / unmount
+  useEffect(() => {
+    return () => {
+      if (stopTypingTimeoutRef.current) clearTimeout(stopTypingTimeoutRef.current);
+      if (isTypingRef.current && tripId) {
+        getSocket(token ?? undefined).emit('stopTyping', { tripId });
+        isTypingRef.current = false;
+      }
+    };
+  }, [tripId, token]);
 
   // Delete via HTTP — server then broadcasts `messageDeleted` to the room
   // and the listener above drops it from local state. We also patch optimistically.
@@ -289,5 +374,11 @@ export function useTripChat(
     /** Call when the user scrolls to bottom or taps the "↓ new" pill so that
      *  messages that arrived while scrolled-up get marked as read. */
     markReadNow: () => markReadFnRef.current(),
+    /** Map<userId, displayName> of users currently typing in this trip. */
+    typers,
+    /** Call from input onChangeText to broadcast "I'm typing". Debounced. */
+    notifyTyping,
+    /** Call on submit / blur / clear to broadcast "I stopped typing". */
+    notifyStopTyping,
   };
 }
