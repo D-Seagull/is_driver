@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Radius, Spacing, ThemeColors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeMode } from "@/hooks/use-theme";
-import { useDriverTruck } from "@/hooks/use-truck";
+import { useDriverTruck, useTruckChangedSync } from "@/hooks/use-truck";
 import { useDriverUnread, useDriverUnreadSync } from "@/hooks/use-driver-unread";
 import { useAuthStore, useUser } from "@/store/auth";
 
@@ -95,6 +95,7 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
   const { data: truck } = useDriverTruck();
   const { data: unread } = useDriverUnread();
   useDriverUnreadSync();
+  useTruckChangedSync();
 
   const dispatcher = truck?.dispatcher ?? null;
   const activeTripUnread = unread?.activeTripUnread ?? 0;

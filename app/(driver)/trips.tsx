@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -117,6 +118,7 @@ export default function TripsScreen() {
 function TripRow({ trip, unreadCount }: { trip: Trip; unreadCount: number }) {
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
+  const router = useRouter();
   const hasUnread = unreadCount > 0;
   const date = new Date(trip.createdAt).toLocaleDateString(undefined, {
     day: '2-digit',
@@ -126,10 +128,16 @@ function TripRow({ trip, unreadCount }: { trip: Trip; unreadCount: number }) {
   const unreadBg   = scheme === 'dark' ? 'rgba(59,130,246,0.12)' : '#eff6ff';
   const unreadBorder = scheme === 'dark' ? 'rgba(59,130,246,0.35)' : '#93c5fd';
   return (
-    <View
-      style={[
+    <Pressable
+      onPress={() => router.push({ pathname: '/(driver)/trip', params: { tripId: trip.id } })}
+      style={({ pressed }) => [
         styles.row,
-        { backgroundColor: hasUnread ? unreadBg : c.card, borderColor: hasUnread ? unreadBorder : c.border, borderRadius: Radius.md },
+        {
+          backgroundColor: hasUnread ? unreadBg : c.card,
+          borderColor: hasUnread ? unreadBorder : c.border,
+          borderRadius: Radius.md,
+          opacity: pressed ? 0.7 : 1,
+        },
       ]}
     >
       <View style={{ flex: 1, gap: 4 }}>
@@ -153,7 +161,7 @@ function TripRow({ trip, unreadCount }: { trip: Trip; unreadCount: number }) {
         </View>
       )}
       <StatusBadge status={trip.status} />
-    </View>
+    </Pressable>
   );
 }
 

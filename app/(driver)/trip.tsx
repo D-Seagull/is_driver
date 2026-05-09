@@ -2,7 +2,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { DrawerActions, useIsFocused, useNavigation } from '@react-navigation/native';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
-import { Stack } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -31,7 +31,7 @@ import { Colors, Radius, Spacing } from '@/constants/theme';
 import { TripStatus } from '@/constants/trip-status';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTripDocuments, useUploadDocuments } from '@/hooks/use-documents';
-import { useActiveTrip, useUpdateMyTripStatus } from '@/hooks/use-trips';
+import { useActiveTrip, useTrip, useUpdateMyTripStatus } from '@/hooks/use-trips';
 import { useTripChat, ChatMessage } from '@/hooks/use-trip-chat';
 import { useDriverUnread } from '@/hooks/use-driver-unread';
 import { DriverDocument, UploadFileLocal } from '@/lib/documents-api';
@@ -45,9 +45,36 @@ export default function TripScreen() {
   const c = Colors[scheme];
   const user = useUser();
 
-  const { data: trip, isLoading, refetch } = useActiveTrip();
+  // When opened from My Trips list a tripId param is passed → load that
+  // specific trip. Otherwise default to the driver's currently active trip.
+  const params = useLocalSearchParams<{ tripId?: string }>();
+  const explicitTripId = typeof params.tripId === 'string' ? params.tripId : undefined;
+
+  const activeQuery = useActiveTrip();
+  const specificQuery = useTrip(explicitTripId);
+  const trip = explicitTripId ? specificQuery.data : activeQuery.data;
+  const isLoading = explicitTripId ? specificQuery.isLoading : activeQuery.isLoading;
+  const refetch = explicitTripId ? specificQuery.refetch : activeQuery.refetch;
   const updateStatus = useUpdateMyTripStatus();
   const { data: unreadData } = useDriverUnread();
+  const router = useRouter();
+
+  // Bell tap → jump to the trip with unread messages. Picks the active trip
+  // first; otherwise the first item (most recent past trip with unread).
+  const handleBellPress = () => {
+    const items = unreadData?.items ?? [];
+    if (items.length === 0) return;
+    const target =
+      items.find((it) => it.isActiveTrip) ?? items[0];
+    if (target.isActiveTrip) {
+      router.replace('/(driver)/trip');
+    } else {
+      router.push({
+        pathname: '/(driver)/trip',
+        params: { tripId: target.tripId },
+      });
+    }
+  };
 
   const [manualRefreshing, setManualRefreshing] = useState(false);
   const handleManualRefresh = async () => {
@@ -61,7 +88,10 @@ export default function TripScreen() {
     updateStatus.mutate({ id: trip.id, status: next });
   };
 
-  const truckPlate = trip?.truck?.plate ?? user?.currentTruck?.plate ?? '—';
+  // Plate falls back to whichever truck is currently linked to the driver.
+  // If there's no truck at all — leave it null and the header hides the block
+  // entirely (no lone dash next to a phantom truck icon).
+  const truckPlate = trip?.truck?.plate ?? user?.currentTruck?.plate ?? null;
   const driverName = trip?.driver?.name ?? user?.name ?? 'Driver';
   const status: TripStatus = trip?.status ?? 'ASSIGNED';
 
@@ -76,12 +106,13 @@ export default function TripScreen() {
     >
       <Stack.Screen options={{ headerShown: false }} />
       <TripHeader
-        truck={truckPlate}
+        truck={truckPlate ?? ''}
         driver={driverName}
         status={status}
         onChangeStatus={handleStatusChange}
         canEditStatus={!!trip}
-        unreadCount={unreadData?.activeTripUnread}
+        unreadCount={unreadData?.total}
+        onBellPress={handleBellPress}
       />
 
       {isLoading ? (
@@ -151,6 +182,10 @@ function TripWithChat({
   } = useTripChat(trip.id, { isFocused, nearBottomRef });
   const { data: tripDocs = [] } = useTripDocuments(trip.id);
   const upload = useUploadDocuments();
+
+  // Privacy: only the trip's current driver can write messages. Old drivers
+  // get read-only access to their own historical chat.
+  const isActiveDriver = trip.driver?.id === user?.id;
 
   // Unified timeline: messages + documents sorted by createdAt.
   type TimelineItem =
@@ -410,6 +445,11 @@ function TripWithChat({
             contentInsetAdjustmentBehavior="never"
             renderItem={({ item }) => {
               if (item.kind === 'msg') {
+                // System events (driver/dispatcher changed) — Telegram-style
+                // centered grey label, no avatar/bubble.
+                if (item.data.isSystem) {
+                  return <SystemNotice text={item.data.content} />;
+                }
                 const isMe = item.data.senderId === user?.id;
                 return (
                   <MessageBubble
@@ -454,6 +494,23 @@ function TripWithChat({
       {/* Input bar — moved OUT of chatWrap so the FlatList's iOS scroll-content
           rect can never extend over the TextInput's hit area.
           paddingBottom: safe area when keyboard closed, small when keyboard open. */}
+      {!isActiveDriver ? (
+        <View
+          style={[
+            styles.inputWrap,
+            {
+              backgroundColor: c.card,
+              borderTopColor: c.border,
+              paddingBottom: kbOpen ? Spacing.sm : Math.max(insets.bottom, Spacing.sm),
+              justifyContent: 'center',
+            },
+          ]}
+        >
+          <Text style={[styles.inactiveNotice, { color: c.mutedForeground }]}>
+            Ви більше не учасник цього чату — перегляд тільки для читання.
+          </Text>
+        </View>
+      ) : (
       <View
         style={[
           styles.inputWrap,
@@ -514,6 +571,7 @@ function TripWithChat({
           <Ionicons name="send" size={16} color="#fff" />
         </Pressable>
       </View>
+      )}
 
       <EmojiPicker
         open={emojiOpen}
@@ -529,6 +587,19 @@ function TripWithChat({
         uploading={upload.isPending}
         onOpenDoc={handleOpenDoc}
       />
+    </View>
+  );
+}
+
+// ─── System notice (driver/dispatcher changed) ───────────────────────────────
+
+function SystemNotice({ text }: { text: string }) {
+  const c = Colors[useColorScheme() ?? 'light'];
+  return (
+    <View style={styles.systemRow}>
+      <Text style={[styles.systemText, { color: c.mutedForeground, backgroundColor: c.muted }]}>
+        {text}
+      </Text>
     </View>
   );
 }
@@ -934,6 +1005,7 @@ function TripHeader({
   onChangeStatus,
   canEditStatus,
   unreadCount,
+  onBellPress,
 }: {
   truck: string;
   driver: string;
@@ -941,6 +1013,7 @@ function TripHeader({
   onChangeStatus: (s: TripStatus) => void;
   canEditStatus: boolean;
   unreadCount?: number;
+  onBellPress?: () => void;
 }) {
   const c = Colors[useColorScheme() ?? 'light'];
   const navigation = useNavigation();
@@ -958,17 +1031,26 @@ function TripHeader({
         </Pressable>
 
         <View style={styles.truckBlock}>
-          <MaterialCommunityIcons name="truck-outline" size={20} color={c.foreground} />
-          <Text style={[styles.truck, { color: c.foreground }]}>{truck}</Text>
-          {/* unread bell badge */}
-          <View style={styles.bellWrap}>
+          {truck ? (
+            <>
+              <MaterialCommunityIcons name="truck-outline" size={20} color={c.foreground} />
+              <Text style={[styles.truck, { color: c.foreground }]}>{truck}</Text>
+            </>
+          ) : null}
+          {/* unread bell badge — tap jumps to the trip with unread messages */}
+          <Pressable
+            onPress={hasUnread ? onBellPress : undefined}
+            disabled={!hasUnread}
+            hitSlop={8}
+            style={({ pressed }) => [styles.bellWrap, { opacity: pressed ? 0.6 : 1 }]}
+          >
             <Ionicons name="notifications-outline" size={18} color={hasUnread ? '#f87171' : c.mutedForeground} />
             {hasUnread && (
               <View style={styles.bellBadge}>
                 <Text style={styles.bellBadgeText}>{unreadCount! > 99 ? '99+' : unreadCount}</Text>
               </View>
             )}
-          </View>
+          </Pressable>
         </View>
 
         {canEditStatus ? (
@@ -1094,6 +1176,25 @@ const styles = StyleSheet.create({
   },
   scrollDownText: { color: '#fff', fontSize: 12, fontWeight: '700' },
   messageList: { padding: Spacing.md, gap: Spacing.sm, paddingBottom: Spacing.lg },
+
+  // System notices (handover events, etc.)
+  systemRow: {
+    alignItems: 'center',
+    marginVertical: 6,
+  },
+  systemText: {
+    fontSize: 11,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+  inactiveNotice: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontSize: 12,
+    textAlign: 'center',
+  },
 
   // Bubbles
   bubbleRow: {

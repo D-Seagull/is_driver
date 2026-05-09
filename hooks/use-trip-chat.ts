@@ -14,7 +14,11 @@ export interface ChatMessage {
   content: string;
   createdAt: string;
   isRead?: boolean;
+  isSystem?: boolean;
   sender: { id: string; name: string | null; role: string };
+  // Session participants — used by the realtime layer to drop messages
+  // belonging to a session the current user wasn't part of.
+  session?: { driverId: string | null; dispatcherId: string | null };
 }
 
 export function useTripChat(
@@ -119,6 +123,15 @@ export function useTripChat(
     const onNewMessage = (msg: ChatMessage) => {
       console.log('[chat] newMessage', msg.id, 'tripId=', msg.tripId);
       if (msg.tripId !== tripId) return;
+
+      // Privacy: drivers never see chats of sessions they weren't part of —
+      // matters when the same driver still has an old trip open while the
+      // new driver is now writing in it.
+      const meId = myIdRef.current;
+      const inSession =
+        msg.session?.driverId === meId || msg.session?.dispatcherId === meId;
+      if (!inSession) return;
+
       // Synchronous check before setState — prevents duplicate adds when two
       // listeners fire with the same message before React commits the first update
       if (seenIds.current.has(msg.id)) return;
@@ -127,7 +140,7 @@ export function useTripChat(
       // Ack only when the user can actually see the message (near bottom).
       // If scrolled up the "↓ N new" pill will appear; markReadNow() fires
       // when they scroll back down or tap the pill.
-      if (msg.senderId !== myIdRef.current) {
+      if (msg.senderId !== meId) {
         if (!nearBottomRef || nearBottomRef.current) markRead();
       }
     };

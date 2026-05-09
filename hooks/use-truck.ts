@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 
 import {
   createTruckNote,
@@ -6,7 +7,9 @@ import {
   fetchDriverTruck,
   fetchTruckNotes,
 } from '@/lib/truck-api';
-import { useIsAuth } from '@/store/auth';
+import { getSocket } from '@/lib/socket';
+import { useAuthStore, useIsAuth } from '@/store/auth';
+import { tripKeys } from '@/hooks/use-trips';
 
 export const truckKeys = {
   all: ['truck'] as const,
@@ -53,4 +56,28 @@ export function useDeleteTruckNote(truckId: string | null | undefined) {
       qc.invalidateQueries({ queryKey: truckKeys.mine() });
     },
   });
+}
+
+/**
+ * Listen for `truckChanged` socket events emitted when a dispatcher reassigns
+ * a driver between trucks. Invalidates the driver's truck + trip queries so
+ * the mobile app shows the new truck (or "no truck") immediately.
+ */
+export function useTruckChangedSync() {
+  const qc = useQueryClient();
+  const token = useAuthStore((s) => s.token);
+
+  useEffect(() => {
+    if (!token) return;
+    const socket = getSocket(token);
+    const onTruckChanged = () => {
+      qc.invalidateQueries({ queryKey: truckKeys.mine() });
+      qc.invalidateQueries({ queryKey: tripKeys.active() });
+      qc.invalidateQueries({ queryKey: tripKeys.list() });
+    };
+    socket.on('truckChanged', onTruckChanged);
+    return () => {
+      socket.off('truckChanged', onTruckChanged);
+    };
+  }, [qc, token]);
 }
