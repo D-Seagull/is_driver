@@ -192,7 +192,10 @@ function TripWithChat({
 
   // Privacy: only the trip's current driver can write messages. Old drivers
   // get read-only access to their own historical chat.
-  const isActiveDriver = trip.driver?.id === user?.id;
+  // While auth is still hydrating user can be null — keep the input visible
+  // (server-side guard rejects the send anyway). Only hide once we *know*
+  // the user is not the current driver.
+  const isActiveDriver = !user || trip.driver?.id === user.id;
 
   // Unified timeline: messages + documents sorted by createdAt.
   type TimelineItem =

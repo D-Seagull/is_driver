@@ -250,7 +250,17 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
         })}
       </DrawerContentScrollView>
 
-      <View style={[styles.footer, { borderTopColor: c.sidebarBorder }]}>
+      <View
+        style={[
+          styles.footer,
+          {
+            borderTopColor: c.sidebarBorder,
+            // Push the bottom of the drawer above the Android nav bar
+            // (gesture pill / 3-button) and the iOS home indicator.
+            paddingBottom: Math.max(insets.bottom, Spacing.md),
+          },
+        ]}
+      >
         <DriverFooter colors={c} />
         {dispatcher && (
           <DispatcherRow
