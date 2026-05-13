@@ -8,6 +8,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { tripKeys } from '@/hooks/use-trips';
 import { truckKeys } from '@/hooks/use-truck';
 import { updateDriverTripStatus } from '@/lib/trips-api';
+import { playAlarmSound } from '@/lib/sounds';
 
 interface Notice {
   title: string;
@@ -68,6 +69,10 @@ export function PushNoticeOverlay() {
       // the chat in real time), so we don't want a modal interrupting the
       // user. The banner dismissal above takes care of the visual side.
       if (payload?.type === 'MESSAGE') return;
+
+      // Alarm chime — only for ALARM type so we don't make noise on other
+      // pushes (trip assignment, truck reassign).
+      if (payload?.type === 'ALARM') playAlarmSound();
 
       setNotice({
         title: title ?? 'Сповіщення',

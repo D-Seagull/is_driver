@@ -5,6 +5,7 @@ import { documentKeys } from '@/hooks/use-documents';
 import { deleteDocument, DriverDocument } from '@/lib/documents-api';
 import { deleteTripMessage, fetchTripMessages } from '@/lib/trips-api';
 import { getSocket } from '@/lib/socket';
+import { playMessageSound } from '@/lib/sounds';
 import { useAuthStore } from '@/store/auth';
 
 export interface ChatMessage {
@@ -147,6 +148,8 @@ export function useTripChat(
       // when they scroll back down or tap the pill.
       if (msg.senderId !== meId) {
         if (!nearBottomRef || nearBottomRef.current) markRead();
+        // Chime for incoming non-system messages.
+        if (!msg.isSystem) playMessageSound();
       }
     };
 
