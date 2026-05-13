@@ -54,6 +54,15 @@ function fmtDate(iso: string) {
   return new Date(iso).toLocaleString();
 }
 
+/** Render a Date as a wall-clock string the backend interprets in the
+ *  *target user's* timezone — e.g. "2026-05-09T14:00:00" (no TZ suffix). */
+function toWallClock(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
+    d.getHours(),
+  )}:${pad(d.getMinutes())}:00`;
+}
+
 export default function AlarmScreen() {
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
@@ -116,7 +125,10 @@ export default function AlarmScreen() {
         targetUserId: user.id, // driver only ever schedules for self
         title: title.trim(),
         note: note.trim() || undefined,
-        time: time.toISOString(),
+        // Wall-clock — backend will interpret in the target's timezone.
+        // For self-scheduling that's the device's local clock, which is what
+        // we want.
+        time: toWallClock(time),
         recurrence,
       });
       resetForm();
@@ -138,7 +150,9 @@ export default function AlarmScreen() {
     ]);
   };
 
-  /** Reuse: native action sheet with quick offsets — pick one to reschedule. */
+  /** Reuse: native action sheet with quick offsets — pick one to reschedule.
+   *  Sends a full ISO string with `Z`; backend skips wall-clock conversion
+   *  because the offset is already absolute. */
   const reuseAlarm = (alarm: Alarm) => {
     Alert.alert(
       'Перезапустити через…',

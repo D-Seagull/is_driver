@@ -15,6 +15,8 @@ import { useThemeMode } from "@/hooks/use-theme";
 import { useDriverTruck, useTruckChangedSync } from "@/hooks/use-truck";
 import { useDriverUnread, useDriverUnreadSync } from "@/hooks/use-driver-unread";
 import { usePushNotifications } from "@/hooks/use-push-notifications";
+import { useTimezoneSync } from "@/hooks/use-timezone-sync";
+import { useAppStatePresence } from "@/hooks/use-app-state-presence";
 import { PushNoticeOverlay } from "@/components/push-notice-overlay";
 import { useAuthStore, useUser } from "@/store/auth";
 
@@ -103,6 +105,8 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
   useDriverUnreadSync();
   useTruckChangedSync();
   usePushNotifications();
+  useTimezoneSync();
+  useAppStatePresence();
 
   const dispatcher = truck?.dispatcher ?? null;
   const activeTripUnread = unread?.activeTripUnread ?? 0;

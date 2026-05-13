@@ -61,11 +61,18 @@ export function PushNoticeOverlay() {
     const recvSub = Notifications.addNotificationReceivedListener((n) => {
       const { title, body, data } = n.request.content;
       void Notifications.dismissNotificationAsync(n.request.identifier);
+      const payload = (data as Record<string, unknown> | undefined) ?? undefined;
       refresh();
+
+      // Chat messages already arrive over the socket (handleNew adds them to
+      // the chat in real time), so we don't want a modal interrupting the
+      // user. The banner dismissal above takes care of the visual side.
+      if (payload?.type === 'MESSAGE') return;
+
       setNotice({
         title: title ?? 'Сповіщення',
         body: body ?? '',
-        data: (data as Record<string, unknown> | undefined) ?? undefined,
+        data: payload,
       });
     });
 

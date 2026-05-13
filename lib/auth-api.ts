@@ -22,8 +22,13 @@ export interface AuthUser {
   phone: string | null;
   email?: string | null;
   avatar?: string | null;
+  timezone?: string | null;
   currentTruck?: DriverTruckSummary | null;
   dispatcher?: DispatcherSummary | null;
+}
+
+export async function setMyTimezone(timezone: string): Promise<void> {
+  await api.patch('/users/me/timezone', { timezone });
 }
 
 export interface AuthResult {
