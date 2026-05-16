@@ -29,7 +29,7 @@ Notifications.setNotificationHandler({
  */
 export async function registerForPushNotifications(): Promise<string | null> {
   if (!Device.isDevice) {
-    // Push only works on real devices.
+    console.warn('[push] skip register: not a real device (simulator/emulator). Push only works on physical hardware.');
     return null;
   }
 
@@ -37,7 +37,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
   // Skip silently — for production push on Android use a dev/EAS build.
   const isExpoGo = Constants.appOwnership === 'expo';
   if (Platform.OS === 'android' && isExpoGo) {
-    console.log('[push] skip register: remote push unsupported in Expo Go on Android (SDK 53+)');
+    console.warn('[push] skip register: Expo Go on Android does not support remote push since SDK 53. Use an EAS dev build or production build to test push.');
     return null;
   }
 
@@ -48,6 +48,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
     status = req.status;
   }
   if (status !== 'granted') {
+    console.warn('[push] skip register: notification permission not granted by user (status=' + status + ')');
     return null;
   }
 
@@ -78,6 +79,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
   }
 
   const token = tokenResponse.data;
+  console.log('[push] got Expo token:', token);
 
   try {
     await registerPushToken(
@@ -88,6 +90,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
         ? 'android'
         : 'web',
     );
+    console.log('[push] backend registered token for', Platform.OS);
   } catch (e) {
     console.warn('[push] backend register failed', e);
   }

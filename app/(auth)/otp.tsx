@@ -39,7 +39,7 @@ export default function OtpScreen() {
     try {
       await verifyOtp(phone, code);
       // Decide initial screen based on whether the driver has a truck assigned.
-      // No truck → drop straight into the dispatcher chat. With truck → Trip chat.
+      // No truck → drop straight into the manager chat. With truck → Trip chat.
       const user = useAuthStore.getState().user;
       const target = user?.currentTruck ? '/(driver)/trip' : '/(driver)/chat';
       router.replace(target);

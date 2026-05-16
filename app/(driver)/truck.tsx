@@ -176,13 +176,13 @@ export default function TruckScreen() {
         <ScreenPlaceholder
           icon="car-outline"
           title="No truck assigned"
-          subtitle="When a dispatcher assigns a truck to you, it'll appear here."
+          subtitle="When a manager assigns a truck to you, it'll appear here."
         />
       </ScrollView>
     );
   }
 
-  const dispatcher = truck.dispatcher;
+  const manager = truck.manager;
   const notes = truck.truckNotes ?? [];
 
   return (
@@ -215,18 +215,18 @@ export default function TruckScreen() {
           <TruckStatusBadge status={truck.status} />
         </View>
 
-        {dispatcher && (
+        {manager && (
           <InfoRow
             icon={
               <Ionicons name="person-circle-outline" size={18} color={c.mutedForeground} />
             }
-            label="Dispatcher"
+            label="Manager"
             value={
-              dispatcher.name
-                ? dispatcher.phone
-                  ? `${dispatcher.name} · ${dispatcher.phone}`
-                  : dispatcher.name
-                : dispatcher.phone ?? '—'
+              manager.name
+                ? manager.phone
+                  ? `${manager.name} · ${manager.phone}`
+                  : manager.name
+                : manager.phone ?? '—'
             }
           />
         )}
@@ -250,7 +250,7 @@ export default function TruckScreen() {
         <TextInput
           value={noteText}
           onChangeText={setNoteText}
-          placeholder="Add a note visible to dispatcher…"
+          placeholder="Add a note visible to manager…"
           placeholderTextColor={c.mutedForeground}
           style={[styles.noteInput, { color: c.foreground }]}
           multiline

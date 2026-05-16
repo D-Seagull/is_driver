@@ -25,7 +25,7 @@ export default function Index() {
     return <Redirect href="/(auth)/phone" />;
   }
 
-  // Has a truck → drop into Trip chat. No truck yet → straight to dispatcher chat.
+  // Has a truck → drop into Trip chat. No truck yet → straight to manager chat.
   return (
     <Redirect href={user?.currentTruck ? '/(driver)/trip' : '/(driver)/chat'} />
   );

@@ -1,12 +1,16 @@
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { DrawerActions, useIsFocused, useNavigation } from '@react-navigation/native';
-import * as Clipboard from 'expo-clipboard';
-import * as DocumentPicker from 'expo-document-picker';
-import * as ImagePicker from 'expo-image-picker';
-import * as Linking from 'expo-linking';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import {
+  DrawerActions,
+  useIsFocused,
+  useNavigation,
+} from "@react-navigation/native";
+import * as Clipboard from "expo-clipboard";
+import * as DocumentPicker from "expo-document-picker";
+import * as ImagePicker from "expo-image-picker";
+import * as Linking from "expo-linking";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -25,39 +29,46 @@ import {
   Text,
   TextInput,
   View,
-} from 'react-native';
-import EmojiPicker from 'rn-emoji-keyboard';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import EmojiPicker from "rn-emoji-keyboard";
 
-import { ScreenPlaceholder } from '@/components/screen-placeholder';
-import { StatusPicker } from '@/components/status-picker';
-import { Colors, Radius, Spacing } from '@/constants/theme';
-import { TripStatus } from '@/constants/trip-status';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useTripDocuments, useUploadDocuments } from '@/hooks/use-documents';
-import { useActiveTrip, useTrip, useUpdateMyTripStatus } from '@/hooks/use-trips';
-import { useTripChat, ChatMessage } from '@/hooks/use-trip-chat';
-import { useDriverUnread } from '@/hooks/use-driver-unread';
-import { DriverDocument, UploadFileLocal } from '@/lib/documents-api';
-import { Trip } from '@/lib/types';
-import { useUser } from '@/store/auth';
+import { ScreenPlaceholder } from "@/components/screen-placeholder";
+import { StatusPicker } from "@/components/status-picker";
+import { Colors, Radius, Spacing } from "@/constants/theme";
+import { TripStatus } from "@/constants/trip-status";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useTripDocuments, useUploadDocuments } from "@/hooks/use-documents";
+import { useDriverUnread } from "@/hooks/use-driver-unread";
+import { ChatMessage, useTripChat } from "@/hooks/use-trip-chat";
+import {
+  useActiveTrip,
+  useTrip,
+  useUpdateMyTripStatus,
+} from "@/hooks/use-trips";
+import { DriverDocument, UploadFileLocal } from "@/lib/documents-api";
+import { Trip } from "@/lib/types";
+import { useUser } from "@/store/auth";
 
 // ─── Main screen ─────────────────────────────────────────────────────────────
 
 export default function TripScreen() {
-  const scheme = useColorScheme() ?? 'light';
+  const scheme = useColorScheme() ?? "light";
   const c = Colors[scheme];
   const user = useUser();
 
   // When opened from My Trips list a tripId param is passed → load that
   // specific trip. Otherwise default to the driver's currently active trip.
   const params = useLocalSearchParams<{ tripId?: string }>();
-  const explicitTripId = typeof params.tripId === 'string' ? params.tripId : undefined;
+  const explicitTripId =
+    typeof params.tripId === "string" ? params.tripId : undefined;
 
   const activeQuery = useActiveTrip();
   const specificQuery = useTrip(explicitTripId);
   const trip = explicitTripId ? specificQuery.data : activeQuery.data;
-  const isLoading = explicitTripId ? specificQuery.isLoading : activeQuery.isLoading;
+  const isLoading = explicitTripId
+    ? specificQuery.isLoading
+    : activeQuery.isLoading;
   const refetch = explicitTripId ? specificQuery.refetch : activeQuery.refetch;
   const updateStatus = useUpdateMyTripStatus();
   const { data: unreadData } = useDriverUnread();
@@ -68,13 +79,12 @@ export default function TripScreen() {
   const handleBellPress = () => {
     const items = unreadData?.items ?? [];
     if (items.length === 0) return;
-    const target =
-      items.find((it) => it.isActiveTrip) ?? items[0];
+    const target = items.find((it) => it.isActiveTrip) ?? items[0];
     if (target.isActiveTrip) {
-      router.replace('/(driver)/trip');
+      router.replace("/(driver)/trip");
     } else {
       router.push({
-        pathname: '/(driver)/trip',
+        pathname: "/(driver)/trip",
         params: { tripId: target.tripId },
       });
     }
@@ -96,8 +106,8 @@ export default function TripScreen() {
   // If there's no truck at all — leave it null and the header hides the block
   // entirely (no lone dash next to a phantom truck icon).
   const truckPlate = trip?.truck?.plate ?? user?.currentTruck?.plate ?? null;
-  const driverName = trip?.driver?.name ?? user?.name ?? 'Driver';
-  const status: TripStatus = trip?.status ?? 'ASSIGNED';
+  const driverName = trip?.driver?.name ?? user?.name ?? "Driver";
+  const status: TripStatus = trip?.status ?? "ASSIGNED";
 
   return (
     // KAV at root so offset is always 0 (nothing above it).
@@ -106,11 +116,11 @@ export default function TripScreen() {
     //   disables the OS-level adjustResize, so we must do it ourselves.
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: c.background }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <Stack.Screen options={{ headerShown: false }} />
       <TripHeader
-        truck={truckPlate ?? ''}
+        truck={truckPlate ?? ""}
         driver={driverName}
         status={status}
         onChangeStatus={handleStatusChange}
@@ -127,17 +137,24 @@ export default function TripScreen() {
         <ScrollView
           contentContainerStyle={{ flexGrow: 1 }}
           refreshControl={
-            <RefreshControl refreshing={manualRefreshing} onRefresh={handleManualRefresh} />
+            <RefreshControl
+              refreshing={manualRefreshing}
+              onRefresh={handleManualRefresh}
+            />
           }
         >
           <ScreenPlaceholder
             icon="document-text-outline"
             title="No active trip"
-            subtitle="When your dispatcher assigns a trip, it'll show up here. Pull down to refresh."
+            subtitle="When your manager assigns a trip, it'll show up here. Pull down to refresh."
           />
         </ScrollView>
       ) : (
-        <TripWithChat trip={trip} onRefresh={handleManualRefresh} refreshing={manualRefreshing} />
+        <TripWithChat
+          trip={trip}
+          onRefresh={handleManualRefresh}
+          refreshing={manualRefreshing}
+        />
       )}
     </KeyboardAvoidingView>
   );
@@ -154,11 +171,11 @@ function TripWithChat({
   onRefresh: () => void;
   refreshing: boolean;
 }) {
-  const c = Colors[useColorScheme() ?? 'light'];
+  const c = Colors[useColorScheme() ?? "light"];
   const user = useUser();
   const insets = useSafeAreaInsets();
   const isFocused = useIsFocused();
-  const [text, setText] = useState('');
+  const [text, setText] = useState("");
   const [newMsgCount, setNewMsgCount] = useState(0);
   const listRef = useRef<FlatList>(null);
   // True while the list is scrolled within ~80px of the bottom. Used to
@@ -199,17 +216,18 @@ function TripWithChat({
 
   // Unified timeline: messages + documents sorted by createdAt.
   type TimelineItem =
-    | { kind: 'msg'; data: ChatMessage }
-    | { kind: 'doc'; data: DriverDocument };
+    | { kind: "msg"; data: ChatMessage }
+    | { kind: "doc"; data: DriverDocument };
 
   const timeline: TimelineItem[] = useMemo(() => {
     const items: TimelineItem[] = [
-      ...messages.map((m) => ({ kind: 'msg' as const, data: m })),
-      ...tripDocs.map((d) => ({ kind: 'doc' as const, data: d })),
+      ...messages.map((m) => ({ kind: "msg" as const, data: m })),
+      ...tripDocs.map((d) => ({ kind: "doc" as const, data: d })),
     ];
     items.sort(
       (a, b) =>
-        new Date(a.data.createdAt).getTime() - new Date(b.data.createdAt).getTime(),
+        new Date(a.data.createdAt).getTime() -
+        new Date(b.data.createdAt).getTime(),
     );
     return items;
   }, [messages, tripDocs]);
@@ -222,8 +240,10 @@ function TripWithChat({
   // behind it.
   const [kbOpen, setKbOpen] = useState(false);
   useEffect(() => {
-    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showEvt =
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvt =
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
     const showSub = Keyboard.addListener(showEvt, () => {
       setKbOpen(true);
       if (nearBottomRef.current) {
@@ -259,8 +279,11 @@ function TripWithChat({
       // User is at/near the bottom — auto-scroll to new content.
       const animated = initialScrollDone.current; // false → instant on first load
       initialScrollDone.current = true;
-      const delay = Platform.OS === 'android' ? 150 : 50;
-      const id = setTimeout(() => listRef.current?.scrollToEnd({ animated }), delay);
+      const delay = Platform.OS === "android" ? 150 : 50;
+      const id = setTimeout(
+        () => listRef.current?.scrollToEnd({ animated }),
+        delay,
+      );
       return () => clearTimeout(id);
     } else if (initialScrollDone.current) {
       // User has scrolled up to read history — show "↓ N new" pill instead
@@ -285,7 +308,7 @@ function TripWithChat({
   const handleSend = () => {
     const trimmed = text.trim();
     if (!trimmed) return;
-    setText('');
+    setText("");
     sendMessage(trimmed);
     // Sending always pulls the user back down — they clearly want to see it.
     nearBottomRef.current = true;
@@ -295,10 +318,10 @@ function TripWithChat({
   const [docsOpen, setDocsOpen] = useState(false);
 
   // ── Upload flow ─────────────────────────────────────────────────────────
-  const pickAndUpload = async (source: 'camera' | 'gallery' | 'document') => {
+  const pickAndUpload = async (source: "camera" | "gallery" | "document") => {
     let files: UploadFileLocal[] = [];
     try {
-      if (source === 'camera') {
+      if (source === "camera") {
         const perm = await ImagePicker.requestCameraPermissionsAsync();
         if (!perm.granted) return;
         const r = await ImagePicker.launchCameraAsync({ quality: 0.8 });
@@ -306,13 +329,13 @@ function TripWithChat({
         files = r.assets.map((a) => ({
           uri: a.uri,
           name: a.fileName ?? `photo-${Date.now()}.jpg`,
-          mimeType: a.mimeType ?? 'image/jpeg',
+          mimeType: a.mimeType ?? "image/jpeg",
         }));
-      } else if (source === 'gallery') {
+      } else if (source === "gallery") {
         const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!perm.granted) return;
         const r = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ['images'],
+          mediaTypes: ["images"],
           allowsMultipleSelection: true,
           quality: 0.8,
         });
@@ -320,35 +343,35 @@ function TripWithChat({
         files = r.assets.map((a) => ({
           uri: a.uri,
           name: a.fileName ?? `photo-${Date.now()}.jpg`,
-          mimeType: a.mimeType ?? 'image/jpeg',
+          mimeType: a.mimeType ?? "image/jpeg",
         }));
       } else {
         const r = await DocumentPicker.getDocumentAsync({
           multiple: true,
           copyToCacheDirectory: true,
-          type: '*/*',
+          type: "*/*",
         });
         if (r.canceled) return;
         files = r.assets.map((a) => ({
           uri: a.uri,
           name: a.name,
-          mimeType: a.mimeType ?? 'application/octet-stream',
+          mimeType: a.mimeType ?? "application/octet-stream",
         }));
       }
       if (files.length === 0) return;
       await upload.mutateAsync({ tripId: trip.id, files });
       nearBottomRef.current = true;
     } catch (e) {
-      Alert.alert('Upload failed', (e as Error).message);
+      Alert.alert("Upload failed", (e as Error).message);
     }
   };
 
   const showUploadSheet = () => {
-    Alert.alert('Attach', 'Choose source', [
-      { text: 'Camera', onPress: () => pickAndUpload('camera') },
-      { text: 'Gallery', onPress: () => pickAndUpload('gallery') },
-      { text: 'File', onPress: () => pickAndUpload('document') },
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert("Attach", "Choose source", [
+      { text: "Camera", onPress: () => pickAndUpload("camera") },
+      { text: "Gallery", onPress: () => pickAndUpload("gallery") },
+      { text: "File", onPress: () => pickAndUpload("document") },
+      { text: "Cancel", style: "cancel" },
     ]);
   };
 
@@ -356,21 +379,29 @@ function TripWithChat({
     try {
       await WebBrowser.openBrowserAsync(doc.signedUrl);
     } catch (e) {
-      Alert.alert('Cannot open', (e as Error).message);
+      Alert.alert("Cannot open", (e as Error).message);
     }
   };
 
   const confirmDeleteMessage = (id: string) => {
-    Alert.alert('Delete message?', 'This cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => deleteMessage(id) },
+    Alert.alert("Delete message?", "This cannot be undone.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () => deleteMessage(id),
+      },
     ]);
   };
 
   const confirmDeleteDoc = (doc: DriverDocument) => {
-    Alert.alert('Delete file?', `${doc.fileName} will be removed.`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => removeDocument(doc.id) },
+    Alert.alert("Delete file?", `${doc.fileName} will be removed.`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () => removeDocument(doc.id),
+      },
     ]);
   };
 
@@ -383,22 +414,43 @@ function TripWithChat({
       <View style={[styles.chatWrap, { borderTopColor: c.border }]}>
         {/* Section label */}
         <View style={styles.chatLabel}>
-          <Ionicons name="chatbubble-ellipses-outline" size={13} color={c.mutedForeground} />
+          <Ionicons
+            name="chatbubble-ellipses-outline"
+            size={13}
+            color={c.mutedForeground}
+          />
           <Text style={[styles.chatLabelText, { color: c.mutedForeground }]}>
             Trip chat
           </Text>
           {/* Connection indicator */}
-          <View style={[styles.dot, { backgroundColor: connected ? '#10B981' : '#f87171' }]} />
-          <Text style={[styles.chatLabelText, { color: connected ? '#10B981' : '#f87171' }]}>
-            {connected ? 'online' : 'connecting…'}
+          <View
+            style={[
+              styles.dot,
+              { backgroundColor: connected ? "#10B981" : "#f87171" },
+            ]}
+          />
+          <Text
+            style={[
+              styles.chatLabelText,
+              { color: connected ? "#10B981" : "#f87171" },
+            ]}
+          >
+            {connected ? "online" : "connecting…"}
           </Text>
           <View style={{ flex: 1 }} />
           <Pressable
             onPress={() => setDocsOpen(true)}
             hitSlop={6}
-            style={({ pressed }) => [styles.folderBtn, { opacity: pressed ? 0.6 : 1 }]}
+            style={({ pressed }) => [
+              styles.folderBtn,
+              { opacity: pressed ? 0.6 : 1 },
+            ]}
           >
-            <Ionicons name="folder-outline" size={16} color={c.mutedForeground} />
+            <Ionicons
+              name="folder-outline"
+              size={16}
+              color={c.mutedForeground}
+            />
             <Text style={[styles.chatLabelText, { color: c.mutedForeground }]}>
               {tripDocs.length}
             </Text>
@@ -422,13 +474,15 @@ function TripWithChat({
             data={timeline}
             style={styles.messageListFlex}
             keyExtractor={(item) =>
-              item.kind === 'msg' ? `m-${item.data.id}` : `d-${item.data.id}`
+              item.kind === "msg" ? `m-${item.data.id}` : `d-${item.data.id}`
             }
             contentContainerStyle={styles.messageList}
             onScroll={(e) => {
-              const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+              const { contentOffset, contentSize, layoutMeasurement } =
+                e.nativeEvent;
               const distanceFromBottom =
-                contentSize.height - (contentOffset.y + layoutMeasurement.height);
+                contentSize.height -
+                (contentOffset.y + layoutMeasurement.height);
               const wasNearBottom = nearBottomRef.current;
               nearBottomRef.current = distanceFromBottom < 80;
               if (!wasNearBottom && nearBottomRef.current) {
@@ -443,12 +497,19 @@ function TripWithChat({
             onLayout={() => {
               if (listLaidOut.current) return;
               listLaidOut.current = true;
-              if (timeline.length > 0 && nearBottomRef.current && !initialScrollDone.current) {
+              if (
+                timeline.length > 0 &&
+                nearBottomRef.current &&
+                !initialScrollDone.current
+              ) {
                 // Extra tick for Android to commit the full render tree
-                setTimeout(() => {
-                  listRef.current?.scrollToEnd({ animated: false });
-                  initialScrollDone.current = true;
-                }, Platform.OS === 'android' ? 120 : 0);
+                setTimeout(
+                  () => {
+                    listRef.current?.scrollToEnd({ animated: false });
+                    initialScrollDone.current = true;
+                  },
+                  Platform.OS === "android" ? 120 : 0,
+                );
               }
             }}
             // Photos in doc bubbles load asynchronously — when the image
@@ -459,8 +520,9 @@ function TripWithChat({
             // active layout pass (causes silent scroll failures).
             onContentSizeChange={() => {
               if (!nearBottomRef.current) return;
-              const scroll = () => listRef.current?.scrollToEnd({ animated: false });
-              Platform.OS === 'android' ? setTimeout(scroll, 50) : scroll();
+              const scroll = () =>
+                listRef.current?.scrollToEnd({ animated: false });
+              Platform.OS === "android" ? setTimeout(scroll, 50) : scroll();
             }}
             scrollEventThrottle={64}
             // iOS: prevent the list's gesture/inset behavior from swallowing
@@ -470,8 +532,8 @@ function TripWithChat({
             automaticallyAdjustContentInsets={false}
             contentInsetAdjustmentBehavior="never"
             renderItem={({ item }) => {
-              if (item.kind === 'msg') {
-                // System events (driver/dispatcher changed) — Telegram-style
+              if (item.kind === "msg") {
+                // System events (driver/manager changed) — Telegram-style
                 // centered grey label, no avatar/bubble.
                 if (item.data.isSystem) {
                   return <SystemNotice text={item.data.content} />;
@@ -481,7 +543,11 @@ function TripWithChat({
                   <MessageBubble
                     message={item.data}
                     isMe={isMe}
-                    onLongPress={isMe ? () => confirmDeleteMessage(item.data.id) : undefined}
+                    onLongPress={
+                      isMe
+                        ? () => confirmDeleteMessage(item.data.id)
+                        : undefined
+                    }
                   />
                 );
               }
@@ -491,7 +557,9 @@ function TripWithChat({
                   doc={item.data}
                   isMe={isMe}
                   onOpen={() => handleOpenDoc(item.data)}
-                  onLongPress={isMe ? () => confirmDeleteDoc(item.data) : undefined}
+                  onLongPress={
+                    isMe ? () => confirmDeleteDoc(item.data) : undefined
+                  }
                 />
               );
             }}
@@ -522,9 +590,12 @@ function TripWithChat({
           after 4s if the stopTyping signal is lost. */}
       {typers.size > 0 && (
         <View style={[styles.typingRow, { backgroundColor: c.background }]}>
-          <Text style={[styles.typingText, { color: c.mutedForeground }]} numberOfLines={1}>
-            {Array.from(typers.values()).join(', ')}{' '}
-            {typers.size === 1 ? 'набирає' : 'набирають'}
+          <Text
+            style={[styles.typingText, { color: c.mutedForeground }]}
+            numberOfLines={1}
+          >
+            {Array.from(typers.values()).join(", ")}{" "}
+            {typers.size === 1 ? "набирає" : "набирають"}
           </Text>
           <TypingDots color={c.mutedForeground} />
         </View>
@@ -540,8 +611,10 @@ function TripWithChat({
             {
               backgroundColor: c.card,
               borderTopColor: c.border,
-              paddingBottom: kbOpen ? Spacing.sm : Math.max(insets.bottom, Spacing.sm),
-              justifyContent: 'center',
+              paddingBottom: kbOpen
+                ? Spacing.sm
+                : Math.max(insets.bottom, Spacing.sm),
+              justifyContent: "center",
             },
           ]}
         >
@@ -550,71 +623,87 @@ function TripWithChat({
           </Text>
         </View>
       ) : (
-      <View
-        style={[
-          styles.inputWrap,
-          {
-            backgroundColor: c.card,
-            borderTopColor: c.border,
-            paddingBottom: kbOpen ? Spacing.sm : Math.max(insets.bottom, Spacing.sm),
-          },
-        ]}
-      >
-        <Pressable
-          onPress={showUploadSheet}
-          disabled={upload.isPending}
-          hitSlop={6}
-          style={({ pressed }) => [
-            styles.iconBtn,
-            { opacity: pressed || upload.isPending ? 0.5 : 1 },
-          ]}
-        >
-          {upload.isPending ? (
-            <ActivityIndicator size="small" color={c.mutedForeground} />
-          ) : (
-            <Ionicons name="attach" size={22} color={c.mutedForeground} />
-          )}
-        </Pressable>
-        <Pressable
-          onPress={() => {
-            Keyboard.dismiss();
-            setEmojiOpen(true);
-          }}
-          hitSlop={6}
-          style={({ pressed }) => [styles.iconBtn, { opacity: pressed ? 0.6 : 1 }]}
-        >
-          <Ionicons name="happy-outline" size={22} color={c.mutedForeground} />
-        </Pressable>
-        <TextInput
-          value={text}
-          onChangeText={(v) => {
-            setText(v);
-            if (v.length > 0) notifyTyping();
-            else notifyStopTyping();
-          }}
-          onBlur={notifyStopTyping}
-          placeholder="Message…"
-          placeholderTextColor={c.mutedForeground}
-          style={[styles.input, { color: c.foreground, backgroundColor: c.muted }]}
-          multiline
-          maxLength={1000}
-          returnKeyType="default"
-          blurOnSubmit={false}
-        />
-        <Pressable
-          onPress={handleSend}
-          disabled={!text.trim() || !connected}
-          style={({ pressed }) => [
-            styles.sendBtn,
+        <View
+          style={[
+            styles.inputWrap,
             {
-              backgroundColor: text.trim() && connected ? c.primary : c.muted,
-              opacity: pressed ? 0.8 : 1,
+              backgroundColor: c.card,
+              borderTopColor: c.border,
+              paddingBottom: kbOpen
+                ? Spacing.sm
+                : Math.max(insets.bottom, Spacing.sm),
             },
           ]}
         >
-          <Ionicons name="send" size={16} color="#fff" />
-        </Pressable>
-      </View>
+          <Pressable
+            onPress={showUploadSheet}
+            disabled={upload.isPending}
+            hitSlop={6}
+            style={({ pressed }) => [
+              styles.iconBtn,
+              { opacity: pressed || upload.isPending ? 0.5 : 1 },
+            ]}
+          >
+            {upload.isPending ? (
+              <ActivityIndicator size="small" color={c.mutedForeground} />
+            ) : (
+              <Ionicons name="attach" size={22} color={c.mutedForeground} />
+            )}
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              Keyboard.dismiss();
+              setEmojiOpen(true);
+            }}
+            hitSlop={6}
+            style={({ pressed }) => [
+              styles.iconBtn,
+              { opacity: pressed ? 0.6 : 1 },
+            ]}
+          >
+            <Ionicons
+              name="happy-outline"
+              size={22}
+              color={c.mutedForeground}
+            />
+          </Pressable>
+          <TextInput
+            value={text}
+            onChangeText={(v) => {
+              setText(v);
+              if (v.length > 0) notifyTyping();
+              else notifyStopTyping();
+            }}
+            onBlur={notifyStopTyping}
+            placeholder="Message…"
+            placeholderTextColor={c.mutedForeground}
+            style={[
+              styles.input,
+              { color: c.foreground, backgroundColor: c.muted },
+            ]}
+            multiline
+            maxLength={1000}
+            // NB: do NOT add `blurOnSubmit={false}` or `returnKeyType` on a
+            // multiline TextInput in Expo Go iOS — that combo regresses the
+            // input so typed characters never reach onChangeText. Same bug
+            // we already chased twice (d38c26c, c56bcf1). Native defaults
+            // for multiline already keep the keyboard open on Enter and
+            // insert a newline; the dedicated Send button does the commit.
+          />
+          <Pressable
+            onPress={handleSend}
+            disabled={!text.trim() || !connected}
+            style={({ pressed }) => [
+              styles.sendBtn,
+              {
+                backgroundColor: text.trim() && connected ? c.primary : c.muted,
+                opacity: pressed ? 0.8 : 1,
+              },
+            ]}
+          >
+            <Ionicons name="send" size={16} color="#fff" />
+          </Pressable>
+        </View>
       )}
 
       <EmojiPicker
@@ -671,7 +760,7 @@ function TypingDots({ color }: { color: string }) {
   }, [dots]);
 
   return (
-    <View style={{ flexDirection: 'row', gap: 2 }}>
+    <View style={{ flexDirection: "row", gap: 2 }}>
       {dots.map((dot, i) => (
         <Animated.Text
           key={i}
@@ -696,13 +785,18 @@ function TypingDots({ color }: { color: string }) {
   );
 }
 
-// ─── System notice (driver/dispatcher changed) ───────────────────────────────
+// ─── System notice (driver/manager changed) ───────────────────────────────
 
 function SystemNotice({ text }: { text: string }) {
-  const c = Colors[useColorScheme() ?? 'light'];
+  const c = Colors[useColorScheme() ?? "light"];
   return (
     <View style={styles.systemRow}>
-      <Text style={[styles.systemText, { color: c.mutedForeground, backgroundColor: c.muted }]}>
+      <Text
+        style={[
+          styles.systemText,
+          { color: c.mutedForeground, backgroundColor: c.muted },
+        ]}
+      >
         {text}
       </Text>
     </View>
@@ -720,28 +814,38 @@ function MessageBubble({
   isMe: boolean;
   onLongPress?: () => void;
 }) {
-  const c = Colors[useColorScheme() ?? 'light'];
-  const isDispatcher = message.sender.role !== 'DRIVER';
+  const c = Colors[useColorScheme() ?? "light"];
+  const isManager = message.sender.role !== "DRIVER";
   const time = new Date(message.createdAt).toLocaleTimeString(undefined, {
-    hour: '2-digit',
-    minute: '2-digit',
+    hour: "2-digit",
+    minute: "2-digit",
   });
 
   return (
-    <View style={[styles.bubbleRow, isMe ? styles.bubbleRowMe : styles.bubbleRowOther]}>
+    <View
+      style={[
+        styles.bubbleRow,
+        isMe ? styles.bubbleRowMe : styles.bubbleRowOther,
+      ]}
+    >
       {!isMe && (
-        <View style={[styles.avatar, { backgroundColor: isDispatcher ? c.primary : c.muted }]}>
+        <View
+          style={[
+            styles.avatar,
+            { backgroundColor: isManager ? c.primary : c.muted },
+          ]}
+        >
           <Ionicons
-            name={isDispatcher ? 'headset-outline' : 'person-outline'}
+            name={isManager ? "headset-outline" : "person-outline"}
             size={12}
-            color={isDispatcher ? '#fff' : c.mutedForeground}
+            color={isManager ? "#fff" : c.mutedForeground}
           />
         </View>
       )}
       <View style={styles.bubbleCol}>
         {!isMe && (
           <Text style={[styles.bubbleSender, { color: c.mutedForeground }]}>
-            {message.sender.name ?? (isDispatcher ? 'Dispatcher' : 'Driver')}
+            {message.sender.name ?? (isManager ? "Manager" : "Driver")}
           </Text>
         )}
         <Pressable
@@ -750,16 +854,29 @@ function MessageBubble({
           style={[
             styles.bubble,
             isMe
-              ? { backgroundColor: c.primary, borderBottomRightRadius: 4, borderBottomLeftRadius: Radius.lg }
-              : { backgroundColor: c.card, borderWidth: StyleSheet.hairlineWidth, borderColor: c.border, borderBottomLeftRadius: 4 },
+              ? {
+                  backgroundColor: c.primary,
+                  borderBottomRightRadius: 4,
+                  borderBottomLeftRadius: Radius.lg,
+                }
+              : {
+                  backgroundColor: c.card,
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderColor: c.border,
+                  borderBottomLeftRadius: 4,
+                },
           ]}
         >
-          <Text style={[styles.bubbleText, { color: isMe ? '#fff' : c.foreground }]}>
+          <Text
+            style={[styles.bubbleText, { color: isMe ? "#fff" : c.foreground }]}
+          >
             {message.content}
           </Text>
         </Pressable>
         <View style={styles.bubbleMetaRow}>
-          <Text style={[styles.bubbleTime, { color: c.mutedForeground }]}>{time}</Text>
+          <Text style={[styles.bubbleTime, { color: c.mutedForeground }]}>
+            {time}
+          </Text>
           {isMe && (
             <Text
               style={[
@@ -767,7 +884,7 @@ function MessageBubble({
                 { color: message.isRead ? c.primary : c.mutedForeground },
               ]}
             >
-              {message.isRead ? '✓✓' : '✓'}
+              {message.isRead ? "✓✓" : "✓"}
             </Text>
           )}
         </View>
@@ -778,7 +895,7 @@ function MessageBubble({
 
 // ─── Trip docs modal (folder button → tabs) ─────────────────────────────────
 
-type DocTab = 'ALL' | 'PHOTO' | 'DOCUMENT';
+type DocTab = "ALL" | "PHOTO" | "DOCUMENT";
 
 function TripDocsModal({
   open,
@@ -795,35 +912,59 @@ function TripDocsModal({
   uploading: boolean;
   onOpenDoc: (d: DriverDocument) => void;
 }) {
-  const c = Colors[useColorScheme() ?? 'light'];
+  const c = Colors[useColorScheme() ?? "light"];
   const insets = useSafeAreaInsets();
-  const [tab, setTab] = useState<DocTab>('ALL');
+  const [tab, setTab] = useState<DocTab>("ALL");
 
-  const photos = docs.filter((d) => d.fileType === 'PHOTO');
-  const documents = docs.filter((d) => d.fileType === 'DOCUMENT');
-  const filtered = tab === 'ALL' ? docs : tab === 'PHOTO' ? photos : documents;
-  const counts = { ALL: docs.length, PHOTO: photos.length, DOCUMENT: documents.length };
+  const photos = docs.filter((d) => d.fileType === "PHOTO");
+  const documents = docs.filter((d) => d.fileType === "DOCUMENT");
+  const filtered = tab === "ALL" ? docs : tab === "PHOTO" ? photos : documents;
+  const counts = {
+    ALL: docs.length,
+    PHOTO: photos.length,
+    DOCUMENT: documents.length,
+  };
 
   return (
-    <Modal visible={open} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+    <Modal
+      visible={open}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
       <View style={{ flex: 1, backgroundColor: c.background }}>
         <View
           style={[
             styles.docsHeader,
-            { backgroundColor: c.card, borderBottomColor: c.border, paddingTop: insets.top + Spacing.sm },
+            {
+              backgroundColor: c.card,
+              borderBottomColor: c.border,
+              paddingTop: insets.top + Spacing.sm,
+            },
           ]}
         >
-          <Pressable onPress={onClose} hitSlop={8} style={({ pressed }) => [{ opacity: pressed ? 0.6 : 1, padding: 4 }]}>
+          <Pressable
+            onPress={onClose}
+            hitSlop={8}
+            style={({ pressed }) => [
+              { opacity: pressed ? 0.6 : 1, padding: 4 },
+            ]}
+          >
             <Ionicons name="close" size={24} color={c.foreground} />
           </Pressable>
-          <Text style={[styles.docsTitle, { color: c.foreground }]}>Trip documents</Text>
+          <Text style={[styles.docsTitle, { color: c.foreground }]}>
+            Trip documents
+          </Text>
           <Pressable
             onPress={onUpload}
             disabled={uploading}
             hitSlop={8}
             style={({ pressed }) => [
               styles.uploadBtn,
-              { backgroundColor: c.primary, opacity: pressed || uploading ? 0.85 : 1 },
+              {
+                backgroundColor: c.primary,
+                opacity: pressed || uploading ? 0.85 : 1,
+              },
             ]}
           >
             {uploading ? (
@@ -837,19 +978,29 @@ function TripDocsModal({
 
         {/* Tabs */}
         <View style={[styles.docsTabs, { borderBottomColor: c.border }]}>
-          {(['ALL', 'PHOTO', 'DOCUMENT'] as DocTab[]).map((t) => {
+          {(["ALL", "PHOTO", "DOCUMENT"] as DocTab[]).map((t) => {
             const active = t === tab;
-            const label = t === 'ALL' ? 'All' : t === 'PHOTO' ? 'Photos' : 'Documents';
+            const label =
+              t === "ALL" ? "All" : t === "PHOTO" ? "Photos" : "Documents";
             return (
               <Pressable
                 key={t}
                 onPress={() => setTab(t)}
-                style={[styles.docsTab, active && { borderBottomColor: c.primary, borderBottomWidth: 2 }]}
+                style={[
+                  styles.docsTab,
+                  active && {
+                    borderBottomColor: c.primary,
+                    borderBottomWidth: 2,
+                  },
+                ]}
               >
                 <Text
                   style={[
                     styles.docsTabText,
-                    { color: active ? c.primary : c.mutedForeground, fontWeight: active ? '700' : '500' },
+                    {
+                      color: active ? c.primary : c.mutedForeground,
+                      fontWeight: active ? "700" : "500",
+                    },
                   ]}
                 >
                   {label} ({counts[t]})
@@ -881,25 +1032,41 @@ function TripDocsModal({
                   },
                 ]}
               >
-                {item.fileType === 'PHOTO' ? (
-                  <Image source={{ uri: item.signedUrl }} style={styles.docRowThumb} />
+                {item.fileType === "PHOTO" ? (
+                  <Image
+                    source={{ uri: item.signedUrl }}
+                    style={styles.docRowThumb}
+                  />
                 ) : (
                   <View
                     style={[
                       styles.docRowThumb,
-                      { backgroundColor: c.muted, alignItems: 'center', justifyContent: 'center' },
+                      {
+                        backgroundColor: c.muted,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      },
                     ]}
                   >
-                    <Ionicons name="document-text-outline" size={24} color={c.mutedForeground} />
+                    <Ionicons
+                      name="document-text-outline"
+                      size={24}
+                      color={c.mutedForeground}
+                    />
                   </View>
                 )}
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.docFileName, { color: c.foreground }]} numberOfLines={2}>
+                  <Text
+                    style={[styles.docFileName, { color: c.foreground }]}
+                    numberOfLines={2}
+                  >
                     {item.fileName}
                   </Text>
-                  <Text style={[styles.docFileMeta, { color: c.mutedForeground }]}>
+                  <Text
+                    style={[styles.docFileMeta, { color: c.mutedForeground }]}
+                  >
                     {new Date(item.createdAt).toLocaleDateString()}
-                    {item.uploader?.name ? ` · ${item.uploader.name}` : ''}
+                    {item.uploader?.name ? ` · ${item.uploader.name}` : ""}
                   </Text>
                 </View>
               </Pressable>
@@ -924,33 +1091,47 @@ function DocBubble({
   onOpen: () => void;
   onLongPress?: () => void;
 }) {
-  const c = Colors[useColorScheme() ?? 'light'];
-  const isPhoto = doc.fileType === 'PHOTO';
+  const c = Colors[useColorScheme() ?? "light"];
+  const isPhoto = doc.fileType === "PHOTO";
   const time = new Date(doc.createdAt).toLocaleTimeString(undefined, {
-    hour: '2-digit',
-    minute: '2-digit',
+    hour: "2-digit",
+    minute: "2-digit",
   });
-  const isDispatcher = doc.uploader?.role !== 'DRIVER';
-  const ext = doc.fileName.split('.').pop()?.toUpperCase() ?? 'FILE';
+  const isManager = doc.uploader?.role !== "DRIVER";
+  const ext = doc.fileName.split(".").pop()?.toUpperCase() ?? "FILE";
 
   return (
-    <View style={[styles.bubbleRow, isMe ? styles.bubbleRowMe : styles.bubbleRowOther]}>
+    <View
+      style={[
+        styles.bubbleRow,
+        isMe ? styles.bubbleRowMe : styles.bubbleRowOther,
+      ]}
+    >
       {!isMe && (
-        <View style={[styles.avatar, { backgroundColor: isDispatcher ? c.primary : c.muted }]}>
+        <View
+          style={[
+            styles.avatar,
+            { backgroundColor: isManager ? c.primary : c.muted },
+          ]}
+        >
           <Ionicons
-            name={isDispatcher ? 'headset-outline' : 'person-outline'}
+            name={isManager ? "headset-outline" : "person-outline"}
             size={12}
-            color={isDispatcher ? '#fff' : c.mutedForeground}
+            color={isManager ? "#fff" : c.mutedForeground}
           />
         </View>
       )}
       <View style={styles.bubbleCol}>
         {!isMe && (
           <Text style={[styles.bubbleSender, { color: c.mutedForeground }]}>
-            {doc.uploader?.name ?? (isDispatcher ? 'Dispatcher' : 'Driver')}
+            {doc.uploader?.name ?? (isManager ? "Manager" : "Driver")}
           </Text>
         )}
-        <Pressable onPress={onOpen} onLongPress={onLongPress} delayLongPress={350}>
+        <Pressable
+          onPress={onOpen}
+          onLongPress={onLongPress}
+          delayLongPress={350}
+        >
           {isPhoto ? (
             <Image source={{ uri: doc.signedUrl }} style={styles.docThumb} />
           ) : (
@@ -969,11 +1150,14 @@ function DocBubble({
               <Ionicons
                 name="document-text-outline"
                 size={20}
-                color={isMe ? '#fff' : c.foreground}
+                color={isMe ? "#fff" : c.foreground}
               />
               <View style={{ flex: 1 }}>
                 <Text
-                  style={[styles.docFileName, { color: isMe ? '#fff' : c.foreground }]}
+                  style={[
+                    styles.docFileName,
+                    { color: isMe ? "#fff" : c.foreground },
+                  ]}
                   numberOfLines={2}
                 >
                   {doc.fileName}
@@ -981,7 +1165,9 @@ function DocBubble({
                 <Text
                   style={[
                     styles.docFileMeta,
-                    { color: isMe ? 'rgba(255,255,255,0.7)' : c.mutedForeground },
+                    {
+                      color: isMe ? "rgba(255,255,255,0.7)" : c.mutedForeground,
+                    },
                   ]}
                 >
                   {ext}
@@ -991,7 +1177,9 @@ function DocBubble({
           )}
         </Pressable>
         <View style={styles.bubbleMetaRow}>
-          <Text style={[styles.bubbleTime, { color: c.mutedForeground }]}>{time}</Text>
+          <Text style={[styles.bubbleTime, { color: c.mutedForeground }]}>
+            {time}
+          </Text>
           {isMe && (
             <Text
               style={[
@@ -999,7 +1187,7 @@ function DocBubble({
                 { color: doc.isRead ? c.primary : c.mutedForeground },
               ]}
             >
-              {doc.isRead ? '✓✓' : '✓'}
+              {doc.isRead ? "✓✓" : "✓"}
             </Text>
           )}
         </View>
@@ -1019,20 +1207,28 @@ function TripInfoCard({
   onRefresh: () => void;
   refreshing: boolean;
 }) {
-  const c = Colors[useColorScheme() ?? 'light'];
+  const c = Colors[useColorScheme() ?? "light"];
   const [collapsed, setCollapsed] = useState(false);
-  const loading = trip.stops.filter((s) => s.type === 'LOADING');
-  const unloading = trip.stops.filter((s) => s.type === 'UNLOADING');
+  const loading = trip.stops.filter((s) => s.type === "LOADING");
+  const unloading = trip.stops.filter((s) => s.type === "UNLOADING");
 
   return (
-    <View style={[styles.card, { backgroundColor: c.card, borderBottomColor: c.border }]}>
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: c.card, borderBottomColor: c.border },
+      ]}
+    >
       {/* Header row — tap to collapse */}
       <Pressable
         onPress={() => setCollapsed((v) => !v)}
         style={styles.cardHeader}
       >
         <View style={{ flex: 1 }}>
-          <Text style={[styles.cardTitle, { color: c.foreground }]} numberOfLines={collapsed ? 1 : 2}>
+          <Text
+            style={[styles.cardTitle, { color: c.foreground }]}
+            numberOfLines={collapsed ? 1 : 2}
+          >
             {trip.title}
           </Text>
           {trip.orderNumber ? (
@@ -1042,7 +1238,7 @@ function TripInfoCard({
           ) : null}
         </View>
         <Ionicons
-          name={collapsed ? 'chevron-down' : 'chevron-up'}
+          name={collapsed ? "chevron-down" : "chevron-up"}
           size={16}
           color={c.mutedForeground}
         />
@@ -1094,9 +1290,9 @@ function StopsBlock({
 }: {
   label: string;
   color: string;
-  stops: Trip['stops'];
+  stops: Trip["stops"];
 }) {
-  const c = Colors[useColorScheme() ?? 'light'];
+  const c = Colors[useColorScheme() ?? "light"];
   return (
     <View style={styles.stopsBlock}>
       <View style={styles.stopsHeader}>
@@ -1108,7 +1304,9 @@ function StopsBlock({
       {stops.map((s, i) => (
         <View key={s.id} style={styles.stopCard}>
           <View style={styles.stopRow}>
-            <Text style={[styles.stopIndex, { color: c.mutedForeground }]}>{i + 1}.</Text>
+            <Text style={[styles.stopIndex, { color: c.mutedForeground }]}>
+              {i + 1}.
+            </Text>
             {/* Tap anywhere on the address to copy. The icon button is the
                 discoverable affordance; selectable would intercept the tap
                 on Android, so we keep it off. */}
@@ -1121,7 +1319,7 @@ function StopsBlock({
                 style={[styles.stopAddress, { color: c.foreground }]}
                 numberOfLines={3}
               >
-                {s.address ?? '—'}
+                {s.address ?? "—"}
               </Text>
             </Pressable>
             {s.address ? (
@@ -1130,7 +1328,7 @@ function StopsBlock({
                 hitSlop={10}
                 style={({ pressed }) => [
                   styles.addrCopyBtn,
-                  { backgroundColor: pressed ? c.muted : 'transparent' },
+                  { backgroundColor: pressed ? c.muted : "transparent" },
                 ]}
               >
                 <Ionicons name="copy-outline" size={18} color={c.foreground} />
@@ -1146,7 +1344,7 @@ function StopsBlock({
                     styles.metaChip,
                     {
                       borderColor: c.border,
-                      backgroundColor: pressed ? c.muted : 'transparent',
+                      backgroundColor: pressed ? c.muted : "transparent",
                     },
                   ]}
                   hitSlop={6}
@@ -1161,12 +1359,20 @@ function StopsBlock({
                   >
                     {s.ref}
                   </Text>
-                  <Ionicons name="copy-outline" size={16} color={c.foreground} />
+                  <Ionicons
+                    name="copy-outline"
+                    size={16}
+                    color={c.foreground}
+                  />
                 </Pressable>
               ) : null}
               {s.coords ? (
                 <View style={[styles.metaChip, { borderColor: c.border }]}>
-                  <Ionicons name="navigate-outline" size={14} color={c.foreground} />
+                  <Ionicons
+                    name="navigate-outline"
+                    size={14}
+                    color={c.foreground}
+                  />
                   <Text
                     style={[styles.metaText, { color: c.foreground }]}
                     numberOfLines={1}
@@ -1179,20 +1385,28 @@ function StopsBlock({
                     hitSlop={10}
                     style={({ pressed }) => [
                       styles.metaActionBtn,
-                      { backgroundColor: pressed ? c.muted : 'transparent' },
+                      { backgroundColor: pressed ? c.muted : "transparent" },
                     ]}
                   >
-                    <Ionicons name="copy-outline" size={16} color={c.foreground} />
+                    <Ionicons
+                      name="copy-outline"
+                      size={16}
+                      color={c.foreground}
+                    />
                   </Pressable>
                   <Pressable
                     onPress={() => openInMaps(s.coords!)}
                     hitSlop={10}
                     style={({ pressed }) => [
                       styles.metaActionBtn,
-                      { backgroundColor: pressed ? c.muted : 'transparent' },
+                      { backgroundColor: pressed ? c.muted : "transparent" },
                     ]}
                   >
-                    <Ionicons name="open-outline" size={16} color={c.foreground} />
+                    <Ionicons
+                      name="open-outline"
+                      size={16}
+                      color={c.foreground}
+                    />
                   </Pressable>
                 </View>
               ) : null}
@@ -1223,17 +1437,29 @@ function TripHeader({
   unreadCount?: number;
   onBellPress?: () => void;
 }) {
-  const c = Colors[useColorScheme() ?? 'light'];
+  const c = Colors[useColorScheme() ?? "light"];
   const navigation = useNavigation();
   const { top } = useSafeAreaInsets();
   const hasUnread = (unreadCount ?? 0) > 0;
   return (
-    <View style={[styles.header, { backgroundColor: c.card, borderBottomColor: c.border, paddingTop: top + Spacing.sm }]}>
+    <View
+      style={[
+        styles.header,
+        {
+          backgroundColor: c.card,
+          borderBottomColor: c.border,
+          paddingTop: top + Spacing.sm,
+        },
+      ]}
+    >
       <View style={styles.row}>
         <Pressable
           onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
           hitSlop={8}
-          style={({ pressed }) => [styles.menuBtn, { opacity: pressed ? 0.6 : 1 }]}
+          style={({ pressed }) => [
+            styles.menuBtn,
+            { opacity: pressed ? 0.6 : 1 },
+          ]}
         >
           <Ionicons name="menu" size={24} color={c.foreground} />
         </Pressable>
@@ -1241,8 +1467,14 @@ function TripHeader({
         <View style={styles.truckBlock}>
           {truck ? (
             <>
-              <MaterialCommunityIcons name="truck-outline" size={20} color={c.foreground} />
-              <Text style={[styles.truck, { color: c.foreground }]}>{truck}</Text>
+              <MaterialCommunityIcons
+                name="truck-outline"
+                size={20}
+                color={c.foreground}
+              />
+              <Text style={[styles.truck, { color: c.foreground }]}>
+                {truck}
+              </Text>
             </>
           ) : null}
           {/* unread bell badge — tap jumps to the trip with unread messages */}
@@ -1250,12 +1482,21 @@ function TripHeader({
             onPress={hasUnread ? onBellPress : undefined}
             disabled={!hasUnread}
             hitSlop={8}
-            style={({ pressed }) => [styles.bellWrap, { opacity: pressed ? 0.6 : 1 }]}
+            style={({ pressed }) => [
+              styles.bellWrap,
+              { opacity: pressed ? 0.6 : 1 },
+            ]}
           >
-            <Ionicons name="notifications-outline" size={18} color={hasUnread ? '#f87171' : c.mutedForeground} />
+            <Ionicons
+              name="notifications-outline"
+              size={18}
+              color={hasUnread ? "#f87171" : c.mutedForeground}
+            />
             {hasUnread && (
               <View style={styles.bellBadge}>
-                <Text style={styles.bellBadgeText}>{unreadCount! > 99 ? '99+' : unreadCount}</Text>
+                <Text style={styles.bellBadgeText}>
+                  {unreadCount! > 99 ? "99+" : unreadCount}
+                </Text>
               </View>
             )}
           </Pressable>
@@ -1269,7 +1510,10 @@ function TripHeader({
           </View>
         )}
 
-        <Text style={[styles.driver, { color: c.mutedForeground }]} numberOfLines={1}>
+        <Text
+          style={[styles.driver, { color: c.mutedForeground }]}
+          numberOfLines={1}
+        >
           {driver}
         </Text>
       </View>
@@ -1285,21 +1529,38 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  row: { flexDirection: "row", alignItems: "center", gap: Spacing.md },
   menuBtn: { padding: 4 },
-  truckBlock: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
-  truck: { fontSize: 16, fontWeight: '700' },
-  driver: { flex: 1, textAlign: 'right', fontSize: 14, fontWeight: '500' },
-  bellWrap: { position: 'relative', width: 22, height: 22, alignItems: 'center', justifyContent: 'center' },
-  bellBadge: {
-    position: 'absolute', top: -3, right: -4,
-    minWidth: 14, height: 14, borderRadius: 7,
-    backgroundColor: '#f87171',
-    alignItems: 'center', justifyContent: 'center', paddingHorizontal: 2,
+  truckBlock: { flexDirection: "row", alignItems: "center", gap: Spacing.xs },
+  truck: { fontSize: 16, fontWeight: "700" },
+  driver: { flex: 1, textAlign: "right", fontSize: 14, fontWeight: "500" },
+  bellWrap: {
+    position: "relative",
+    width: 22,
+    height: 22,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  bellBadgeText: { color: '#fff', fontSize: 8, fontWeight: '700', lineHeight: 10 },
+  bellBadge: {
+    position: "absolute",
+    top: -3,
+    right: -4,
+    minWidth: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: "#f87171",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 2,
+  },
+  bellBadgeText: {
+    color: "#fff",
+    fontSize: 8,
+    fontWeight: "700",
+    lineHeight: 10,
+  },
 
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  center: { flex: 1, alignItems: "center", justifyContent: "center" },
 
   // Trip info card
   card: {
@@ -1309,53 +1570,63 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: Spacing.sm,
   },
-  cardTitle: { fontSize: 15, fontWeight: '700' },
-  cardSub: { fontSize: 12, fontFamily: 'monospace', marginTop: 2 },
+  cardTitle: { fontSize: 15, fontWeight: "700" },
+  cardSub: { fontSize: 12, fontFamily: "monospace", marginTop: 2 },
 
   stopsBlock: { gap: 8 },
-  stopsHeader: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  stopsLabel: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
+  stopsHeader: { flexDirection: "row", alignItems: "center", gap: 5 },
+  stopsLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
   stopCard: { gap: 6, paddingVertical: 2 },
-  stopRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 2 },
-  stopIndex: { fontSize: 13, fontWeight: '600', minWidth: 16, marginTop: 1 },
+  stopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingLeft: 2,
+  },
+  stopIndex: { fontSize: 13, fontWeight: "600", minWidth: 16, marginTop: 1 },
   stopAddressWrap: { flex: 1 },
   stopAddress: { fontSize: 13 },
   addrCopyBtn: {
     padding: 8,
     borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   stopMetaRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
     paddingLeft: 22,
   },
   metaChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 8,
-    maxWidth: '100%',
+    maxWidth: "100%",
   },
   metaActionBtn: {
     padding: 4,
     marginLeft: 2,
     borderRadius: 6,
   },
-  metaText: { fontSize: 13, fontFamily: 'monospace' },
-  metaLabel: { fontSize: 13, fontWeight: '600' },
+  metaText: { fontSize: 13, fontFamily: "monospace" },
+  metaLabel: { fontSize: 13, fontWeight: "600" },
 
   notes: { paddingTop: Spacing.sm, borderTopWidth: StyleSheet.hairlineWidth },
-  notesText: { fontSize: 12, fontStyle: 'italic' },
+  notesText: { fontSize: 12, fontStyle: "italic" },
 
   // Chat
   chatWrap: {
@@ -1363,16 +1634,16 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   chatLabel: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 5,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
   },
   chatLabelText: {
     fontSize: 11,
-    fontWeight: '700',
-    textTransform: 'uppercase',
+    fontWeight: "700",
+    textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   dot: {
@@ -1383,21 +1654,21 @@ const styles = StyleSheet.create({
   },
   emptyChat: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     padding: Spacing.xl,
   },
-  emptyChatText: { fontSize: 13, textAlign: 'center' },
+  emptyChatText: { fontSize: 13, textAlign: "center" },
   // flex:1 constrains FlatList within chatWrap — without it, FlatList expands
   // to full content height, overflows the parent, and its scroll area swallows
   // all taps to the inputWrap below it (iOS) or pushes input off screen (Android)
   messageListFlex: { flex: 1 },
   scrollDownBtn: {
-    position: 'absolute',
-    alignSelf: 'center',
+    position: "absolute",
+    alignSelf: "center",
     bottom: Spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 5,
     paddingHorizontal: 14,
     paddingVertical: 8,
@@ -1406,19 +1677,23 @@ const styles = StyleSheet.create({
     // full parent width on iOS — give it a fixed minimum so the hit area
     // is exactly the pill content, never a hidden full-width row.
     minWidth: 90,
-    justifyContent: 'center',
-    shadowColor: '#000',
+    justifyContent: "center",
+    shadowColor: "#000",
     shadowOpacity: 0.2,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 },
     elevation: 5,
   },
-  scrollDownText: { color: '#fff', fontSize: 12, fontWeight: '700' },
-  messageList: { padding: Spacing.md, gap: Spacing.sm, paddingBottom: Spacing.lg },
+  scrollDownText: { color: "#fff", fontSize: 12, fontWeight: "700" },
+  messageList: {
+    padding: Spacing.md,
+    gap: Spacing.sm,
+    paddingBottom: Spacing.lg,
+  },
 
   // System notices (handover events, etc.)
   systemRow: {
-    alignItems: 'center',
+    alignItems: "center",
     marginVertical: 6,
   },
   systemText: {
@@ -1426,17 +1701,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   inactiveNotice: {
     paddingHorizontal: 12,
     paddingVertical: 12,
     fontSize: 12,
-    textAlign: 'center',
+    textAlign: "center",
   },
   typingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
     paddingHorizontal: Spacing.md,
     paddingVertical: 4,
@@ -1447,25 +1722,30 @@ const styles = StyleSheet.create({
 
   // Bubbles
   bubbleRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
+    flexDirection: "row",
+    alignItems: "flex-end",
     gap: 6,
     marginBottom: 6,
   },
-  bubbleRowMe: { justifyContent: 'flex-end' },
-  bubbleRowOther: { justifyContent: 'flex-start' },
-  bubbleCol: { maxWidth: '75%', gap: 2 },
+  bubbleRowMe: { justifyContent: "flex-end" },
+  bubbleRowOther: { justifyContent: "flex-start" },
+  bubbleCol: { maxWidth: "75%", gap: 2 },
   avatar: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 14,
   },
-  bubbleSender: { fontSize: 10, fontWeight: '600', paddingLeft: 4 },
-  bubbleMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingLeft: 4 },
-  bubbleTick: { fontSize: 10, fontWeight: '700' },
+  bubbleSender: { fontSize: 10, fontWeight: "600", paddingLeft: 4 },
+  bubbleMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingLeft: 4,
+  },
+  bubbleTick: { fontSize: 10, fontWeight: "700" },
   bubble: {
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -1476,8 +1756,8 @@ const styles = StyleSheet.create({
 
   // Input bar
   inputWrap: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
+    flexDirection: "row",
+    alignItems: "flex-end",
     gap: Spacing.sm,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
@@ -1487,7 +1767,7 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: Radius.lg,
     paddingHorizontal: Spacing.md,
-    paddingVertical: Platform.OS === 'ios' ? 10 : 8,
+    paddingVertical: Platform.OS === "ios" ? 10 : 8,
     fontSize: 14,
     maxHeight: 100,
   },
@@ -1495,47 +1775,50 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   iconBtn: {
     width: 38,
     height: 38,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   folderBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
   // TripDocsModal
   docsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: Spacing.md,
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  docsTitle: { flex: 1, fontSize: 16, fontWeight: '700' },
+  docsTitle: { flex: 1, fontSize: 16, fontWeight: "700" },
   uploadBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
     paddingHorizontal: Spacing.md,
     paddingVertical: 8,
     borderRadius: Radius.md,
   },
-  uploadText: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  docsTabs: { flexDirection: 'row', borderBottomWidth: StyleSheet.hairlineWidth },
-  docsTab: { flex: 1, paddingVertical: Spacing.md, alignItems: 'center' },
+  uploadText: { color: "#fff", fontSize: 13, fontWeight: "700" },
+  docsTabs: {
+    flexDirection: "row",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  docsTab: { flex: 1, paddingVertical: Spacing.md, alignItems: "center" },
   docsTabText: { fontSize: 13 },
   docRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: Spacing.md,
     padding: Spacing.sm,
     borderWidth: StyleSheet.hairlineWidth,
@@ -1543,8 +1826,8 @@ const styles = StyleSheet.create({
   docRowThumb: { width: 56, height: 56, borderRadius: Radius.sm },
   // Doc bubble
   docBubble: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
     paddingHorizontal: 10,
     paddingVertical: 8,
@@ -1556,6 +1839,6 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: Radius.md,
   },
-  docFileName: { fontSize: 13, fontWeight: '600' },
+  docFileName: { fontSize: 13, fontWeight: "600" },
   docFileMeta: { fontSize: 10, marginTop: 2 },
 });

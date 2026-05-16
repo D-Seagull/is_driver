@@ -200,7 +200,7 @@ export default function DocumentsScreen() {
         <ScreenPlaceholder
           icon="document-text-outline"
           title="No truck assigned"
-          subtitle="Documents are linked to your truck. Once your dispatcher assigns one, they'll show up here."
+          subtitle="Documents are linked to your truck. Once your manager assigns one, they'll show up here."
         />
       ) : isLoading ? (
         <View style={styles.center}>

@@ -59,7 +59,7 @@ export function useDeleteTruckNote(truckId: string | null | undefined) {
 }
 
 /**
- * Listen for `truckChanged` socket events emitted when a dispatcher reassigns
+ * Listen for `truckChanged` socket events emitted when a manager reassigns
  * a driver between trucks. Invalidates the driver's truck + trip queries so
  * the mobile app shows the new truck (or "no truck") immediately.
  */
