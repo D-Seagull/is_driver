@@ -34,6 +34,13 @@ yarn-error.*
 .env
 .env*.local
 
+# Firebase / FCM — service-account JSON is the only real secret here.
+# google-services.json and GoogleService-Info.plist are public config (Sender ID,
+# App ID) and are normally checked in; EAS Build needs them in the tarball.
+fcm-service-account.json
+fcm-*.json
+*-firebase-adminsdk-*.json
+
 # typescript
 *.tsbuildinfo
 

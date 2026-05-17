@@ -4,7 +4,7 @@ import {
   DrawerContentComponentProps,
   DrawerContentScrollView,
 } from "@react-navigation/drawer";
-import { Redirect } from "expo-router";
+import { Redirect, router } from "expo-router";
 import { Drawer } from "expo-router/drawer";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -88,6 +88,15 @@ export default function DriverLayout() {
             }}
           />
         ))}
+        {/* Manager card — opened by tapping the manager row in the sidebar
+            or the manager block on the Truck screen, not from the drawer. */}
+        <Drawer.Screen
+          name="manager"
+          options={{
+            title: "Manager",
+            drawerItemStyle: { display: "none" },
+          }}
+        />
       </Drawer>
       {/* Foreground push notifications render here (Modal portals over UI). */}
       <PushNoticeOverlay />
@@ -363,6 +372,7 @@ function ManagerRow({
 }) {
   return (
     <Pressable
+      onPress={() => router.push("/(driver)/manager")}
       style={({ pressed }) => [
         styles.managerRow,
         {

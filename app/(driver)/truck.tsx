@@ -1,4 +1,5 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -216,19 +217,40 @@ export default function TruckScreen() {
         </View>
 
         {manager && (
-          <InfoRow
-            icon={
-              <Ionicons name="person-circle-outline" size={18} color={c.mutedForeground} />
-            }
-            label="Manager"
-            value={
-              manager.name
-                ? manager.phone
-                  ? `${manager.name} · ${manager.phone}`
-                  : manager.name
-                : manager.phone ?? '—'
-            }
-          />
+          <Pressable
+            onPress={() => router.push('/(driver)/manager')}
+            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+            // hitSlop bumps the touch target so taps near the chevron still
+            // register — InfoRow's typography is compact.
+            hitSlop={6}
+          >
+            <View style={styles.managerInfoRow}>
+              <View style={{ flex: 1 }}>
+                <InfoRow
+                  icon={
+                    <Ionicons
+                      name="person-circle-outline"
+                      size={18}
+                      color={c.mutedForeground}
+                    />
+                  }
+                  label="Manager (tap to rate)"
+                  value={
+                    manager.name
+                      ? manager.phone
+                        ? `${manager.name} · ${manager.phone}`
+                        : manager.name
+                      : manager.phone ?? '—'
+                  }
+                />
+              </View>
+              <Ionicons
+                name="chevron-forward"
+                size={16}
+                color={c.mutedForeground}
+              />
+            </View>
+          </Pressable>
         )}
       </View>
 
@@ -342,6 +364,11 @@ const styles = StyleSheet.create({
   infoIcon: { marginTop: 2 },
   infoLabel: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4 },
   infoValue: { fontSize: 14, marginTop: 2 },
+  managerInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
 
   sectionHeader: {
     flexDirection: 'row',

@@ -14,6 +14,7 @@
     "android": {
       "package": "com.dseadull.isdriver",
       "versionCode": 1,
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -51,7 +52,8 @@
           "color": "#ffffff",
           "sounds": []
         }
-      ]
+      ],
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true,

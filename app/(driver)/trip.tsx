@@ -675,20 +675,17 @@ function TripWithChat({
               else notifyStopTyping();
             }}
             onBlur={notifyStopTyping}
+            onSubmitEditing={handleSend}
             placeholder="Message…"
             placeholderTextColor={c.mutedForeground}
             style={[
               styles.input,
               { color: c.foreground, backgroundColor: c.muted },
             ]}
-            multiline
             maxLength={1000}
-            // NB: do NOT add `blurOnSubmit={false}` or `returnKeyType` on a
-            // multiline TextInput in Expo Go iOS — that combo regresses the
-            // input so typed characters never reach onChangeText. Same bug
-            // we already chased twice (d38c26c, c56bcf1). Native defaults
-            // for multiline already keep the keyboard open on Enter and
-            // insert a newline; the dedicated Send button does the commit.
+            // NB: zero exotic props. multiline / blurOnSubmit / returnKeyType
+            // each independently regressed touch handling on Expo Go iOS in
+            // SDK 54 + Fabric. Defaults only.
           />
           <Pressable
             onPress={handleSend}
