@@ -182,7 +182,7 @@ export default function TruckScreen() {
     );
   }
 
-  const dispatcher = truck.dispatcher;
+  const manager = truck.manager;
   const notes = truck.truckNotes ?? [];
 
   return (
@@ -215,18 +215,18 @@ export default function TruckScreen() {
           <TruckStatusBadge status={truck.status} />
         </View>
 
-        {dispatcher && (
+        {manager && (
           <InfoRow
             icon={
               <Ionicons name="person-circle-outline" size={18} color={c.mutedForeground} />
             }
-            label="Dispatcher"
+            label="Manager"
             value={
-              dispatcher.name
-                ? dispatcher.phone
-                  ? `${dispatcher.name} · ${dispatcher.phone}`
-                  : dispatcher.name
-                : dispatcher.phone ?? '—'
+              manager.name
+                ? manager.phone
+                  ? `${manager.name} · ${manager.phone}`
+                  : manager.name
+                : manager.phone ?? '—'
             }
           />
         )}

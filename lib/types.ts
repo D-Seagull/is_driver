@@ -17,7 +17,7 @@ export interface DriverTruck {
   plate: string;
   status: TruckStatus;
   isActive: boolean;
-  dispatcher: {
+  manager: {
     id: string;
     name: string | null;
     phone: string | null;
@@ -56,7 +56,7 @@ export interface Trip {
   updatedAt: string;
   driver: { id: string; name: string | null; phone: string | null };
   truck: { id: string; plate: string };
-  dispatcher: { id: string; name: string | null };
+  manager: { id: string; name: string | null };
   stops: TripStop[];
   documents: TripDocument[];
 }

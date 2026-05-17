@@ -4,7 +4,7 @@ import {
   DrawerContentComponentProps,
   DrawerContentScrollView,
 } from "@react-navigation/drawer";
-import { Redirect } from "expo-router";
+import { Redirect, router } from "expo-router";
 import { Drawer } from "expo-router/drawer";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -88,6 +88,15 @@ export default function DriverLayout() {
             }}
           />
         ))}
+        {/* Manager card — opened by tapping the manager row in the sidebar
+            or the manager block on the Truck screen, not from the drawer. */}
+        <Drawer.Screen
+          name="manager"
+          options={{
+            title: "Manager",
+            drawerItemStyle: { display: "none" },
+          }}
+        />
       </Drawer>
       {/* Foreground push notifications render here (Modal portals over UI). */}
       <PushNoticeOverlay />
@@ -108,7 +117,7 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
   useTimezoneSync();
   useAppStatePresence();
 
-  const dispatcher = truck?.dispatcher ?? null;
+  const manager = truck?.manager ?? null;
   const activeTripUnread = unread?.activeTripUnread ?? 0;
   const pastTripsUnread = unread?.pastTripsUnread ?? 0;
   const totalUnread = unread?.total ?? 0;
@@ -266,12 +275,12 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
         ]}
       >
         <DriverFooter colors={c} />
-        {dispatcher && (
-          <DispatcherRow
+        {manager && (
+          <ManagerRow
             person={{
-              name: dispatcher.name ?? "Dispatcher",
-              phone: dispatcher.phone ?? "",
-              avatar: dispatcher.avatar,
+              name: manager.name ?? "Manager",
+              phone: manager.phone ?? "",
+              avatar: manager.avatar,
             }}
             colors={c}
           />
@@ -354,7 +363,7 @@ function ThemeToggleButton({ colors: c }: { colors: ThemeColors }) {
   );
 }
 
-function DispatcherRow({
+function ManagerRow({
   person,
   colors: c,
 }: {
@@ -363,8 +372,9 @@ function DispatcherRow({
 }) {
   return (
     <Pressable
+      onPress={() => router.push("/(driver)/manager")}
       style={({ pressed }) => [
-        styles.dispatcherRow,
+        styles.managerRow,
         {
           backgroundColor: pressed ? c.sidebarAccent : "transparent",
           borderRadius: Radius.sm,
@@ -384,20 +394,20 @@ function DispatcherRow({
       </View>
       <View style={{ flex: 1 }}>
         <Text
-          style={[styles.dispatcherLabel, { color: c.mutedForeground }]}
+          style={[styles.managerLabel, { color: c.mutedForeground }]}
           numberOfLines={1}
         >
-          Dispatcher
+          Manager
         </Text>
         <Text
-          style={[styles.dispatcherName, { color: c.sidebarForeground }]}
+          style={[styles.managerName, { color: c.sidebarForeground }]}
           numberOfLines={1}
         >
           {person.name}
         </Text>
         {person.phone ? (
           <Text
-            style={[styles.dispatcherPhone, { color: c.mutedForeground }]}
+            style={[styles.managerPhone, { color: c.mutedForeground }]}
             numberOfLines={1}
           >
             {person.phone}
@@ -532,7 +542,7 @@ const styles = StyleSheet.create({
   driverName: { fontSize: 15, fontWeight: "700" },
   driverSub: { fontSize: 12, marginTop: 2 },
 
-  dispatcherRow: {
+  managerRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.sm,
@@ -547,12 +557,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     overflow: "hidden",
   },
-  dispatcherLabel: {
+  managerLabel: {
     fontSize: 10,
     fontWeight: "500",
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
-  dispatcherName: { fontSize: 12, fontWeight: "500", marginTop: 1 },
-  dispatcherPhone: { fontSize: 11, marginTop: 1 },
+  managerName: { fontSize: 12, fontWeight: "500", marginTop: 1 },
+  managerPhone: { fontSize: 11, marginTop: 1 },
 });

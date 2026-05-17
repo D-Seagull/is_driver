@@ -34,6 +34,11 @@ yarn-error.*
 .env
 .env*.local
 
+# Firebase / FCM — service-account JSON is a secret, never commit.
+fcm-service-account.json
+fcm-*.json
+*-firebase-adminsdk-*.json
+
 # typescript
 *.tsbuildinfo
 
