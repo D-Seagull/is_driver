@@ -593,13 +593,15 @@ function TripWithChat({
             else notifyStopTyping();
           }}
           onBlur={notifyStopTyping}
+          onSubmitEditing={handleSend}
           placeholder="Message…"
           placeholderTextColor={c.mutedForeground}
           style={[styles.input, { color: c.foreground, backgroundColor: c.muted }]}
-          multiline
           maxLength={1000}
-          returnKeyType="default"
-          blurOnSubmit={false}
+          // NB: zero exotic props. multiline / blurOnSubmit / returnKeyType
+          // each independently regressed touch handling on Expo Go iOS in
+          // SDK 54 + Fabric. Defaults only. (regression chased 3x: d38c26c,
+          // c56bcf1, 93e78d7)
         />
         <Pressable
           onPress={handleSend}
