@@ -32,7 +32,7 @@ export function PushNoticeOverlay() {
   const [notice, setNotice] = useState<Notice | null>(null);
 
   /** OK handler — for NEW_TRIP also bumps the trip status to ACCEPTED so
-   *  the dispatcher knows the driver acknowledged it. Other notification
+   *  the manager knows the driver acknowledged it. Other notification
    *  types just close the modal (cache was already invalidated on receive). */
   const handleOk = async () => {
     const data = notice?.data;

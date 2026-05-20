@@ -7,7 +7,7 @@ export interface DriverTruckSummary {
   status: string;
 }
 
-export interface DispatcherSummary {
+export interface ManagerSummary {
   id: string;
   name: string | null;
   phone: string | null;
@@ -16,7 +16,7 @@ export interface DispatcherSummary {
 
 export interface AuthUser {
   id: string;
-  role: 'DRIVER' | 'DISPATCHER' | 'TEAMLEAD' | 'ADMIN';
+  role: 'DRIVER' | 'MANAGER' | 'TEAMLEAD' | 'ADMIN';
   companyId: string | null;
   name: string | null;
   phone: string | null;
@@ -24,7 +24,7 @@ export interface AuthUser {
   avatar?: string | null;
   timezone?: string | null;
   currentTruck?: DriverTruckSummary | null;
-  dispatcher?: DispatcherSummary | null;
+  manager?: ManagerSummary | null;
 }
 
 export async function setMyTimezone(timezone: string): Promise<void> {
@@ -79,8 +79,8 @@ export async function verifyOtp(phone: string, code: string): Promise<AuthResult
         name: 'Volodymyr Kovalenko',
         phone,
         currentTruck: { id: 'mock-truck-id', plate: 'TRK-1042', status: 'AVAILABLE' },
-        dispatcher: {
-          id: 'mock-dispatcher-id',
+        manager: {
+          id: 'mock-manager-id',
           name: 'Anna Petrenko',
           phone: '+380501112233',
           avatar: null,
@@ -116,8 +116,8 @@ export async function fetchMe(): Promise<AuthUser> {
       name: 'Volodymyr Kovalenko',
       phone: '+380501234567',
       currentTruck: { id: 'mock-truck-id', plate: 'TRK-1042', status: 'AVAILABLE' },
-      dispatcher: {
-        id: 'mock-dispatcher-id',
+      manager: {
+        id: 'mock-manager-id',
         name: 'Anna Petrenko',
         phone: '+380501112233',
         avatar: null,

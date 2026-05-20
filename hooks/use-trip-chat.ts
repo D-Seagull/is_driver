@@ -19,7 +19,7 @@ export interface ChatMessage {
   sender: { id: string; name: string | null; role: string };
   // Session participants — used by the realtime layer to drop messages
   // belonging to a session the current user wasn't part of.
-  session?: { driverId: string | null; dispatcherId: string | null };
+  session?: { driverId: string | null; managerId: string | null };
 }
 
 export function useTripChat(
@@ -74,7 +74,7 @@ export function useTripChat(
     focusedRef.current = isFocused;
   }, [isFocused]);
 
-  // Filter: own + dispatcher messages only
+  // Filter: own + manager messages only
   const visible = messages.filter(
     (m) => m.senderId === myId || m.sender.role !== 'DRIVER',
   );
@@ -135,7 +135,7 @@ export function useTripChat(
       // new driver is now writing in it.
       const meId = myIdRef.current;
       const inSession =
-        msg.session?.driverId === meId || msg.session?.dispatcherId === meId;
+        msg.session?.driverId === meId || msg.session?.managerId === meId;
       if (!inSession) return;
 
       // Synchronous check before setState — prevents duplicate adds when two

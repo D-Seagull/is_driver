@@ -10,9 +10,9 @@ import { useAuthStore } from '@/store/auth';
  *  - the user logs in (token appears), or
  *  - the device timezone differs from what's stored on the server.
  *
- * Used by AlarmsService so a dispatcher scheduling "08:00" for a driver in
+ * Used by AlarmsService so a manager scheduling "08:00" for a driver in
  * Warsaw actually fires at 08:00 on that driver's clock, not the
- * dispatcher's.
+ * manager's.
  */
 export function useTimezoneSync() {
   const token = useAuthStore((s) => s.token);
