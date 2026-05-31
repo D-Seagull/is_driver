@@ -5,6 +5,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
 
+import { useAuthStore } from '@/store/auth';
+
 import { dmKeys } from './use-direct-messages';
 import { groupKeys } from './use-groups';
 
@@ -65,6 +67,7 @@ const REACT_ENDPOINT: Record<ReactionTarget, (id: string) => string> = {
  */
 export function useToggleReaction() {
   const queryClient = useQueryClient();
+  const myId = useAuthStore((s) => s.user?.id);
   return useMutation({
     mutationFn: async ({
       type,
@@ -86,25 +89,29 @@ export function useToggleReaction() {
     // so the bubble flips instantly. The WS `reaction_changed` echo will
     // reconcile if anything diverged.
     onMutate: ({ type, id, emoji }) => {
-      // We don't know the current user's id here, but we can reasonably
-      // assume that the tap originated from THIS device, so the optimistic
-      // change is "my reaction toggled on/off with this emoji". The
-      // gateway will broadcast the authoritative list within ~500ms.
+      // Without a known userId the optimistic row would land in "others"
+      // and produce a flickering ghost reaction. Skip and let the WS echo
+      // populate state.
+      if (!myId) return;
       const patch = (prev: ReactableRow[] = []) =>
         prev.map((row) => {
           if (row.id !== id) return row;
           const reactions = [...(row.reactions ?? [])];
-          // Look for an entry that belongs to "me" — we treat the most
-          // recently added matching-emoji row as mine. Without auth in
-          // scope we instead toggle by emoji presence on a best-effort
-          // basis; the WS reconcile fixes any drift.
-          const myIdx = reactions.findIndex((r) => r.emoji === emoji);
+          // Find MY existing reaction (if any). Three cases:
+          //   - same emoji → toggle off
+          //   - different emoji → replace
+          //   - nothing → append a row with my id
+          const myIdx = reactions.findIndex((r) => r.userId === myId);
           if (myIdx >= 0) {
-            reactions.splice(myIdx, 1);
+            if (reactions[myIdx].emoji === emoji) {
+              reactions.splice(myIdx, 1);
+            } else {
+              reactions[myIdx] = { ...reactions[myIdx], emoji };
+            }
           } else {
             reactions.push({
               id: `optimistic-${Date.now()}`,
-              userId: 'me',
+              userId: myId,
               emoji,
             });
           }
