@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Modal,
   Pressable,
@@ -206,19 +206,38 @@ export function MessageReactionsTrigger({
     ? reactions.find((r) => r.userId === currentUserId)
     : undefined;
 
+  // ── Optimistic override ───────────────────────────────────────────────
+  // The POST round-trip is ~400-800ms (Supabase + EU latency). We can't
+  // afford to wait — the user expects an instant flip. We mirror the
+  // change in local state and clear it as soon as the props catch up.
+  // `pending` = the emoji I'm about to have (null = I'm about to be empty).
+  const [pending, setPending] = useState<string | null | undefined>(undefined);
+  useEffect(() => {
+    // Reconcile: once the real reactions array reflects my pending choice,
+    // drop the override so future props win.
+    if (pending === undefined) return;
+    const real = myReaction?.emoji ?? null;
+    if (real === pending) setPending(undefined);
+  }, [pending, myReaction]);
+
+  const effectiveEmoji =
+    pending !== undefined ? pending : myReaction?.emoji ?? null;
+  const hasReaction = !!effectiveEmoji;
+  const displayEmoji = effectiveEmoji ?? '👍';
+
   const tapToggle = () => {
-    // Tapping always means "I want 👍". Backend treats a repeat of the
-    // same emoji as a removal, so this naturally toggles thumbs-up on/off.
+    // Flip locally first — the bubble updates this frame.
+    setPending(effectiveEmoji === '👍' ? null : '👍');
     toggle.mutate({ type, id: targetId, emoji: '👍' });
   };
 
   const pick = (emoji: string) => {
     setOpen(false);
+    // Picking the same emoji you already have toggles it off; otherwise it
+    // replaces. Same rule the backend applies, so we mirror it locally.
+    setPending(effectiveEmoji === emoji ? null : emoji);
     toggle.mutate({ type, id: targetId, emoji });
   };
-
-  const displayEmoji = myReaction?.emoji ?? '👍';
-  const hasReaction = !!myReaction;
 
   return (
     <>

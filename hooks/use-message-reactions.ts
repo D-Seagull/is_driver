@@ -64,6 +64,7 @@ const REACT_ENDPOINT: Record<ReactionTarget, (id: string) => string> = {
  * user per target) and broadcasts `reaction_changed`.
  */
 export function useToggleReaction() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({
       type,
@@ -74,8 +75,67 @@ export function useToggleReaction() {
       id: string;
       emoji: string;
     }) => {
+      const t0 = Date.now();
       const res = await api.post(REACT_ENDPOINT[type](id), { emoji });
+      const dt = Date.now() - t0;
+      // eslint-disable-next-line no-console
+      console.log(`[reactions] toggle ${type} ${id} POST round-trip=${dt}ms`);
       return res.data as MessageReactionRow[];
+    },
+    // Optimistic update — patch every relevant cache BEFORE the round-trip
+    // so the bubble flips instantly. The WS `reaction_changed` echo will
+    // reconcile if anything diverged.
+    onMutate: ({ type, id, emoji }) => {
+      // We don't know the current user's id here, but we can reasonably
+      // assume that the tap originated from THIS device, so the optimistic
+      // change is "my reaction toggled on/off with this emoji". The
+      // gateway will broadcast the authoritative list within ~500ms.
+      const patch = (prev: ReactableRow[] = []) =>
+        prev.map((row) => {
+          if (row.id !== id) return row;
+          const reactions = [...(row.reactions ?? [])];
+          // Look for an entry that belongs to "me" — we treat the most
+          // recently added matching-emoji row as mine. Without auth in
+          // scope we instead toggle by emoji presence on a best-effort
+          // basis; the WS reconcile fixes any drift.
+          const myIdx = reactions.findIndex((r) => r.emoji === emoji);
+          if (myIdx >= 0) {
+            reactions.splice(myIdx, 1);
+          } else {
+            reactions.push({
+              id: `optimistic-${Date.now()}`,
+              userId: 'me',
+              emoji,
+            });
+          }
+          return { ...row, reactions };
+        });
+
+      // Targeted: only the cache that matches `type` to avoid touching
+      // unrelated screens.
+      if (type === 'DM') {
+        queryClient
+          .getQueryCache()
+          .findAll({ predicate: (q) => q.queryKey[0] === 'messages' })
+          .forEach((q) => queryClient.setQueryData<ReactableRow[]>(q.queryKey, patch));
+      } else if (type === 'DM_DOC') {
+        queryClient
+          .getQueryCache()
+          .findAll({ predicate: (q) => q.queryKey[0] === 'conversation-documents' })
+          .forEach((q) => queryClient.setQueryData<ReactableRow[]>(q.queryKey, patch));
+      } else if (type === 'GROUP') {
+        queryClient
+          .getQueryCache()
+          .findAll({ predicate: (q) => q.queryKey[0] === 'group-messages' })
+          .forEach((q) => queryClient.setQueryData<ReactableRow[]>(q.queryKey, patch));
+      } else if (type === 'GROUP_DOC') {
+        queryClient
+          .getQueryCache()
+          .findAll({ predicate: (q) => q.queryKey[0] === 'group-documents' })
+          .forEach((q) => queryClient.setQueryData<ReactableRow[]>(q.queryKey, patch));
+      }
+      // TRIP / TRIP_DOC are handled inside useTripChat (local useState),
+      // so we don't touch React Query here.
     },
   });
 }

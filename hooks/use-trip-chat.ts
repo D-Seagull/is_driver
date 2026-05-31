@@ -95,8 +95,11 @@ export function useTripChat(
     // ── Load history ────────────────────────────────────────────────────────
     setIsLoading(true);
     setError(null);
+    const tFetchStart = Date.now();
     fetchTripMessages(tripId)
       .then((h: ChatMessage[]) => {
+        const dt = Date.now() - tFetchStart;
+        console.log(`[chat] fetchTripMessages ${tripId} → ${dt}ms (${h.length} msgs)`);
         if (!cancelled) {
           // Pre-populate seen set so real-time events don't duplicate history
           h.forEach((m) => seenIds.current.add(m.id));
