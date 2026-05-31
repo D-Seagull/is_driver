@@ -1,7 +1,19 @@
 import { useQueryClient } from '@tanstack/react-query';
-import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import { useEffect, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text } from 'react-native';
+import { Modal, Platform, Pressable, StyleSheet, Text } from 'react-native';
+
+// In Android Expo Go SDK 53+ importing expo-notifications THROWS at module
+// load time via DevicePushTokenAutoRegistration.fx.js. iOS Expo Go still
+// works via Apple's legacy host.exp.Exponent bundle, and EAS dev/prod builds
+// always work. So we only skip the require for Android-Expo-Go.
+const isExpoGoAndroid =
+  Constants.appOwnership === 'expo' && Platform.OS === 'android';
+type NotificationsModule = typeof import('expo-notifications');
+const Notifications: NotificationsModule | null = isExpoGoAndroid
+  ? null
+  : // eslint-disable-next-line @typescript-eslint/no-require-imports
+    (require('expo-notifications') as NotificationsModule);
 
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -49,7 +61,27 @@ export function PushNoticeOverlay() {
     }
   };
 
+  // DEV-only: 'M' on the keyboard or shake-to-debug simulates a push so we
+  // can iterate on the modal without a real EAS build. Open the Metro dev
+  // menu → "Trigger test push" or call __triggerTestPush() in the console.
   useEffect(() => {
+    if (!__DEV__) return;
+    (globalThis as unknown as { __triggerTestPush?: () => void }).__triggerTestPush = () => {
+      setNotice({
+        title: 'Test push',
+        body: 'This is a simulated foreground notification.',
+        data: { type: 'TEST' },
+      });
+    };
+  }, []);
+
+  useEffect(() => {
+    // Notifications module is missing only in Expo Go (where it's not loaded
+    // to avoid the SDK 53 `DevicePushTokenAutoRegistration` crash). The
+    // listeners themselves are safe to attach when the module IS loaded —
+    // they are what shows our in-app modal on foreground push.
+    if (!Notifications) return;
+
     const refresh = () => {
       qc.invalidateQueries({ queryKey: truckKeys.mine() });
       qc.invalidateQueries({ queryKey: tripKeys.active() });

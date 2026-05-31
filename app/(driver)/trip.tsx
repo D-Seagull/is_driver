@@ -33,6 +33,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import EmojiPicker from "rn-emoji-keyboard";
 
+import { MessageReactionsCluster } from "@/components/message-reactions";
 import { ScreenPlaceholder } from "@/components/screen-placeholder";
 import { StatusPicker } from "@/components/status-picker";
 import { Colors, Radius, Spacing } from "@/constants/theme";
@@ -204,6 +205,8 @@ function TripWithChat({
     notifyTyping,
     notifyStopTyping,
   } = useTripChat(trip.id, { isFocused, nearBottomRef });
+  // `useTripChat` itself owns the `reaction_changed` listener since trip
+  // messages live in its local state (not React Query). No extra hook needed.
   const { data: tripDocs = [] } = useTripDocuments(trip.id);
   const upload = useUploadDocuments();
 
@@ -543,6 +546,7 @@ function TripWithChat({
                   <MessageBubble
                     message={item.data}
                     isMe={isMe}
+                    currentUserId={user?.id}
                     onLongPress={
                       isMe
                         ? () => confirmDeleteMessage(item.data.id)
@@ -804,18 +808,32 @@ function SystemNotice({ text }: { text: string }) {
 function MessageBubble({
   message,
   isMe,
+  currentUserId,
   onLongPress,
 }: {
   message: ChatMessage;
   isMe: boolean;
+  currentUserId?: string;
   onLongPress?: () => void;
 }) {
   const c = Colors[useColorScheme() ?? "light"];
   const isManager = message.sender.role !== "DRIVER";
+  const isDeleted = !!message.deletedAt;
   const time = new Date(message.createdAt).toLocaleTimeString(undefined, {
     hour: "2-digit",
     minute: "2-digit",
   });
+
+  // Cluster sidekick — Trigger (mine / idle) + others' emojis inline.
+  const sidekick =
+    isDeleted || message.isSystem ? null : (
+      <MessageReactionsCluster
+        type="TRIP"
+        targetId={message.id}
+        reactions={message.reactions ?? []}
+        currentUserId={currentUserId}
+      />
+    );
 
   return (
     <View
@@ -844,31 +862,38 @@ function MessageBubble({
             {message.sender.name ?? (isManager ? "Manager" : "Driver")}
           </Text>
         )}
-        <Pressable
-          onLongPress={onLongPress}
-          delayLongPress={350}
-          style={[
-            styles.bubble,
-            isMe
-              ? {
-                  backgroundColor: c.primary,
-                  borderBottomRightRadius: 4,
-                  borderBottomLeftRadius: Radius.lg,
-                }
-              : {
-                  backgroundColor: c.card,
-                  borderWidth: StyleSheet.hairlineWidth,
-                  borderColor: c.border,
-                  borderBottomLeftRadius: 4,
-                },
-          ]}
-        >
-          <Text
-            style={[styles.bubbleText, { color: isMe ? "#fff" : c.foreground }]}
+        <View style={styles.bubbleInlineRow}>
+          {isMe && sidekick}
+          <Pressable
+            onLongPress={onLongPress}
+            delayLongPress={350}
+            style={[
+              styles.bubble,
+              isMe
+                ? {
+                    backgroundColor: c.primary,
+                    borderBottomRightRadius: 4,
+                    borderBottomLeftRadius: Radius.lg,
+                  }
+                : {
+                    backgroundColor: c.card,
+                    borderWidth: StyleSheet.hairlineWidth,
+                    borderColor: c.border,
+                    borderBottomLeftRadius: 4,
+                  },
+            ]}
           >
-            {message.content}
-          </Text>
-        </Pressable>
+            <Text
+              style={[
+                styles.bubbleText,
+                { color: isMe ? "#fff" : c.foreground },
+              ]}
+            >
+              {message.content}
+            </Text>
+          </Pressable>
+          {!isMe && sidekick}
+        </View>
         <View style={styles.bubbleMetaRow}>
           <Text style={[styles.bubbleTime, { color: c.mutedForeground }]}>
             {time}
@@ -1726,6 +1751,15 @@ const styles = StyleSheet.create({
   bubbleRowMe: { justifyContent: "flex-end" },
   bubbleRowOther: { justifyContent: "flex-start" },
   bubbleCol: { maxWidth: "75%", gap: 2 },
+  // Inline row that hosts the bubble + reactions trigger so the trigger
+  // is vertically centred on the bubble (not on bubble + meta together).
+  bubbleInlineRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  bubbleBarWrap: { marginTop: 3 },
+  bubbleBarWrapMe: { alignItems: "flex-end" },
   avatar: {
     width: 24,
     height: 24,

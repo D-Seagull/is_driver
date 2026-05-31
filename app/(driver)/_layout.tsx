@@ -46,8 +46,7 @@ const ITEMS: SidebarItem[] = [
   { name: "trips", label: "My Trips", renderIcon: ion("list-outline") },
   { name: "truck", label: "My Truck", renderIcon: mci("truck-outline") },
   { name: "documents", label: "Documents", renderIcon: ion("folder-outline") },
-  { name: "chat", label: "Drivers", renderIcon: ion("chatbubbles-outline") },
-  { name: "groups", label: "Groups", renderIcon: ion("people-outline") },
+  { name: "chat", label: "Chat", renderIcon: ion("chatbubbles-outline") },
   { name: "alarm", label: "Alarm", renderIcon: ion("alarm-outline") },
 ];
 
@@ -95,6 +94,25 @@ export default function DriverLayout() {
           options={{
             title: "Manager",
             drawerItemStyle: { display: "none" },
+          }}
+        />
+        {/* Groups — rendered as a tab inside Chat; the standalone route is
+            kept for deep links but hidden from the drawer. */}
+        <Drawer.Screen
+          name="groups"
+          options={{
+            title: "Groups",
+            drawerItemStyle: { display: "none" },
+          }}
+        />
+        {/* DM — direct-message chat with a specific user. Pushed via
+            router.push("/(driver)/dm/<userId>") from the chat tab; hidden
+            from the drawer and has its own stack layout. */}
+        <Drawer.Screen
+          name="dm"
+          options={{
+            drawerItemStyle: { display: "none" },
+            headerShown: false,
           }}
         />
       </Drawer>

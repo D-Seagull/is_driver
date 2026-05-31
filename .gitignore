@@ -34,6 +34,12 @@ yarn-error.*
 .env
 .env*.local
 
+# Firebase admin / FCM service-account secret. Used by the backend to send
+# push, NOT needed in the driver app repo at all — but if it ends up here
+# during local experiments, never commit it. (google-services.json IS
+# public client config and is kept in-tree for EAS builds.)
+fcm-service-account.json
+
 # typescript
 *.tsbuildinfo
 

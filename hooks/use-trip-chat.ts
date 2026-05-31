@@ -20,6 +20,12 @@ export interface ChatMessage {
   // Session participants — used by the realtime layer to drop messages
   // belonging to a session the current user wasn't part of.
   session?: { driverId: string | null; managerId: string | null };
+  // Phase 5 fields — backend already returns them on the trip message
+  // payload; they enable the reactions trigger and soft-delete / edit /
+  // reply UI on this screen as well.
+  deletedAt?: string | null;
+  editedAt?: string | null;
+  reactions?: { id: string; userId: string; emoji: string }[];
 }
 
 export function useTripChat(
@@ -196,6 +202,23 @@ export function useTripChat(
       setMessages((prev) => prev.filter((m) => m.id !== payload.messageId));
     };
 
+    // Reaction toggled on a trip message OR doc — patch the bubble's local
+    // `reactions` array. This hook owns the messages state (not React Query)
+    // so a setMessages patch is the only way the UI re-renders.
+    const onReactionChanged = (payload: {
+      targetType: string;
+      targetId: string;
+      reactions: { id: string; userId: string; emoji: string }[];
+    }) => {
+      if (payload.targetType === 'TRIP') {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === payload.targetId ? { ...m, reactions: payload.reactions } : m,
+          ),
+        );
+      }
+    };
+
     const onDocumentDeleted = (payload: { tripId: string; documentId: string }) => {
       if (payload.tripId !== tripId) return;
       qc.setQueryData<DriverDocument[]>(documentKeys.trip(tripId), (old = []) =>
@@ -249,6 +272,7 @@ export function useTripChat(
     sock.on('documentDeleted', onDocumentDeleted);
     sock.on('userTyping', onUserTyping);
     sock.on('userStopTyping', onUserStopTyping);
+    sock.on('reaction_changed', onReactionChanged);
 
     // If already connected — join immediately
     if (sock.connected) {
@@ -268,6 +292,7 @@ export function useTripChat(
       sock.off('documentDeleted', onDocumentDeleted);
       sock.off('userTyping', onUserTyping);
       sock.off('userStopTyping', onUserStopTyping);
+      sock.off('reaction_changed', onReactionChanged);
       typerTimeoutsRef.current.forEach((t) => clearTimeout(t));
       typerTimeoutsRef.current.clear();
     };

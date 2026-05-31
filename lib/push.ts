@@ -1,26 +1,39 @@
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
-import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
 import { registerPushToken, unregisterPushToken } from './push-api';
 
-/**
- * Foreground policy: do NOT show the system banner — the app is open and
- * we display our own modal Alert with the message + OK button instead.
- * The notification still goes into the system list / center for history.
- *
- * Background / closed: this handler doesn't run — the OS shows the regular
- * banner from the push payload itself, no action buttons.
- */
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: false,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+// Lazy-load expo-notifications. On Android Expo Go SDK 53+ importing it
+// statically eagerly runs `DevicePushTokenAutoRegistration` which THROWS
+// ("Android Push notifications removed from Expo Go") and shows a red
+// error overlay. On iOS Expo Go remote push still works (Apple legacy
+// bundle host.exp.Exponent), and EAS dev/production builds always work.
+// So the only case we MUST skip the require is Android-Expo-Go.
+const isExpoGo = Constants.appOwnership === 'expo';
+const isExpoGoAndroid = isExpoGo && Platform.OS === 'android';
+type NotificationsModule = typeof import('expo-notifications');
+let Notifications: NotificationsModule | null = null;
+if (!isExpoGoAndroid) {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  Notifications = require('expo-notifications') as NotificationsModule;
+  /**
+   * Foreground policy: do NOT show the system banner — the app is open and
+   * we display our own modal Alert with the message + OK button instead.
+   * The notification still goes into the system list / center for history.
+   *
+   * Background / closed: this handler doesn't run — the OS shows the regular
+   * banner from the push payload itself, no action buttons.
+   */
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowBanner: false,
+      shouldShowList: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
+}
 
 /**
  * Ask permission, fetch the Expo push token, and register it on the backend.
@@ -33,11 +46,11 @@ export async function registerForPushNotifications(): Promise<string | null> {
     return null;
   }
 
-  // Expo Go on Android stopped supporting remote push as of SDK 53.
-  // Skip silently — for production push on Android use a dev/EAS build.
-  const isExpoGo = Constants.appOwnership === 'expo';
-  if (Platform.OS === 'android' && isExpoGo) {
-    console.warn('[push] skip register: Expo Go on Android does not support remote push since SDK 53. Use an EAS dev build or production build to test push.');
+  // Android Expo Go has remote push removed since SDK 53 (the Notifications
+  // module isn't even loaded above). iOS Expo Go still works via Apple's
+  // legacy bundle. EAS dev/prod builds always work.
+  if (!Notifications) {
+    console.warn('[push] skip register: Android Expo Go does not support remote push since SDK 53. Use an EAS dev or production build.');
     return null;
   }
 
