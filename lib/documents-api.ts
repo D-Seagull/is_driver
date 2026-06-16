@@ -10,7 +10,7 @@ export interface DriverDocument {
   isRead: boolean;
   createdAt: string;
   signedUrl: string;
-  uploader?: { id: string; name: string | null; role: string };
+  uploader?: { id: string; firstName: string; lastName: string | null; role: string };
   trip?: { id: string; title: string; orderNumber: string | null };
 }
 

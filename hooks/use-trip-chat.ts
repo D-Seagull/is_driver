@@ -8,6 +8,7 @@ import { getSocket } from '@/lib/socket';
 import { playMessageSound } from '@/lib/sounds';
 import { useAuthStore } from '@/store/auth';
 
+import { fullName } from "@/lib/format";
 export interface ChatMessage {
   id: string;
   tripId: string;
@@ -16,7 +17,7 @@ export interface ChatMessage {
   createdAt: string;
   isRead?: boolean;
   isSystem?: boolean;
-  sender: { id: string; name: string | null; role: string };
+  sender: { id: string; firstName: string; lastName: string | null; role: string };
   // Session participants — used by the realtime layer to drop messages
   // belonging to a session the current user wasn't part of.
   session?: { driverId: string | null; managerId: string | null };
@@ -232,13 +233,13 @@ export function useTripChat(
 
     const onUserTyping = (payload: {
       tripId: string;
-      user: { id: string; name: string | null };
+      user: { id: string; firstName: string; lastName: string | null };
     }) => {
       if (payload.tripId !== tripId) return;
       if (payload.user.id === myIdRef.current) return;
       setTypers((prev) => {
         const next = new Map(prev);
-        next.set(payload.user.id, payload.user.name ?? 'Someone');
+        next.set(payload.user.id, fullName(payload.user) || 'Someone');
         return next;
       });
       const prevT = typerTimeoutsRef.current.get(payload.user.id);

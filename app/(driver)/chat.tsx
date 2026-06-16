@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState } from 'react';
+import { fullName } from "@/lib/format";
 import {
   ActivityIndicator,
   FlatList,
@@ -25,7 +26,7 @@ export default function ChatScreen() {
   const insets = useSafeAreaInsets();
   const user = useUser();
   const hasTruck = !!user?.currentTruck;
-  const managerName = user?.manager?.name ?? 'your manager';
+  const managerName = fullName(user?.manager) || 'your manager';
   const [tab, setTab] = useState<Tab>('chat');
 
   return (
@@ -142,7 +143,7 @@ function ConversationRow({ conv }: { conv: Conversation }) {
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
   const hasUnread = conv.unreadCount > 0;
-  const initials = (conv.user.name ?? '??').slice(0, 2).toUpperCase();
+  const initials = (fullName(conv.user) || '??').slice(0, 2).toUpperCase();
   const isManagerTier = conv.user.role !== 'DRIVER';
 
   return (
@@ -181,7 +182,7 @@ function ConversationRow({ conv }: { conv: Conversation }) {
             ]}
             numberOfLines={1}
           >
-            {conv.user.name ?? conv.user.role}
+            {fullName(conv.user) || conv.user.role}
           </Text>
           {hasUnread && (
             <View style={[styles.badge, { backgroundColor: c.primary }]}>

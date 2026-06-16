@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useMemo, useState } from 'react';
+import { fullName } from "@/lib/format";
 import {
   ActivityIndicator,
   Alert,
@@ -536,7 +537,7 @@ function AlarmRow({
           )}
           {alarm.creator.id !== alarm.target.id ? (
             <Text style={[styles.metaText, { color: c.mutedForeground }]}>
-              від {alarm.creator.name ?? '—'}
+              від {fullName(alarm.creator) || '—'}
             </Text>
           ) : null}
         </View>

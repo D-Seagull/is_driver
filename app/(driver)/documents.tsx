@@ -5,6 +5,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Stack } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useMemo, useState } from 'react';
+import { fullName } from "@/lib/format";
 import {
   ActivityIndicator,
   Alert,
@@ -517,7 +518,7 @@ function DocCard({
         </Text>
         <Text style={[styles.docSub, { color: c.mutedForeground }]}>
           {created}
-          {doc.uploader?.name ? ` · ${doc.uploader.name}` : ''}
+          {fullName(doc.uploader) ? ` · ${fullName(doc.uploader)}` : ''}
         </Text>
       </View>
       <Pressable

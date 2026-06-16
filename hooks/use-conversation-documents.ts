@@ -33,7 +33,7 @@ export interface ConversationDocumentFull {
   /** Reply pointing at another DirectMessageDocument. */
   replyToDocumentId?: string | null;
   replyToDocument?: DocReplyPreviewLite | null;
-  uploader: { id: string; name: string | null; role: string };
+  uploader: { id: string; firstName: string; lastName: string | null; role: string };
   reactions?: { id: string; userId: string; emoji: string }[];
 }
 

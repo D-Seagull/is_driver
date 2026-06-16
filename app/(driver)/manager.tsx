@@ -23,6 +23,7 @@ import {
   useRateManager,
 } from '@/hooks/use-manager-rating';
 import { useUser } from '@/store/auth';
+import { fullName } from '@/lib/format';
 
 /**
  * Manager profile screen for the driver app — opened by tapping the manager
@@ -75,7 +76,7 @@ export default function ManagerScreen() {
     );
   }
 
-  const displayName = profile.name ?? profile.email ?? 'Manager';
+  const displayName = fullName(profile) || profile.email || 'Manager';
 
   return (
     <ScrollView

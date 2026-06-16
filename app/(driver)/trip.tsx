@@ -1,4 +1,5 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { fullName } from "@/lib/format";
 import {
   DrawerActions,
   useIsFocused,
@@ -107,7 +108,7 @@ export default function TripScreen() {
   // If there's no truck at all — leave it null and the header hides the block
   // entirely (no lone dash next to a phantom truck icon).
   const truckPlate = trip?.truck?.plate ?? user?.currentTruck?.plate ?? null;
-  const driverName = trip?.driver?.name ?? user?.name ?? "Driver";
+  const driverName = fullName(trip?.driver) || fullName(user) || "Driver";
   const status: TripStatus = trip?.status ?? "ASSIGNED";
 
   return (
@@ -859,7 +860,7 @@ function MessageBubble({
       <View style={styles.bubbleCol}>
         {!isMe && (
           <Text style={[styles.bubbleSender, { color: c.mutedForeground }]}>
-            {message.sender.name ?? (isManager ? "Manager" : "Driver")}
+            {fullName(message.sender) || (isManager ? "Manager" : "Driver")}
           </Text>
         )}
         <View style={styles.bubbleInlineRow}>
@@ -1087,7 +1088,7 @@ function TripDocsModal({
                     style={[styles.docFileMeta, { color: c.mutedForeground }]}
                   >
                     {new Date(item.createdAt).toLocaleDateString()}
-                    {item.uploader?.name ? ` · ${item.uploader.name}` : ""}
+                    {fullName(item.uploader) ? ` · ${fullName(item.uploader)}` : ""}
                   </Text>
                 </View>
               </Pressable>
@@ -1145,7 +1146,7 @@ function DocBubble({
       <View style={styles.bubbleCol}>
         {!isMe && (
           <Text style={[styles.bubbleSender, { color: c.mutedForeground }]}>
-            {doc.uploader?.name ?? (isManager ? "Manager" : "Driver")}
+            {fullName(doc.uploader) || (isManager ? "Manager" : "Driver")}
           </Text>
         )}
         <Pressable

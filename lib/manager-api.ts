@@ -2,7 +2,7 @@ import { api } from './api';
 
 export interface ManagerProfile {
   id: string;
-  name: string | null;
+  firstName: string; lastName: string | null;
   email: string | null;
   phone: string | null;
   avatar: string | null;
@@ -18,7 +18,7 @@ export interface ManagerRating {
   comment: string | null;
   anonymous: boolean;
   createdAt: string;
-  ratedBy: { id: string; name: string | null; role: string };
+  ratedBy: { id: string; firstName: string; lastName: string | null; role: string };
 }
 
 export interface ManagerRatingsResponse {

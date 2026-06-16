@@ -9,7 +9,8 @@ export interface DriverTruckSummary {
 
 export interface ManagerSummary {
   id: string;
-  name: string | null;
+  firstName: string;
+  lastName: string | null;
   phone: string | null;
   avatar: string | null;
 }
@@ -18,7 +19,8 @@ export interface AuthUser {
   id: string;
   role: 'DRIVER' | 'MANAGER' | 'TEAMLEAD' | 'ADMIN';
   companyId: string | null;
-  name: string | null;
+  firstName: string;
+  lastName: string | null;
   phone: string | null;
   email?: string | null;
   avatar?: string | null;
@@ -76,12 +78,14 @@ export async function verifyOtp(phone: string, code: string): Promise<AuthResult
         id: 'mock-driver-id',
         role: 'DRIVER',
         companyId: 'mock-company',
-        name: 'Volodymyr Kovalenko',
+        firstName: 'Volodymyr',
+        lastName: 'Kovalenko',
         phone,
         currentTruck: { id: 'mock-truck-id', plate: 'TRK-1042', status: 'AVAILABLE' },
         manager: {
           id: 'mock-manager-id',
-          name: 'Anna Petrenko',
+          firstName: 'Anna',
+          lastName: 'Petrenko',
           phone: '+380501112233',
           avatar: null,
         },
@@ -113,12 +117,14 @@ export async function fetchMe(): Promise<AuthUser> {
       id: 'mock-driver-id',
       role: 'DRIVER',
       companyId: 'mock-company',
-      name: 'Volodymyr Kovalenko',
+      firstName: 'Volodymyr',
+      lastName: 'Kovalenko',
       phone: '+380501234567',
       currentTruck: { id: 'mock-truck-id', plate: 'TRK-1042', status: 'AVAILABLE' },
       manager: {
         id: 'mock-manager-id',
-        name: 'Anna Petrenko',
+        firstName: 'Anna',
+        lastName: 'Petrenko',
         phone: '+380501112233',
         avatar: null,
       },

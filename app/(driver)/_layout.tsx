@@ -1,5 +1,6 @@
 import React from "react";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { fullName } from "@/lib/format";
 import {
   DrawerContentComponentProps,
   DrawerContentScrollView,
@@ -296,7 +297,7 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
         {manager && (
           <ManagerRow
             person={{
-              name: manager.name ?? "Manager",
+              name: fullName(manager) || "Manager",
               phone: manager.phone ?? "",
               avatar: manager.avatar,
             }}
@@ -312,7 +313,7 @@ function DriverFooter({ colors: c }: { colors: ThemeColors }) {
   const user = useUser();
   const logout = useAuthStore((s) => s.logout);
   const driver = {
-    name: user?.name ?? "Driver",
+    name: fullName(user) || "Driver",
     subtitle: user?.phone ?? "",
     avatar: null as string | null,
   };

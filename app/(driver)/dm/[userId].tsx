@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { fullName } from "@/lib/format";
 import {
   ActivityIndicator,
   FlatList,
@@ -134,8 +135,8 @@ export default function DmScreen() {
   };
 
   // ─── Header ────────────────────────────────────────────────────────
-  const peerName = peer?.name ?? 'Chat';
-  const peerInitials = (peer?.name ?? '??').slice(0, 2).toUpperCase();
+  const peerName = fullName(peer) || 'Chat';
+  const peerInitials = (fullName(peer) || '??').slice(0, 2).toUpperCase();
 
   return (
     <KeyboardAvoidingView
@@ -219,7 +220,7 @@ export default function DmScreen() {
           target={{
             id: editing.id,
             targetType: 'msg',
-            senderName: me?.name ?? null,
+            senderName: fullName(me) || null,
             content: editing.original,
             isDeleted: false,
           }}
@@ -279,7 +280,7 @@ export default function DmScreen() {
             setReplyingTo({
               id: m.id,
               targetType: 'msg',
-              senderName: m.sender?.name ?? null,
+              senderName: fullName(m.sender) || null,
               content: m.content,
               isDeleted: !!m.deletedAt,
             });
@@ -429,7 +430,7 @@ function MessageBubble({
     >
       {!isDeleted && msg.replyTo && (
         <MessageQuote
-          senderName={msg.replyTo.sender.name}
+          senderName={fullName(msg.replyTo.sender)}
           content={msg.replyTo.content}
           isDeleted={!!msg.replyTo.deletedAt}
           onPress={onReplyJump}
@@ -439,7 +440,7 @@ function MessageBubble({
       {!isDeleted && msg.replyToDocument && (
         <MessageQuote
           kind="doc"
-          senderName={msg.replyToDocument.uploader.name}
+          senderName={fullName(msg.replyToDocument.uploader)}
           fileName={msg.replyToDocument.fileName}
           content=""
           isDeleted={!!msg.replyToDocument.deletedAt}
@@ -573,9 +574,6 @@ const styles = StyleSheet.create({
   },
   metaOwn: { flexDirection: 'row-reverse' },
   metaText: { fontSize: 10 },
-
-  barWrap: { marginTop: 2 },
-  barWrapOwn: { alignItems: 'flex-end' },
 
   // Banner (reply / edit)
   banner: {

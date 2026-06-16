@@ -15,8 +15,8 @@ export interface Alarm {
   isSent: boolean;
   createdAt: string;
   updatedAt: string;
-  creator: { id: string; name: string | null; role: string };
-  target: { id: string; name: string | null; role: string };
+  creator: { id: string; firstName: string; lastName: string | null; role: string };
+  target: { id: string; firstName: string; lastName: string | null; role: string };
   trip: { id: string; title: string; truckId: string } | null;
 }
 

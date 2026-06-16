@@ -13,7 +13,7 @@ export interface GroupManager {
   id: string;
   manager: {
     id: string;
-    name: string | null;
+    firstName: string; lastName: string | null;
     email: string;
     role: string;
   };
@@ -21,7 +21,7 @@ export interface GroupManager {
 
 export interface ManagerGroup {
   id: string;
-  name: string;
+  firstName: string; lastName: string | null;
   type: string;
   createdBy: string;
   managers: GroupManager[];
@@ -33,7 +33,7 @@ export interface GroupMessageReplyPreview {
   id: string;
   content: string;
   deletedAt: string | null;
-  sender: { id: string; name: string | null };
+  sender: { id: string; firstName: string; lastName: string | null };
 }
 
 export interface GroupMessage {
@@ -50,7 +50,7 @@ export interface GroupMessage {
   // Re-use the same lite preview shape — file fields match GroupDoc rows
   // sufficiently for quoting.
   replyToDocument?: DocReplyPreviewLite | null;
-  sender: { id: string; name: string | null; role: string };
+  sender: { id: string; firstName: string; lastName: string | null; role: string };
   reactions?: { id: string; userId: string; emoji: string }[];
 }
 

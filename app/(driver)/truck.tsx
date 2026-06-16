@@ -1,6 +1,7 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useState } from "react";
+import { fullName } from "@/lib/format";
 import {
   ActivityIndicator,
   Alert,
@@ -104,7 +105,7 @@ function NoteCard({
           {note.content}
         </Text>
         <Text style={[styles.noteMeta, { color: c.mutedForeground }]}>
-          {note.user.name ?? "Unknown"} · {date}
+          {fullName(note.user) || "Unknown"} · {date}
         </Text>
       </View>
       {canDelete && (
@@ -225,7 +226,7 @@ export default function TruckScreen() {
           <TruckStatusBadge status={truck.status} />
         </View>
 
-        {dispatcher && (
+        {manager && (
           <InfoRow
             icon={
               <Ionicons
@@ -236,11 +237,11 @@ export default function TruckScreen() {
             }
             label="Dispatcher"
             value={
-              dispatcher.name
-                ? dispatcher.phone
-                  ? `${dispatcher.name} · ${dispatcher.phone}`
-                  : dispatcher.name
-                : (dispatcher.phone ?? "—")
+              fullName(manager)
+                ? manager.phone
+                  ? `${fullName(manager)} · ${manager.phone}`
+                  : fullName(manager)
+                : (manager.phone ?? "—")
             }
           />
         )}

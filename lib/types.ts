@@ -9,7 +9,7 @@ export interface TruckNote {
   userId: string;
   content: string;
   createdAt: string;
-  user: { id: string; name: string | null; role: string };
+  user: { id: string; firstName: string; lastName: string | null; role: string };
 }
 
 export interface DriverTruck {
@@ -19,7 +19,8 @@ export interface DriverTruck {
   isActive: boolean;
   manager: {
     id: string;
-    name: string | null;
+    firstName: string;
+    lastName: string | null;
     phone: string | null;
     avatar: string | null;
   } | null;
@@ -54,9 +55,9 @@ export interface Trip {
   orderNumber: string | null;
   createdAt: string;
   updatedAt: string;
-  driver: { id: string; name: string | null; phone: string | null };
+  driver: { id: string; firstName: string; lastName: string | null; phone: string | null };
   truck: { id: string; plate: string };
-  manager: { id: string; name: string | null };
+  manager: { id: string; firstName: string; lastName: string | null };
   stops: TripStop[];
   documents: TripDocument[];
 }
