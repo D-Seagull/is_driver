@@ -1,6 +1,7 @@
 import React from "react";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { fullName, initials } from "@/lib/format";
+import { StatusDot } from "@/components/status-dot";
 import {
   DrawerContentComponentProps,
   DrawerContentScrollView,
@@ -316,6 +317,8 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
               name: fullName(manager) || "Manager",
               phone: manager.phone ?? "",
               avatar: manager.avatar,
+              status: manager.status ?? null,
+              statusUntil: manager.statusUntil ?? null,
             }}
             colors={c}
           />
@@ -333,14 +336,19 @@ function DriverFooter({ colors: c }: { colors: ThemeColors }) {
 
   return (
     <View style={styles.driverRow}>
-      <View style={[styles.avatarLg, { backgroundColor: c.muted }]}>
-        {user?.avatar ? (
-          <Image source={{ uri: user.avatar }} style={styles.avatarLgImg} />
-        ) : (
-          <Text style={[styles.avatarLgText, { color: c.mutedForeground }]}>
-            {peerInitials}
-          </Text>
-        )}
+      <View style={{ position: 'relative' }}>
+        <View style={[styles.avatarLg, { backgroundColor: c.muted }]}>
+          {user?.avatar ? (
+            <Image source={{ uri: user.avatar }} style={styles.avatarLgImg} />
+          ) : (
+            <Text style={[styles.avatarLgText, { color: c.mutedForeground }]}>
+              {peerInitials}
+            </Text>
+          )}
+        </View>
+        <View style={styles.statusDotAnchor}>
+          <StatusDot user={user} isOnline ring={c.sidebar} />
+        </View>
       </View>
       <View style={{ flex: 1 }}>
         <Text
@@ -406,7 +414,13 @@ function ManagerRow({
   person,
   colors: c,
 }: {
-  person: { name: string; phone: string; avatar: string | null };
+  person: {
+    name: string;
+    phone: string;
+    avatar: string | null;
+    status: 'ONLINE' | 'BUSY' | 'SLEEP' | null;
+    statusUntil: string | null;
+  };
   colors: ThemeColors;
 }) {
   return (
@@ -420,16 +434,21 @@ function ManagerRow({
         },
       ]}
     >
-      <View style={[styles.avatarSm, { backgroundColor: c.muted }]}>
-        {person.avatar ? (
-          <Image source={{ uri: person.avatar }} style={styles.avatarImg} />
-        ) : (
-          <Ionicons
-            name="headset-outline"
-            size={12}
-            color={c.mutedForeground}
-          />
-        )}
+      <View style={{ position: 'relative' }}>
+        <View style={[styles.avatarSm, { backgroundColor: c.muted }]}>
+          {person.avatar ? (
+            <Image source={{ uri: person.avatar }} style={styles.avatarImg} />
+          ) : (
+            <Ionicons
+              name="headset-outline"
+              size={12}
+              color={c.mutedForeground}
+            />
+          )}
+        </View>
+        <View style={styles.statusDotAnchor}>
+          <StatusDot user={person} isOnline size={8} ring={c.sidebar} />
+        </View>
       </View>
       <View style={{ flex: 1 }}>
         <Text
@@ -579,6 +598,11 @@ const styles = StyleSheet.create({
   },
   avatarImg: { width: "100%", height: "100%" },
   avatarLgImg: { width: "100%", height: "100%" },
+  statusDotAnchor: {
+    position: "absolute",
+    right: -2,
+    bottom: -2,
+  },
   avatarLgText: { fontSize: 15, fontWeight: "700" },
   avatarBusy: {
     position: "absolute",

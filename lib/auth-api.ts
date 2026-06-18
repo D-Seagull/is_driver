@@ -7,12 +7,16 @@ export interface DriverTruckSummary {
   status: string;
 }
 
+export type DriverUserStatus = 'ONLINE' | 'BUSY' | 'SLEEP';
+
 export interface ManagerSummary {
   id: string;
   firstName: string;
   lastName: string | null;
   phone: string | null;
   avatar: string | null;
+  status?: DriverUserStatus;
+  statusUntil?: string | null;
 }
 
 export interface AuthUser {
@@ -25,6 +29,8 @@ export interface AuthUser {
   email?: string | null;
   avatar?: string | null;
   language?: 'UK' | 'EN' | 'PL' | 'LT' | 'UZ' | 'KZ' | 'HI' | 'RU';
+  status?: DriverUserStatus;
+  statusUntil?: string | null;
   timezone?: string | null;
   currentTruck?: DriverTruckSummary | null;
   manager?: ManagerSummary | null;
@@ -83,6 +89,10 @@ export interface UpdateMePayload {
   lastName?: string | null;
   phone?: string;
   language?: DriverLanguage;
+  status?: DriverUserStatus;
+  /** ISO-8601 timestamp at which BUSY/SLEEP should auto-clear, or null
+   *  for indefinite. Omit to leave the timer untouched. */
+  statusUntil?: string | null;
 }
 
 /**

@@ -22,12 +22,25 @@ import { Colors, Radius, Spacing, ThemeColors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   DriverLanguage,
+  DriverUserStatus,
   deleteAvatar,
   updateMe,
   uploadAvatar,
 } from '@/lib/auth-api';
 import { fullName, initials } from '@/lib/format';
+import { STATUS_HEX, STATUS_LABEL } from '@/lib/status';
+import { StatusDot } from '@/components/status-dot';
 import { useAuthStore, useUser } from '@/store/auth';
+
+// Sleep presets for drivers — anchored on the EU rest-break convention
+// (9 h short rest, 11 h regular rest) plus a tighter "power nap" option
+// and a free-form custom that just defaults to 30 min.
+const SLEEP_PRESETS: { label: string; hours: number }[] = [
+  { label: '30 хв', hours: 0.5 },
+  { label: '2 години', hours: 2 },
+  { label: '9 годин (короткий відпочинок)', hours: 9 },
+  { label: '11 годин (регулярний відпочинок)', hours: 11 },
+];
 
 const LANGUAGE_LABELS: Record<DriverLanguage, string> = {
   UK: 'Українська',
@@ -58,6 +71,33 @@ export default function DriverSettingsScreen() {
   );
   const [langPickerOpen, setLangPickerOpen] = useState(false);
   const [savedHint, setSavedHint] = useState(false);
+  const [statusPickerOpen, setStatusPickerOpen] = useState(false);
+  const [sleepPickerOpen, setSleepPickerOpen] = useState(false);
+  const [statusBusy, setStatusBusy] = useState(false);
+
+  const currentStatus = (user?.status as DriverUserStatus | undefined) ?? 'ONLINE';
+
+  const applyStatus = async (
+    status: DriverUserStatus,
+    hours?: number,
+  ) => {
+    setStatusBusy(true);
+    try {
+      const me = await updateMe({
+        status,
+        statusUntil:
+          status !== 'ONLINE' && hours
+            ? new Date(Date.now() + hours * 60 * 60 * 1000).toISOString()
+            : null,
+      });
+      setUser(me);
+    } catch (err) {
+      Alert.alert('Помилка', 'Не вдалось оновити статус.');
+      console.warn('[settings] updateMe(status) failed', err);
+    } finally {
+      setStatusBusy(false);
+    }
+  };
 
   // Sync when the underlying user changes (e.g. after avatar upload).
   useEffect(() => {
@@ -256,6 +296,37 @@ export default function DriverSettingsScreen() {
           </View>
         </SectionCard>
 
+        {/* ── Status ───────────────────────────────────────────────── */}
+        <SectionCard colors={c} title="Статус">
+          <Pressable
+            onPress={() => setStatusPickerOpen(true)}
+            disabled={statusBusy}
+            style={({ pressed }) => [
+              styles.row,
+              {
+                backgroundColor: c.card,
+                borderColor: c.border,
+                opacity: pressed || statusBusy ? 0.85 : 1,
+              },
+            ]}
+          >
+            <StatusDot
+              user={user}
+              isOnline
+              size={12}
+              ring={c.card}
+            />
+            <Text style={[styles.rowText, { color: c.foreground }]}>
+              {STATUS_LABEL[currentStatus] ?? 'Online'}
+            </Text>
+            <Ionicons
+              name="chevron-forward"
+              size={18}
+              color={c.mutedForeground}
+            />
+          </Pressable>
+        </SectionCard>
+
         {/* ── Name fields ──────────────────────────────────────────── */}
         <SectionCard colors={c} title="Імʼя та прізвище">
           <View style={{ gap: Spacing.md }}>
@@ -392,6 +463,153 @@ export default function DriverSettingsScreen() {
           </Text>
         </Pressable>
       </ScrollView>
+
+      {/* ── Status picker modal ────────────────────────────────────── */}
+      <Modal
+        transparent
+        visible={statusPickerOpen}
+        animationType="fade"
+        onRequestClose={() => setStatusPickerOpen(false)}
+      >
+        <Pressable
+          style={styles.modalBackdrop}
+          onPress={() => setStatusPickerOpen(false)}
+        >
+          <Pressable
+            style={[styles.modalSheet, { backgroundColor: c.card }]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <Text style={[styles.modalTitle, { color: c.foreground }]}>
+              Виберіть статус
+            </Text>
+            {(['ONLINE', 'BUSY'] as const).map((s) => {
+              const selected = currentStatus === s;
+              return (
+                <Pressable
+                  key={s}
+                  onPress={() => {
+                    setStatusPickerOpen(false);
+                    applyStatus(s);
+                  }}
+                  style={({ pressed }) => [
+                    styles.modalItem,
+                    {
+                      backgroundColor:
+                        selected || pressed ? c.muted : 'transparent',
+                    },
+                  ]}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
+                    <View
+                      style={{
+                        width: 10,
+                        height: 10,
+                        borderRadius: 5,
+                        backgroundColor: STATUS_HEX[s],
+                      }}
+                    />
+                    <Text style={[styles.modalItemText, { color: c.foreground }]}>
+                      {STATUS_LABEL[s]}
+                    </Text>
+                  </View>
+                  {selected && (
+                    <Ionicons name="checkmark" size={20} color={c.primary} />
+                  )}
+                </Pressable>
+              );
+            })}
+            <Pressable
+              onPress={() => {
+                setStatusPickerOpen(false);
+                setSleepPickerOpen(true);
+              }}
+              style={({ pressed }) => [
+                styles.modalItem,
+                {
+                  backgroundColor:
+                    currentStatus === 'SLEEP' || pressed ? c.muted : 'transparent',
+                },
+              ]}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
+                <View
+                  style={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: 5,
+                    backgroundColor: STATUS_HEX.SLEEP,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Ionicons name="moon" size={7} color="#fff" />
+                </View>
+                <Text style={[styles.modalItemText, { color: c.foreground }]}>
+                  Сплю…
+                </Text>
+              </View>
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color={c.mutedForeground}
+              />
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* ── Sleep duration picker ─────────────────────────────────── */}
+      <Modal
+        transparent
+        visible={sleepPickerOpen}
+        animationType="fade"
+        onRequestClose={() => setSleepPickerOpen(false)}
+      >
+        <Pressable
+          style={styles.modalBackdrop}
+          onPress={() => setSleepPickerOpen(false)}
+        >
+          <Pressable
+            style={[styles.modalSheet, { backgroundColor: c.card }]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <Text style={[styles.modalTitle, { color: c.foreground }]}>
+              На скільки?
+            </Text>
+            {SLEEP_PRESETS.map((p) => (
+              <Pressable
+                key={p.label}
+                onPress={() => {
+                  setSleepPickerOpen(false);
+                  applyStatus('SLEEP', p.hours);
+                }}
+                style={({ pressed }) => [
+                  styles.modalItem,
+                  { backgroundColor: pressed ? c.muted : 'transparent' },
+                ]}
+              >
+                <Text style={[styles.modalItemText, { color: c.foreground }]}>
+                  {p.label}
+                </Text>
+              </Pressable>
+            ))}
+            <Pressable
+              onPress={() => {
+                setSleepPickerOpen(false);
+                applyStatus('SLEEP');
+              }}
+              style={({ pressed }) => [
+                styles.modalItem,
+                { backgroundColor: pressed ? c.muted : 'transparent' },
+              ]}
+            >
+              <Text style={[styles.modalItemText, { color: c.foreground }]}>
+                Без обмеження
+              </Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {/* ── Language picker modal ──────────────────────────────────── */}
       <Modal
