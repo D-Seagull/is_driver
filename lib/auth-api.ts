@@ -24,6 +24,7 @@ export interface AuthUser {
   phone: string | null;
   email?: string | null;
   avatar?: string | null;
+  language?: 'UK' | 'EN' | 'PL' | 'LT' | 'UZ' | 'KZ' | 'HI' | 'RU';
   timezone?: string | null;
   currentTruck?: DriverTruckSummary | null;
   manager?: ManagerSummary | null;
@@ -63,6 +64,34 @@ export async function uploadAvatar(asset: {
 
 export async function deleteAvatar(): Promise<AuthUser> {
   await api.delete('/users/avatar');
+  const { data } = await api.get<AuthUser>('/auth/me');
+  return data;
+}
+
+export type DriverLanguage =
+  | 'UK'
+  | 'EN'
+  | 'PL'
+  | 'LT'
+  | 'UZ'
+  | 'KZ'
+  | 'HI'
+  | 'RU';
+
+export interface UpdateMePayload {
+  firstName?: string;
+  lastName?: string | null;
+  phone?: string;
+  language?: DriverLanguage;
+}
+
+/**
+ * Self-update profile fields — wraps PATCH /users/me. Always re-reads
+ * /auth/me afterwards so the caller can drop the fresh user into the auth
+ * store without juggling response shapes.
+ */
+export async function updateMe(payload: UpdateMePayload): Promise<AuthUser> {
+  await api.patch('/users/me', payload);
   const { data } = await api.get<AuthUser>('/auth/me');
   return data;
 }
