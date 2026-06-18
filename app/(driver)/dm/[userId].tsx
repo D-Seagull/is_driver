@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { fullName } from "@/lib/format";
+import { fullName, initials } from "@/lib/format";
 import {
   ActivityIndicator,
   FlatList,
@@ -136,7 +136,7 @@ export default function DmScreen() {
 
   // ─── Header ────────────────────────────────────────────────────────
   const peerName = fullName(peer) || 'Chat';
-  const peerInitials = (fullName(peer) || '??').slice(0, 2).toUpperCase();
+  const peerInitials = initials(peer);
 
   return (
     <KeyboardAvoidingView

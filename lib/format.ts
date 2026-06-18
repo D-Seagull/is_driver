@@ -15,3 +15,32 @@ export function fullName(
     .join(' ')
     .trim();
 }
+
+/**
+ * Two-letter avatar fallback: first letter of firstName + first letter of
+ * lastName. Falls back to a single letter when there is no lastName, then
+ * to the email's first character, then to "?".
+ *
+ *   initials({ firstName: 'Dmytro', lastName: 'Chaika' })       // "DC"
+ *   initials({ firstName: 'Vasia',  lastName: null     })       // "V"
+ *   initials({ firstName: null, lastName: null, email: 'a@b' }) // "A"
+ *   initials(null)                                              // "?"
+ */
+export function initials(
+  user:
+    | {
+        firstName?: string | null;
+        lastName?: string | null;
+        email?: string | null;
+      }
+    | null
+    | undefined,
+): string {
+  if (!user) return '?';
+  const f = (user.firstName ?? '').trim();
+  const l = (user.lastName ?? '').trim();
+  const combined = (f.charAt(0) + l.charAt(0)).toUpperCase();
+  if (combined) return combined;
+  const email = (user.email ?? '').trim();
+  return email.charAt(0).toUpperCase() || '?';
+}

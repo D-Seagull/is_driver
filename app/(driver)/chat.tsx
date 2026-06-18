@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { fullName } from "@/lib/format";
+import { fullName, initials } from "@/lib/format";
 import {
   ActivityIndicator,
   FlatList,
@@ -143,7 +143,7 @@ function ConversationRow({ conv }: { conv: Conversation }) {
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
   const hasUnread = conv.unreadCount > 0;
-  const initials = (fullName(conv.user) || '??').slice(0, 2).toUpperCase();
+  const peerInitials = initials(conv.user);
   const isManagerTier = conv.user.role !== 'DRIVER';
 
   return (
@@ -162,7 +162,7 @@ function ConversationRow({ conv }: { conv: Conversation }) {
     >
       <View style={[styles.avatar, { backgroundColor: c.muted }]}>
         <Text style={[styles.avatarText, { color: c.primary }]}>
-          {initials}
+          {peerInitials}
         </Text>
         {isManagerTier && (
           <View style={[styles.managerBadge, { backgroundColor: c.primary }]}>

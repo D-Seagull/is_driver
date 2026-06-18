@@ -16,6 +16,7 @@ interface AuthState {
   requestOtp: (phone: string) => Promise<void>;
   verifyOtp: (phone: string, code: string) => Promise<void>;
   hydrate: () => Promise<void>;
+  setUser: (user: AuthUser) => void;
   logout: () => void;
 }
 
@@ -59,6 +60,8 @@ export const useAuthStore = create<AuthState>()(
           set({ user: null, token: null, isLoading: false });
         }
       },
+
+      setUser: (user) => set({ user }),
 
       logout: () => {
         disconnectSocket();

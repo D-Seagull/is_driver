@@ -1,14 +1,26 @@
 import React from "react";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { fullName } from "@/lib/format";
+import * as ImagePicker from "expo-image-picker";
+import { fullName, initials } from "@/lib/format";
 import {
   DrawerContentComponentProps,
   DrawerContentScrollView,
 } from "@react-navigation/drawer";
 import { Redirect, router } from "expo-router";
 import { Drawer } from "expo-router/drawer";
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { deleteAvatar, uploadAvatar } from "@/lib/auth-api";
 
 import { Colors, Radius, Spacing, ThemeColors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -312,29 +324,117 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
 function DriverFooter({ colors: c }: { colors: ThemeColors }) {
   const user = useUser();
   const logout = useAuthStore((s) => s.logout);
-  const driver = {
-    name: fullName(user) || "Driver",
-    subtitle: user?.phone ?? "",
-    avatar: null as string | null,
+  const setUser = useAuthStore((s) => s.setUser);
+  const [busy, setBusy] = React.useState<"upload" | "delete" | null>(null);
+
+  const handlePickAvatar = async () => {
+    if (busy) return;
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert(
+        "Доступ до фото",
+        "Дозволь доступ до галереї щоб обрати фото профілю.",
+      );
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.8,
+      allowsEditing: true,
+      aspect: [1, 1],
+    });
+    if (result.canceled || !result.assets[0]) return;
+    const asset = result.assets[0];
+    setBusy("upload");
+    try {
+      const me = await uploadAvatar({
+        uri: asset.uri,
+        fileName: asset.fileName,
+        mimeType: asset.mimeType,
+      });
+      setUser(me);
+    } catch (err) {
+      Alert.alert("Помилка", "Не вдалось завантажити фото. Спробуй ще раз.");
+      console.warn("[avatar] upload failed", err);
+    } finally {
+      setBusy(null);
+    }
   };
+
+  const handleLongPress = () => {
+    if (busy) return;
+    if (!user?.avatar) {
+      handlePickAvatar();
+      return;
+    }
+    Alert.alert("Фото профілю", "Що зробити?", [
+      { text: "Скасувати", style: "cancel" },
+      { text: "Змінити", onPress: handlePickAvatar },
+      {
+        text: "Прибрати",
+        style: "destructive",
+        onPress: async () => {
+          setBusy("delete");
+          try {
+            const me = await deleteAvatar();
+            setUser(me);
+          } catch (err) {
+            Alert.alert("Помилка", "Не вдалось видалити фото.");
+            console.warn("[avatar] delete failed", err);
+          } finally {
+            setBusy(null);
+          }
+        },
+      },
+    ]);
+  };
+
+  const name = fullName(user) || "Driver";
+  const subtitle = user?.phone ?? "";
+  const peerInitials = initials(user);
+
   return (
     <View style={styles.driverRow}>
-      <View style={[styles.avatarLg, { backgroundColor: c.muted }]}>
-        <Ionicons name="person" size={22} color={c.mutedForeground} />
-      </View>
+      <Pressable
+        onPress={handlePickAvatar}
+        onLongPress={handleLongPress}
+        delayLongPress={350}
+        hitSlop={6}
+        accessibilityLabel="Change profile photo"
+        style={({ pressed }) => [
+          styles.avatarLg,
+          {
+            backgroundColor: c.muted,
+            opacity: pressed ? 0.7 : 1,
+          },
+        ]}
+      >
+        {user?.avatar ? (
+          <Image source={{ uri: user.avatar }} style={styles.avatarLgImg} />
+        ) : (
+          <Text style={[styles.avatarLgText, { color: c.mutedForeground }]}>
+            {peerInitials}
+          </Text>
+        )}
+        {busy && (
+          <View style={styles.avatarBusy}>
+            <ActivityIndicator size="small" color={c.primary} />
+          </View>
+        )}
+      </Pressable>
       <View style={{ flex: 1 }}>
         <Text
           style={[styles.driverName, { color: c.sidebarForeground }]}
           numberOfLines={1}
         >
-          {driver.name}
+          {name}
         </Text>
-        {driver.subtitle ? (
+        {subtitle ? (
           <Text
             style={[styles.driverSub, { color: c.mutedForeground }]}
             numberOfLines={1}
           >
-            {driver.subtitle}
+            {subtitle}
           </Text>
         ) : null}
       </View>
@@ -558,6 +658,18 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   avatarImg: { width: "100%", height: "100%" },
+  avatarLgImg: { width: "100%", height: "100%" },
+  avatarLgText: { fontSize: 15, fontWeight: "700" },
+  avatarBusy: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.35)",
+  },
   driverName: { fontSize: 15, fontWeight: "700" },
   driverSub: { fontSize: 12, marginTop: 2 },
 

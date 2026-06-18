@@ -33,6 +33,40 @@ export async function setMyTimezone(timezone: string): Promise<void> {
   await api.patch('/users/me/timezone', { timezone });
 }
 
+/**
+ * Upload an avatar from the device. The picker gives us a local file URI; we
+ * wrap it in FormData with whatever filename / mime we can detect and POST
+ * it to `/users/avatar` (same endpoint the web frontend uses).
+ *
+ * Returns the latest AuthUser so the caller can refresh the store without a
+ * follow-up /auth/me round trip.
+ */
+export async function uploadAvatar(asset: {
+  uri: string;
+  fileName?: string | null;
+  mimeType?: string | null;
+}): Promise<AuthUser> {
+  const form = new FormData();
+  // RN/Expo FormData accepts the { uri, name, type } shape — TS doesn't
+  // model this on the web FormData type so we cast.
+  form.append('file', {
+    uri: asset.uri,
+    name: asset.fileName || 'avatar.jpg',
+    type: asset.mimeType || 'image/jpeg',
+  } as unknown as Blob);
+  await api.post('/users/avatar', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  const { data } = await api.get<AuthUser>('/auth/me');
+  return data;
+}
+
+export async function deleteAvatar(): Promise<AuthUser> {
+  await api.delete('/users/avatar');
+  const { data } = await api.get<AuthUser>('/auth/me');
+  return data;
+}
+
 export interface AuthResult {
   user: AuthUser;
   token: string;
