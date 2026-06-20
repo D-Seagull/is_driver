@@ -7,7 +7,12 @@ export interface DriverTruckSummary {
   status: string;
 }
 
-export type DriverUserStatus = 'ONLINE' | 'BUSY' | 'SLEEP';
+export type DriverUserStatus =
+  | 'ONLINE'
+  | 'BUSY'
+  | 'AWAY'
+  | 'SLEEP'
+  | 'VACATION';
 
 export interface ManagerSummary {
   id: string;

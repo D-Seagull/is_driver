@@ -30,14 +30,18 @@ export function resolveDisplayStatus(
 
 export const STATUS_HEX: Record<DisplayStatus, string> = {
   ONLINE: '#10B981',
-  BUSY: '#F59E0B',
+  BUSY: '#EF4444',
+  AWAY: '#F59E0B',
   SLEEP: '#6366F1',
+  VACATION: '#EAB308',
   OFFLINE: '#9CA3AF',
 };
 
 export const STATUS_LABEL: Record<DisplayStatus, string> = {
   ONLINE: 'Online',
   BUSY: 'Не турбувати',
+  AWAY: 'Не на місці',
   SLEEP: 'Сплю',
+  VACATION: 'Відпочиваю',
   OFFLINE: 'Не в додатку',
 };

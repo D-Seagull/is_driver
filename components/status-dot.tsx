@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { DriverUserStatus } from '@/lib/auth-api';
 import {
@@ -7,16 +7,20 @@ import {
   STATUS_HEX,
   type DisplayStatus,
 } from '@/lib/status';
+import { useIsUserOnline } from '@/hooks/use-presence';
 
 interface StatusDotProps {
   user:
     | {
+        id?: string;
         status?: DriverUserStatus | null;
         statusUntil?: string | null;
       }
     | null
     | undefined;
-  isOnline: boolean;
+  /** Override for the live presence lookup. Omit for the common case
+   *  where we read from the shared presence store. */
+  isOnline?: boolean;
   size?: number;
   /** Background colour for the outer ring — pass the parent surface so the
    *  dot looks like it sits on top with a hairline gap. */
@@ -29,7 +33,9 @@ interface StatusDotProps {
  * existing Image / Text avatar without touching layout.
  */
 export function StatusDot({ user, isOnline, size = 10, ring = '#000' }: StatusDotProps) {
-  const status: DisplayStatus = resolveDisplayStatus(user, isOnline);
+  const livePresence = useIsUserOnline(user?.id);
+  const effectiveOnline = isOnline ?? livePresence;
+  const status: DisplayStatus = resolveDisplayStatus(user, effectiveOnline);
   const inner = size;
   const outer = inner + 4;
   return (
@@ -60,6 +66,14 @@ export function StatusDot({ user, isOnline, size = 10, ring = '#000' }: StatusDo
             size={Math.max(6, Math.floor(inner * 0.7))}
             color="#fff"
           />
+        )}
+        {status === 'VACATION' && (
+          // Lucide-style palm tree isn't in Ionicons; emoji renders crisply
+          // on both iOS and Android at this size and keeps us from having
+          // to ship a second icon font just for one glyph.
+          <Text style={{ fontSize: Math.max(6, Math.floor(inner * 0.8)) }}>
+            🌴
+          </Text>
         )}
       </View>
     </View>

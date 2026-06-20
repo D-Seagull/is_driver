@@ -23,7 +23,7 @@ export interface DriverTruck {
     lastName: string | null;
     phone: string | null;
     avatar: string | null;
-    status?: 'ONLINE' | 'BUSY' | 'SLEEP';
+    status?: 'ONLINE' | 'BUSY' | 'AWAY' | 'SLEEP' | 'VACATION';
     statusUntil?: string | null;
   } | null;
   truckNotes: TruckNote[];

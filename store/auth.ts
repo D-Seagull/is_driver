@@ -34,6 +34,11 @@ export const useAuthStore = create<AuthState>()(
 
       verifyOtp: async (phone, code) => {
         const { user, token } = await verifyOtp(phone, code);
+        // Drop any stale socket so the new connection picks up the
+        // fresh token. Without this getSocket() returns a singleton
+        // that joined company-X under nobody, and the backend
+        // never broadcasts presence for the new user.
+        disconnectSocket();
         // Set token first so the api interceptor injects Authorization on the
         // follow-up /auth/me call below.
         set({ user, token, isLoading: false });

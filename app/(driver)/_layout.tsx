@@ -2,6 +2,7 @@ import React from "react";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { fullName, initials } from "@/lib/format";
 import { StatusDot } from "@/components/status-dot";
+import { PresenceStatusSheet } from "@/components/presence-status-sheet";
 import {
   DrawerContentComponentProps,
   DrawerContentScrollView,
@@ -26,6 +27,8 @@ import { useDriverUnread, useDriverUnreadSync } from "@/hooks/use-driver-unread"
 import { usePushNotifications } from "@/hooks/use-push-notifications";
 import { useTimezoneSync } from "@/hooks/use-timezone-sync";
 import { useAppStatePresence } from "@/hooks/use-app-state-presence";
+import { useUserStatusSync } from "@/hooks/use-user-status-sync";
+import { usePresenceSync } from "@/hooks/use-presence";
 import { PushNoticeOverlay } from "@/components/push-notice-overlay";
 import { useAuthStore, useUser } from "@/store/auth";
 
@@ -152,6 +155,13 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
   usePushNotifications();
   useTimezoneSync();
   useAppStatePresence();
+  // Live presence dots — patches every cached payload when a teammate
+  // flips their Online/Busy/Sleep so the drawer / chat avatars update
+  // without restarting the app.
+  useUserStatusSync();
+  // Live online/offline set — backend pushes connect/disconnect events
+  // so StatusDot can flip teammates to OFFLINE when they close the app.
+  usePresenceSync();
 
   const manager = truck?.manager ?? null;
   const activeTripUnread = unread?.activeTripUnread ?? 0;
@@ -314,6 +324,7 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
         {manager && (
           <ManagerRow
             person={{
+              id: manager.id,
               name: fullName(manager) || "Manager",
               phone: manager.phone ?? "",
               avatar: manager.avatar,
@@ -333,54 +344,71 @@ function DriverFooter({ colors: c }: { colors: ThemeColors }) {
   const name = fullName(user) || "Driver";
   const subtitle = user?.phone ?? "";
   const peerInitials = initials(user);
+  const [statusOpen, setStatusOpen] = React.useState(false);
 
   return (
-    <View style={styles.driverRow}>
-      <View style={{ position: 'relative' }}>
-        <View style={[styles.avatarLg, { backgroundColor: c.muted }]}>
-          {user?.avatar ? (
-            <Image source={{ uri: user.avatar }} style={styles.avatarLgImg} />
-          ) : (
-            <Text style={[styles.avatarLgText, { color: c.mutedForeground }]}>
-              {peerInitials}
-            </Text>
-          )}
-        </View>
-        <View style={styles.statusDotAnchor}>
-          <StatusDot user={user} isOnline ring={c.sidebar} />
-        </View>
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text
-          style={[styles.driverName, { color: c.sidebarForeground }]}
-          numberOfLines={1}
+    <>
+      <View style={styles.driverRow}>
+        {/* Tap on the avatar / name area opens the presence picker
+            directly — full settings still live behind the gear icon. */}
+        <Pressable
+          onPress={() => setStatusOpen(true)}
+          style={({ pressed }) => [
+            styles.driverPressable,
+            { backgroundColor: pressed ? c.sidebarAccent : "transparent" },
+          ]}
         >
-          {name}
-        </Text>
-        {subtitle ? (
-          <Text
-            style={[styles.driverSub, { color: c.mutedForeground }]}
-            numberOfLines={1}
-          >
-            {subtitle}
-          </Text>
-        ) : null}
+          <View style={{ position: 'relative' }}>
+            <View style={[styles.avatarLg, { backgroundColor: c.muted }]}>
+              {user?.avatar ? (
+                <Image source={{ uri: user.avatar }} style={styles.avatarLgImg} />
+              ) : (
+                <Text style={[styles.avatarLgText, { color: c.mutedForeground }]}>
+                  {peerInitials}
+                </Text>
+              )}
+            </View>
+            <View style={styles.statusDotAnchor}>
+              <StatusDot user={user} isOnline ring={c.sidebar} />
+            </View>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text
+              style={[styles.driverName, { color: c.sidebarForeground }]}
+              numberOfLines={1}
+            >
+              {name}
+            </Text>
+            {subtitle ? (
+              <Text
+                style={[styles.driverSub, { color: c.mutedForeground }]}
+                numberOfLines={1}
+              >
+                {subtitle}
+              </Text>
+            ) : null}
+          </View>
+        </Pressable>
+        <Pressable
+          onPress={() => router.push("/(driver)/settings")}
+          hitSlop={8}
+          accessibilityLabel="Open settings"
+          style={({ pressed }) => [
+            styles.logoutBtn,
+            {
+              backgroundColor: pressed ? c.sidebarAccent : "transparent",
+              borderRadius: Radius.sm,
+            },
+          ]}
+        >
+          <Ionicons name="settings-outline" size={20} color={c.mutedForeground} />
+        </Pressable>
       </View>
-      <Pressable
-        onPress={() => router.push("/(driver)/settings")}
-        hitSlop={8}
-        accessibilityLabel="Open settings"
-        style={({ pressed }) => [
-          styles.logoutBtn,
-          {
-            backgroundColor: pressed ? c.sidebarAccent : "transparent",
-            borderRadius: Radius.sm,
-          },
-        ]}
-      >
-        <Ionicons name="settings-outline" size={20} color={c.mutedForeground} />
-      </Pressable>
-    </View>
+      <PresenceStatusSheet
+        open={statusOpen}
+        onClose={() => setStatusOpen(false)}
+      />
+    </>
   );
 }
 
@@ -415,10 +443,11 @@ function ManagerRow({
   colors: c,
 }: {
   person: {
+    id: string;
     name: string;
     phone: string;
     avatar: string | null;
-    status: 'ONLINE' | 'BUSY' | 'SLEEP' | null;
+    status: 'ONLINE' | 'BUSY' | 'AWAY' | 'SLEEP' | 'VACATION' | null;
     statusUntil: string | null;
   };
   colors: ThemeColors;
@@ -447,7 +476,7 @@ function ManagerRow({
           )}
         </View>
         <View style={styles.statusDotAnchor}>
-          <StatusDot user={person} isOnline size={8} ring={c.sidebar} />
+          <StatusDot user={person} size={8} ring={c.sidebar} />
         </View>
       </View>
       <View style={{ flex: 1 }}>
@@ -587,6 +616,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: Spacing.md,
     paddingVertical: Spacing.xs,
+  },
+  driverPressable: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+    marginHorizontal: -6,
+    borderRadius: Radius.sm,
   },
   avatarLg: {
     width: 44,
