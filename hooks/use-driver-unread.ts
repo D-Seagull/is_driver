@@ -49,11 +49,16 @@ export function useDriverUnreadSync() {
       void queryClient.invalidateQueries({ queryKey: DRIVER_UNREAD_KEY });
     };
 
-    socket.on('newMessage', invalidate);
+    // The backend used to re-broadcast every full chat message to the
+    // company room just so this badge could invalidate. It now emits a
+    // lightweight `tripUnreadChanged` for that purpose; `newMessage` is
+    // kept on the trip room only (in-chat handlers in use-trip-chat
+    // still listen for it there).
+    socket.on('tripUnreadChanged', invalidate);
     socket.on('tripMessagesRead', invalidate);
 
     return () => {
-      socket.off('newMessage', invalidate);
+      socket.off('tripUnreadChanged', invalidate);
       socket.off('tripMessagesRead', invalidate);
     };
   }, [queryClient, token]);
