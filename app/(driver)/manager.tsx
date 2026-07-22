@@ -23,6 +23,7 @@ import {
   useRateManager,
 } from '@/hooks/use-manager-rating';
 import { useUser } from '@/store/auth';
+import { useDriverTruck } from '@/hooks/use-truck';
 import { fullName } from '@/lib/format';
 
 /**
@@ -36,7 +37,11 @@ export default function ManagerScreen() {
   const c = Colors[useColorScheme() ?? 'light'];
   const insets = useSafeAreaInsets();
   const me = useUser();
-  const managerId = me?.manager?.id ?? null;
+  // The driver's manager is the manager of the truck they're currently on
+  // (this is what the sidebar row shows and taps through from). Fall back to
+  // the user-record manager only when no truck is assigned yet.
+  const { data: truck } = useDriverTruck();
+  const managerId = truck?.manager?.id ?? me?.manager?.id ?? null;
 
   const { data: profile, isLoading } = useManagerProfile(managerId);
   const { data: ratingsData } = useManagerRatings(managerId);
