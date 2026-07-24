@@ -41,6 +41,8 @@ export interface GroupMessage {
   groupId: string;
   senderId: string;
   content: string;
+  /** System-authored notices ("added X") — rendered centred & muted. */
+  isSystem?: boolean;
   createdAt: string;
   deletedAt?: string | null;
   editedAt?: string | null;
@@ -58,10 +60,36 @@ export interface GroupMessage {
 
 export const groupKeys = {
   list: ['manager-groups'] as const,
+  driverList: ['driver-groups'] as const,
   detail: (id: string) => ['manager-groups', id] as const,
   messages: (groupId: string) => ['group-messages', groupId] as const,
   unread: ['group-unread-summary'] as const,
 };
+
+// ─── Driver groups (company-wide all-drivers group) ───────────────────────
+
+export interface DriverGroup {
+  id: string;
+  name: string;
+  avatar: string | null;
+  type: string;
+  memberCount: number;
+}
+
+/**
+ * The groups a driver belongs to. Backed by the driver-only `/driver-groups`
+ * endpoint (the manager `/groups` routes are role-locked). Today this returns
+ * the single company-wide "All Drivers" group, created lazily server-side.
+ */
+export function useDriverGroups() {
+  return useQuery<DriverGroup[]>({
+    queryKey: groupKeys.driverList,
+    queryFn: async () => {
+      const res = await api.get('/driver-groups');
+      return res.data;
+    },
+  });
+}
 
 // ─── Queries ──────────────────────────────────────────────────────────────
 

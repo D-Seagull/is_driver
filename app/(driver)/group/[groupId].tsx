@@ -5,7 +5,6 @@ import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { fullName, initials } from "@/lib/format";
 import {
   ActivityIndicator,
   Alert,
@@ -24,25 +23,24 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MessageActionsSheet, type MessageActions } from '@/components/message-actions-sheet';
 import { MessageQuote } from '@/components/message-quote';
-import { MessageReactionsCluster } from '@/components/message-reactions';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useChatEvents } from '@/hooks/use-chat-events';
+import { useChatEvents, useJoinGroupRoom } from '@/hooks/use-chat-events';
 import {
-  useConversationDocuments,
-  useConversationDocsSocketSync,
-  useDeleteConversationDoc,
-  useUploadConversationDocs,
-  type ConversationDocumentFull,
-} from '@/hooks/use-conversation-documents';
+  useDeleteGroupDoc,
+  useGroupDocsSocketSync,
+  useGroupDocuments,
+  useUploadGroupDocs,
+  type GroupDocumentFull,
+} from '@/hooks/use-group-documents';
 import {
-  useChatUser,
-  useDeleteDirectMessage,
-  useDirectMessages,
-  useEditDirectMessage,
-  type DirectMessage,
-} from '@/hooks/use-direct-messages';
-import { useReactionsSocketSync } from '@/hooks/use-message-reactions';
+  useDeleteGroupMessage,
+  useEditGroupMessage,
+  useGroupMessages,
+  useMarkGroupRead,
+  type GroupMessage,
+} from '@/hooks/use-groups';
+import { fullName } from '@/lib/format';
 import { getSocket } from '@/lib/socket';
 import { useUser } from '@/store/auth';
 
@@ -58,56 +56,39 @@ type ReplyTarget = {
 
 type EditingState = { id: string; original: string };
 
-// Messages + documents share one time-ordered timeline.
+// Chat + documents share one time-ordered timeline.
 type TimelineItem =
-  | { kind: 'msg'; data: DirectMessage; ts: number }
-  | { kind: 'doc'; data: ConversationDocumentFull; ts: number };
+  | { kind: 'msg'; data: GroupMessage; ts: number }
+  | { kind: 'doc'; data: GroupDocumentFull; ts: number };
 
-export default function DmScreen() {
+export default function GroupChatScreen() {
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
   const insets = useSafeAreaInsets();
-  const { userId: peerId } = useLocalSearchParams<{ userId: string }>();
+  const { groupId, name } = useLocalSearchParams<{ groupId: string; name?: string }>();
   const me = useUser();
   const myId = me?.id ?? '';
 
   // ─── Data ──────────────────────────────────────────────────────────
-  const { data: peer } = useChatUser(peerId);
-  const { data: messages = [], isLoading } = useDirectMessages(peerId);
-  const { data: documents = [] } = useConversationDocuments(peerId);
-  const deleteMsg = useDeleteDirectMessage();
-  const editMsg = useEditDirectMessage(peerId);
-  const uploadDocs = useUploadConversationDocs(peerId);
-  const deleteDoc = useDeleteConversationDoc(peerId);
+  const { data: messages = [], isLoading } = useGroupMessages(groupId);
+  const { data: documents = [] } = useGroupDocuments(groupId);
+  const deleteMsg = useDeleteGroupMessage();
+  const editMsg = useEditGroupMessage(groupId);
+  const markRead = useMarkGroupRead();
+  const uploadDocs = useUploadGroupDocs(groupId);
+  const deleteDoc = useDeleteGroupDoc(groupId);
 
   // ─── Realtime ──────────────────────────────────────────────────────
-  useChatEvents({ dmOtherUserId: peerId, myUserId: myId });
-  useReactionsSocketSync({ dmOtherUserId: peerId });
-  useConversationDocsSocketSync(peerId);
+  useJoinGroupRoom(groupId);
+  useChatEvents({ groupId, myUserId: myId });
+  useGroupDocsSocketSync(groupId);
 
-  // Mark-as-read fires only on conversation open (peer change). Subsequent
-  // unread bumps from inbound messages are caught by the socket handler
-  // below so we don't double-emit on every messages.length change (which
-  // would echo the same event twice per render).
+  // Mark the whole group read on open (and whenever a new message lands
+  // while we're viewing it).
   useEffect(() => {
-    if (peerId) getSocket().emit('mark_as_read', { senderId: peerId });
-  }, [peerId]);
-
-  // While the conversation is open, ACK each incoming message from the
-  // peer immediately so their ✓✓ flips without waiting for the next open.
-  useEffect(() => {
-    if (!peerId) return;
-    const socket = getSocket();
-    const onNewDirect = (m: DirectMessage) => {
-      if (m.senderId === peerId && m.receiverId === myId) {
-        socket.emit('mark_as_read', { senderId: peerId });
-      }
-    };
-    socket.on('new_direct_message', onNewDirect);
-    return () => {
-      socket.off('new_direct_message', onNewDirect);
-    };
-  }, [peerId, myId]);
+    if (groupId) markRead.mutate(groupId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupId, messages.length]);
 
   // ─── Composer state ────────────────────────────────────────────────
   const [text, setText] = useState('');
@@ -119,15 +100,13 @@ export default function DmScreen() {
   const [folderOpen, setFolderOpen] = useState(false);
 
   // ─── Long-press actions sheet ──────────────────────────────────────
-  const [sheetFor, setSheetFor] = useState<DirectMessage | null>(null);
+  const [sheetFor, setSheetFor] = useState<GroupMessage | null>(null);
 
   // Live (non-deleted) docs power the folder count + the folder modal.
   const liveDocs = useMemo(() => documents.filter((d) => !d.deletedAt), [documents]);
 
   // ─── List — messages + documents merged into one timeline ──────────
   const listRef = useRef<FlatList<TimelineItem>>(null);
-  // Newest first for the inverted list (viewport is flipped, so the newest
-  // item sits at the visual bottom).
   const data = useMemo<TimelineItem[]>(() => {
     const items: TimelineItem[] = [
       ...messages.map((m) => ({
@@ -141,6 +120,7 @@ export default function DmScreen() {
         ts: new Date(d.createdAt).getTime(),
       })),
     ];
+    // Newest first for the inverted list.
     return items.sort((a, b) => b.ts - a.ts);
   }, [messages, documents]);
 
@@ -201,7 +181,9 @@ export default function DmScreen() {
     ]);
   };
 
-  const openDoc = async (doc: ConversationDocumentFull) => {
+  const openDoc = async (doc: GroupDocumentFull) => {
+    // Photos open instantly in an in-app viewer; other files hand off to the
+    // system browser (PDF/doc preview).
     if (doc.fileType === 'PHOTO') {
       setViewerUri(doc.signedUrl);
       return;
@@ -235,8 +217,8 @@ export default function DmScreen() {
 
     const replyMsgId = replyingTo?.targetType === 'msg' ? replyingTo.id : null;
     const replyDocId = replyingTo?.targetType === 'doc' ? replyingTo.id : null;
-    getSocket().emit('send_direct_message', {
-      receiverId: peerId,
+    getSocket().emit('send_group_message', {
+      groupId,
       content: trimmed,
       replyToId: replyMsgId,
       replyToDocumentId: replyDocId,
@@ -246,13 +228,11 @@ export default function DmScreen() {
   };
 
   // ─── Header ────────────────────────────────────────────────────────
-  const peerName = fullName(peer) || 'Chat';
-  const peerInitials = initials(peer);
+  const groupName = name || 'Group';
 
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       style={[styles.root, { backgroundColor: c.background }]}
     >
       {/* Header */}
@@ -266,24 +246,18 @@ export default function DmScreen() {
           },
         ]}
       >
-        <Pressable
-          onPress={() => router.back()}
-          hitSlop={10}
-          style={styles.backBtn}
-        >
+        <Pressable onPress={() => router.back()} hitSlop={10} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={26} color={c.foreground} />
         </Pressable>
         <View style={[styles.headerAvatar, { backgroundColor: c.muted }]}>
-          <Text style={[styles.headerAvatarText, { color: c.primary }]}>
-            {peerInitials}
-          </Text>
+          <Ionicons name="people" size={18} color={c.primary} />
         </View>
         <View style={styles.headerText}>
           <Text style={[styles.headerName, { color: c.foreground }]} numberOfLines={1}>
-            {peerName}
+            {groupName}
           </Text>
           <Text style={[styles.headerRole, { color: c.mutedForeground }]} numberOfLines={1}>
-            {peer?.role?.toLowerCase()}
+            Group chat
           </Text>
         </View>
         {/* Quick access to all attachments — same pill as the Trip chat */}
@@ -313,15 +287,10 @@ export default function DmScreen() {
           contentContainerStyle={{ paddingVertical: Spacing.sm }}
           renderItem={({ item }) =>
             item.kind === 'msg' ? (
-              <MessageBubble
+              <GroupBubble
                 msg={item.data}
                 isOwn={item.data.senderId === myId}
-                myId={myId}
                 onLongPress={() => setSheetFor(item.data)}
-                onReplyJump={() => {
-                  // TODO: scroll to message id — for now no-op; the original
-                  // is somewhere above and the user can scroll manually.
-                }}
               />
             ) : (
               <DocBubble
@@ -337,11 +306,7 @@ export default function DmScreen() {
 
       {/* Reply banner */}
       {replyingTo && !editing && (
-        <Banner
-          kind="reply"
-          target={replyingTo}
-          onCancel={() => setReplyingTo(null)}
-        />
+        <Banner kind="reply" target={replyingTo} onCancel={() => setReplyingTo(null)} />
       )}
 
       {/* Edit banner */}
@@ -444,7 +409,7 @@ export default function DmScreen() {
         })}
       />
 
-      {/* Documents folder — quick access to every attachment in the chat */}
+      {/* Documents folder — quick access to every attachment in the group */}
       <DocsFolderModal
         visible={folderOpen}
         docs={liveDocs}
@@ -482,292 +447,6 @@ export default function DmScreen() {
   );
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────
-
-function buildActions(opts: {
-  msg: DirectMessage | null;
-  isOwn: boolean;
-  onReply: (m: DirectMessage) => void;
-  onCopy: (m: DirectMessage) => void;
-  onEdit: (m: DirectMessage) => void;
-  onDelete: (m: DirectMessage) => void;
-}): MessageActions {
-  const m = opts.msg;
-  if (!m) return { onCopy: () => {} };
-  const isDeleted = !!m.deletedAt;
-  const canEdit =
-    opts.isOwn &&
-    !isDeleted &&
-    Date.now() - new Date(m.createdAt).getTime() < EDIT_WINDOW_MS;
-  return {
-    onCopy: () => opts.onCopy(m),
-    onReply: isDeleted ? undefined : () => opts.onReply(m),
-    onEdit: canEdit ? () => opts.onEdit(m) : undefined,
-    onDelete: opts.isOwn && !isDeleted ? () => opts.onDelete(m) : undefined,
-  };
-}
-
-// ─── Banner (reply / edit preview above composer) ─────────────────────────
-
-function Banner({
-  kind,
-  target,
-  onCancel,
-}: {
-  kind: 'reply' | 'edit';
-  target: ReplyTarget;
-  onCancel: () => void;
-}) {
-  const scheme = useColorScheme() ?? 'light';
-  const c = Colors[scheme];
-  return (
-    <View
-      style={[
-        styles.banner,
-        { backgroundColor: c.card, borderTopColor: c.border },
-      ]}
-    >
-      <View
-        style={[
-          styles.bannerQuote,
-          { borderLeftColor: c.primary, backgroundColor: `${c.primary}14` },
-        ]}
-      >
-        <View style={styles.bannerTitleRow}>
-          <Ionicons
-            name={kind === 'edit' ? 'create-outline' : 'arrow-undo-outline'}
-            size={12}
-            color={c.primary}
-          />
-          <Text style={[styles.bannerTitle, { color: c.primary }]}>
-            {kind === 'edit'
-              ? 'Редагування повідомлення'
-              : `Reply to ${target.senderName ?? 'Unknown'}`}
-          </Text>
-        </View>
-        <Text
-          style={[styles.bannerPreview, { color: c.mutedForeground }]}
-          numberOfLines={1}
-        >
-          {target.isDeleted
-            ? target.targetType === 'doc'
-              ? 'Файл видалено'
-              : 'Повідомлення видалено'
-            : target.content}
-        </Text>
-      </View>
-      <Pressable onPress={onCancel} hitSlop={6} style={styles.bannerClose}>
-        <Ionicons name="close" size={18} color={c.mutedForeground} />
-      </Pressable>
-    </View>
-  );
-}
-
-// ─── Message bubble ───────────────────────────────────────────────────────
-
-function MessageBubble({
-  msg,
-  isOwn,
-  myId,
-  onLongPress,
-  onReplyJump,
-}: {
-  msg: DirectMessage;
-  isOwn: boolean;
-  myId: string;
-  onLongPress: () => void;
-  onReplyJump: () => void;
-}) {
-  const scheme = useColorScheme() ?? 'light';
-  const c = Colors[scheme];
-  const isDeleted = !!msg.deletedAt;
-  const time = new Date(msg.createdAt).toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-
-  // Cluster sits inline with the bubble (own→left, other→right). It always
-  // renders my Trigger (active emoji or idle 👍 outline) and appends the
-  // other participant's reactions as plain glyphs next to it.
-  const sidekick = isDeleted ? null : (
-    <MessageReactionsCluster
-      type="DM"
-      targetId={msg.id}
-      reactions={msg.reactions ?? []}
-      currentUserId={myId}
-    />
-  );
-
-  const bubble = (
-    <Pressable
-      onLongPress={onLongPress}
-      delayLongPress={400}
-      style={[
-        styles.bubble,
-        isDeleted
-          ? styles.bubbleDeleted
-          : isOwn
-          ? { backgroundColor: c.primary }
-          : { backgroundColor: c.muted },
-      ]}
-    >
-      {!isDeleted && msg.replyTo && (
-        <MessageQuote
-          senderName={fullName(msg.replyTo.sender)}
-          content={msg.replyTo.content}
-          isDeleted={!!msg.replyTo.deletedAt}
-          onPress={onReplyJump}
-          variant={isOwn ? 'onPrimary' : 'default'}
-        />
-      )}
-      {!isDeleted && msg.replyToDocument && (
-        <MessageQuote
-          kind="doc"
-          senderName={fullName(msg.replyToDocument.uploader)}
-          fileName={msg.replyToDocument.fileName}
-          content=""
-          isDeleted={!!msg.replyToDocument.deletedAt}
-          onPress={onReplyJump}
-          variant={isOwn ? 'onPrimary' : 'default'}
-        />
-      )}
-      <Text
-        style={[
-          styles.bubbleText,
-          {
-            color: isDeleted
-              ? c.mutedForeground
-              : isOwn
-              ? c.primaryForeground
-              : c.foreground,
-            fontStyle: isDeleted ? 'italic' : 'normal',
-            fontSize: isDeleted ? 12 : 14,
-          },
-        ]}
-      >
-        {isDeleted ? 'Повідомлення видалено' : msg.content}
-      </Text>
-    </Pressable>
-  );
-
-  return (
-    <View style={[styles.outerCol, isOwn && styles.outerColOwn]}>
-      {/* trigger + bubble inline so `alignItems:center` centres trigger
-          on the bubble only (not on bubble + meta + bar) */}
-      <View style={styles.bubbleRow}>
-        {isOwn && sidekick}
-        {bubble}
-        {!isOwn && sidekick}
-      </View>
-      <View style={[styles.meta, isOwn && styles.metaOwn]}>
-        {msg.editedAt && !isDeleted && (
-          <Text
-            style={[
-              styles.metaText,
-              { color: c.mutedForeground, fontStyle: 'italic' },
-            ]}
-          >
-            (ред.)
-          </Text>
-        )}
-        <Text style={[styles.metaText, { color: c.mutedForeground }]}>
-          {time}
-        </Text>
-        {isOwn && (
-          <Text
-            style={[
-              styles.metaText,
-              { color: msg.isRead ? c.primary : c.mutedForeground },
-            ]}
-          >
-            {msg.isRead ? '✓✓' : '✓'}
-          </Text>
-        )}
-      </View>
-    </View>
-  );
-}
-
-// ─── Document bubble (photo thumbnail / file card) ────────────────────────
-
-function DocBubble({
-  doc,
-  isOwn,
-  onOpen,
-  onDelete,
-}: {
-  doc: ConversationDocumentFull;
-  isOwn: boolean;
-  onOpen: () => void;
-  onDelete: () => void;
-}) {
-  const scheme = useColorScheme() ?? 'light';
-  const c = Colors[scheme];
-  const isDeleted = !!doc.deletedAt;
-  const isPhoto = doc.fileType === 'PHOTO';
-  const time = new Date(doc.createdAt).toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-
-  const confirmDelete = () => {
-    if (!isOwn || isDeleted) return;
-    Alert.alert('Delete?', `${doc.fileName} will be removed.`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: onDelete },
-    ]);
-  };
-
-  if (isDeleted) {
-    return (
-      <View style={[styles.outerCol, isOwn && styles.outerColOwn]}>
-        <View style={[styles.bubble, styles.bubbleDeleted]}>
-          <Text style={[styles.bubbleText, { color: c.mutedForeground, fontStyle: 'italic', fontSize: 12 }]}>
-            Файл видалено
-          </Text>
-        </View>
-      </View>
-    );
-  }
-
-  return (
-    <View style={[styles.outerCol, isOwn && styles.outerColOwn]}>
-      <Pressable
-        onPress={onOpen}
-        onLongPress={confirmDelete}
-        delayLongPress={400}
-        style={[styles.docBubble, { backgroundColor: isOwn ? c.primary : c.muted }]}
-      >
-        {isPhoto ? (
-          <Image source={{ uri: doc.signedUrl }} style={styles.docThumb} />
-        ) : (
-          <View style={styles.docFileRow}>
-            <Ionicons
-              name="document-text"
-              size={22}
-              color={isOwn ? c.primaryForeground : c.foreground}
-            />
-            <Text
-              style={[styles.docFileName, { color: isOwn ? c.primaryForeground : c.foreground }]}
-              numberOfLines={2}
-            >
-              {doc.fileName}
-            </Text>
-          </View>
-        )}
-        {doc.caption ? (
-          <Text style={[styles.docCaption, { color: isOwn ? c.primaryForeground : c.foreground }]}>
-            {doc.caption}
-          </Text>
-        ) : null}
-      </Pressable>
-      <View style={[styles.meta, isOwn && styles.metaOwn]}>
-        <Text style={[styles.metaText, { color: c.mutedForeground }]}>{time}</Text>
-      </View>
-    </View>
-  );
-}
-
 // ─── Documents folder modal — standardised with the Trip docs modal ───────
 
 type DocTab = 'ALL' | 'PHOTO' | 'DOCUMENT';
@@ -781,8 +460,8 @@ function DocsFolderModal({
   onClose,
 }: {
   visible: boolean;
-  docs: ConversationDocumentFull[];
-  onOpen: (d: ConversationDocumentFull) => void;
+  docs: GroupDocumentFull[];
+  onOpen: (d: GroupDocumentFull) => void;
   onUpload: () => void;
   uploading: boolean;
   onClose: () => void;
@@ -818,7 +497,7 @@ function DocsFolderModal({
           <Pressable onPress={onClose} hitSlop={8} style={{ padding: 4 }}>
             <Ionicons name="close" size={24} color={c.foreground} />
           </Pressable>
-          <Text style={[styles.docsTitle, { color: c.foreground }]}>Documents</Text>
+          <Text style={[styles.docsTitle, { color: c.foreground }]}>Group documents</Text>
           <Pressable
             onPress={onUpload}
             disabled={uploading}
@@ -919,6 +598,277 @@ function DocsFolderModal({
   );
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────────────
+
+function buildActions(opts: {
+  msg: GroupMessage | null;
+  isOwn: boolean;
+  onReply: (m: GroupMessage) => void;
+  onCopy: (m: GroupMessage) => void;
+  onEdit: (m: GroupMessage) => void;
+  onDelete: (m: GroupMessage) => void;
+}): MessageActions {
+  const m = opts.msg;
+  if (!m) return { onCopy: () => {} };
+  const isDeleted = !!m.deletedAt;
+  const canEdit =
+    opts.isOwn &&
+    !isDeleted &&
+    Date.now() - new Date(m.createdAt).getTime() < EDIT_WINDOW_MS;
+  return {
+    onCopy: () => opts.onCopy(m),
+    onReply: isDeleted ? undefined : () => opts.onReply(m),
+    onEdit: canEdit ? () => opts.onEdit(m) : undefined,
+    onDelete: opts.isOwn && !isDeleted ? () => opts.onDelete(m) : undefined,
+  };
+}
+
+// ─── Banner (reply / edit preview above composer) ─────────────────────────
+
+function Banner({
+  kind,
+  target,
+  onCancel,
+}: {
+  kind: 'reply' | 'edit';
+  target: ReplyTarget;
+  onCancel: () => void;
+}) {
+  const scheme = useColorScheme() ?? 'light';
+  const c = Colors[scheme];
+  return (
+    <View style={[styles.banner, { backgroundColor: c.card, borderTopColor: c.border }]}>
+      <View
+        style={[
+          styles.bannerQuote,
+          { borderLeftColor: c.primary, backgroundColor: `${c.primary}14` },
+        ]}
+      >
+        <View style={styles.bannerTitleRow}>
+          <Ionicons
+            name={kind === 'edit' ? 'create-outline' : 'arrow-undo-outline'}
+            size={12}
+            color={c.primary}
+          />
+          <Text style={[styles.bannerTitle, { color: c.primary }]}>
+            {kind === 'edit'
+              ? 'Редагування повідомлення'
+              : `Reply to ${target.senderName ?? 'Unknown'}`}
+          </Text>
+        </View>
+        <Text style={[styles.bannerPreview, { color: c.mutedForeground }]} numberOfLines={1}>
+          {target.isDeleted
+            ? target.targetType === 'doc'
+              ? 'Файл видалено'
+              : 'Повідомлення видалено'
+            : target.content}
+        </Text>
+      </View>
+      <Pressable onPress={onCancel} hitSlop={6} style={styles.bannerClose}>
+        <Ionicons name="close" size={18} color={c.mutedForeground} />
+      </Pressable>
+    </View>
+  );
+}
+
+// ─── Message bubble ───────────────────────────────────────────────────────
+
+function GroupBubble({
+  msg,
+  isOwn,
+  onLongPress,
+}: {
+  msg: GroupMessage;
+  isOwn: boolean;
+  onLongPress: () => void;
+}) {
+  const scheme = useColorScheme() ?? 'light';
+  const c = Colors[scheme];
+  const isDeleted = !!msg.deletedAt;
+  const time = new Date(msg.createdAt).toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  // System notices ("added X") render as centred, muted text — no bubble.
+  if (msg.isSystem) {
+    return (
+      <View style={styles.systemRow}>
+        <Text style={[styles.systemText, { color: c.mutedForeground }]}>
+          {msg.content}
+        </Text>
+      </View>
+    );
+  }
+
+  const senderName = fullName(msg.sender) || msg.sender?.role || 'Driver';
+
+  return (
+    <View style={[styles.outerCol, isOwn && styles.outerColOwn]}>
+      {/* Sender name above other people's messages so the group is readable */}
+      {!isOwn && !isDeleted && (
+        <Text style={[styles.senderName, { color: c.primary }]} numberOfLines={1}>
+          {senderName}
+        </Text>
+      )}
+      <Pressable
+        onLongPress={onLongPress}
+        delayLongPress={400}
+        style={[
+          styles.bubble,
+          isDeleted
+            ? styles.bubbleDeleted
+            : isOwn
+            ? { backgroundColor: c.primary }
+            : { backgroundColor: c.muted },
+        ]}
+      >
+        {!isDeleted && msg.replyTo && (
+          <MessageQuote
+            senderName={fullName(msg.replyTo.sender)}
+            content={msg.replyTo.content}
+            isDeleted={!!msg.replyTo.deletedAt}
+            variant={isOwn ? 'onPrimary' : 'default'}
+          />
+        )}
+        {!isDeleted && msg.replyToDocument && (
+          <MessageQuote
+            kind="doc"
+            senderName={fullName(msg.replyToDocument.uploader)}
+            fileName={msg.replyToDocument.fileName}
+            content=""
+            isDeleted={!!msg.replyToDocument.deletedAt}
+            variant={isOwn ? 'onPrimary' : 'default'}
+          />
+        )}
+        <Text
+          style={[
+            styles.bubbleText,
+            {
+              color: isDeleted
+                ? c.mutedForeground
+                : isOwn
+                ? c.primaryForeground
+                : c.foreground,
+              fontStyle: isDeleted ? 'italic' : 'normal',
+              fontSize: isDeleted ? 12 : 14,
+            },
+          ]}
+        >
+          {isDeleted ? 'Повідомлення видалено' : msg.content}
+        </Text>
+      </Pressable>
+      <View style={[styles.meta, isOwn && styles.metaOwn]}>
+        {msg.editedAt && !isDeleted && (
+          <Text
+            style={[styles.metaText, { color: c.mutedForeground, fontStyle: 'italic' }]}
+          >
+            (ред.)
+          </Text>
+        )}
+        <Text style={[styles.metaText, { color: c.mutedForeground }]}>{time}</Text>
+      </View>
+    </View>
+  );
+}
+
+// ─── Document bubble (photo thumbnail / file card) ────────────────────────
+
+function DocBubble({
+  doc,
+  isOwn,
+  onOpen,
+  onDelete,
+}: {
+  doc: GroupDocumentFull;
+  isOwn: boolean;
+  onOpen: () => void;
+  onDelete: () => void;
+}) {
+  const scheme = useColorScheme() ?? 'light';
+  const c = Colors[scheme];
+  const isDeleted = !!doc.deletedAt;
+  const isPhoto = doc.fileType === 'PHOTO';
+  const time = new Date(doc.createdAt).toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  const senderName = fullName(doc.uploader) || doc.uploader?.role || 'Driver';
+
+  const confirmDelete = () => {
+    if (!isOwn || isDeleted) return;
+    Alert.alert('Delete?', `${doc.fileName} will be removed.`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: onDelete },
+    ]);
+  };
+
+  if (isDeleted) {
+    return (
+      <View style={[styles.outerCol, isOwn && styles.outerColOwn]}>
+        <View style={[styles.bubble, styles.bubbleDeleted]}>
+          <Text style={[styles.bubbleText, { color: c.mutedForeground, fontStyle: 'italic', fontSize: 12 }]}>
+            Файл видалено
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.outerCol, isOwn && styles.outerColOwn]}>
+      {!isOwn && (
+        <Text style={[styles.senderName, { color: c.primary }]} numberOfLines={1}>
+          {senderName}
+        </Text>
+      )}
+      <Pressable
+        onPress={onOpen}
+        onLongPress={confirmDelete}
+        delayLongPress={400}
+        style={[
+          styles.docBubble,
+          { backgroundColor: isOwn ? c.primary : c.muted },
+        ]}
+      >
+        {isPhoto ? (
+          <Image source={{ uri: doc.signedUrl }} style={styles.docThumb} />
+        ) : (
+          <View style={styles.docFileRow}>
+            <Ionicons
+              name="document-text"
+              size={22}
+              color={isOwn ? c.primaryForeground : c.foreground}
+            />
+            <Text
+              style={[
+                styles.docFileName,
+                { color: isOwn ? c.primaryForeground : c.foreground },
+              ]}
+              numberOfLines={2}
+            >
+              {doc.fileName}
+            </Text>
+          </View>
+        )}
+        {doc.caption ? (
+          <Text
+            style={[
+              styles.docCaption,
+              { color: isOwn ? c.primaryForeground : c.foreground },
+            ]}
+          >
+            {doc.caption}
+          </Text>
+        ) : null}
+      </Pressable>
+      <View style={[styles.meta, isOwn && styles.metaOwn]}>
+        <Text style={[styles.metaText, { color: c.mutedForeground }]}>{time}</Text>
+      </View>
+    </View>
+  );
+}
+
 // ─── Styles ───────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
@@ -942,10 +892,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerAvatarText: { fontWeight: '700', fontSize: 13 },
   headerText: { flex: 1, minWidth: 0 },
   headerName: { fontSize: 15, fontWeight: '600' },
-  headerRole: { fontSize: 12, marginTop: 1, textTransform: 'capitalize' },
+  headerRole: { fontSize: 12, marginTop: 1 },
   folderBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -954,25 +903,6 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   folderBtnText: { fontSize: 12, fontWeight: '600' },
-
-  // Document bubble
-  docBubble: {
-    borderRadius: Radius.lg,
-    padding: 4,
-    maxWidth: '100%',
-    overflow: 'hidden',
-  },
-  docThumb: { width: 200, height: 200, borderRadius: Radius.md },
-  docFileRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-    maxWidth: 240,
-  },
-  docFileName: { flex: 1, fontSize: 13, fontWeight: '600' },
-  docCaption: { fontSize: 13, paddingHorizontal: 6, paddingVertical: 4 },
 
   // Photo viewer
   viewerBackdrop: {
@@ -1016,17 +946,11 @@ const styles = StyleSheet.create({
   docRowThumb: { width: 56, height: 56, borderRadius: Radius.sm },
   docRowName: { fontSize: 13, fontWeight: '600' },
   docRowMeta: { fontSize: 10, marginTop: 2 },
-  attachBtn: {
-    width: 38,
-    height: 38,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
 
-  // Outer column owns the bubble + meta + bar so they share the same
-  // horizontal edge (own→right, other→left). The reaction trigger sits
-  // inside `bubbleRow` so it's only centred relative to the bubble itself
-  // — not the whole column (which would push the trigger off-centre).
+  // System notice
+  systemRow: { alignItems: 'center', paddingVertical: 4, paddingHorizontal: Spacing.lg },
+  systemText: { fontSize: 11, textAlign: 'center' },
+
   outerCol: {
     paddingHorizontal: Spacing.md,
     paddingVertical: 3,
@@ -1034,13 +958,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   outerColOwn: { alignSelf: 'flex-end' },
-  bubbleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  barWrap: { marginTop: 3 },
-  barWrapOwn: { alignItems: 'flex-end' },
+  senderName: { fontSize: 11, fontWeight: '700', marginBottom: 2, marginLeft: 4 },
 
   bubble: {
     borderRadius: Radius.lg,
@@ -1086,6 +1004,29 @@ const styles = StyleSheet.create({
   bannerPreview: { fontSize: 11, marginTop: 1 },
   bannerClose: { padding: 4 },
 
+  // Document bubble
+  docBubble: {
+    borderRadius: Radius.lg,
+    padding: 4,
+    maxWidth: '100%',
+    overflow: 'hidden',
+  },
+  docThumb: {
+    width: 200,
+    height: 200,
+    borderRadius: Radius.md,
+  },
+  docFileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    maxWidth: 240,
+  },
+  docFileName: { flex: 1, fontSize: 13, fontWeight: '600' },
+  docCaption: { fontSize: 13, paddingHorizontal: 6, paddingVertical: 4 },
+
   // Composer
   composer: {
     flexDirection: 'row',
@@ -1094,6 +1035,12 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.sm,
     borderTopWidth: StyleSheet.hairlineWidth,
     gap: Spacing.sm,
+  },
+  attachBtn: {
+    width: 38,
+    height: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   input: {
     flex: 1,

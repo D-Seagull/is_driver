@@ -16,6 +16,7 @@ import { ScreenPlaceholder } from '@/components/screen-placeholder';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useConversations, type Conversation } from '@/hooks/use-direct-messages';
+import { useDriverGroups, type DriverGroup } from '@/hooks/use-groups';
 import { useUser } from '@/store/auth';
 
 type Tab = 'chat' | 'groups';
@@ -205,14 +206,72 @@ function ConversationRow({ conv }: { conv: Conversation }) {
   );
 }
 
-// ─── Groups tab ───────────────────────────────────────────────────────────
+// ─── Groups tab — list of driver groups ───────────────────────────────────
 function GroupsTab() {
+  const scheme = useColorScheme() ?? 'light';
+  const c = Colors[scheme];
+  const { data: groups, isLoading } = useDriverGroups();
+
+  if (isLoading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator color={c.primary} />
+      </View>
+    );
+  }
+
+  if (!groups || groups.length === 0) {
+    return (
+      <ScreenPlaceholder
+        icon="people-outline"
+        title="No groups yet"
+        subtitle="Your company's driver group will appear here."
+      />
+    );
+  }
+
   return (
-    <ScreenPlaceholder
-      icon="people-outline"
-      title="Groups"
-      subtitle="Driver-only groups. You can add other drivers as members."
+    <FlatList
+      data={groups}
+      keyExtractor={(g) => g.id}
+      renderItem={({ item }) => <GroupRow group={item} />}
+      ItemSeparatorComponent={() => (
+        <View style={[styles.sep, { backgroundColor: c.border }]} />
+      )}
     />
+  );
+}
+
+function GroupRow({ group }: { group: DriverGroup }) {
+  const scheme = useColorScheme() ?? 'light';
+  const c = Colors[scheme];
+
+  return (
+    <Pressable
+      onPress={() =>
+        router.push({
+          pathname: '/(driver)/group/[groupId]',
+          params: { groupId: group.id, name: group.name },
+        } as never)
+      }
+      style={({ pressed }) => [
+        styles.row,
+        { backgroundColor: pressed ? c.muted : 'transparent' },
+      ]}
+    >
+      <View style={[styles.avatar, { backgroundColor: c.muted }]}>
+        <Ionicons name="people" size={20} color={c.primary} />
+      </View>
+      <View style={styles.rowText}>
+        <Text style={[styles.name, { color: c.foreground, fontWeight: '600' }]} numberOfLines={1}>
+          {group.name}
+        </Text>
+        <Text style={[styles.preview, { color: c.mutedForeground }]} numberOfLines={1}>
+          {group.memberCount} {group.memberCount === 1 ? 'driver' : 'drivers'}
+        </Text>
+      </View>
+      <Ionicons name="chevron-forward" size={18} color={c.mutedForeground} />
+    </Pressable>
   );
 }
 

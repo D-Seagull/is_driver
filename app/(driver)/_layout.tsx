@@ -136,6 +136,15 @@ export default function DriverLayout() {
             headerShown: false,
           }}
         />
+        {/* Group chat — pushed via router.push("/(driver)/group/<groupId>")
+            from the Groups tab; hidden from the drawer, own stack layout. */}
+        <Drawer.Screen
+          name="group"
+          options={{
+            drawerItemStyle: { display: "none" },
+            headerShown: false,
+          }}
+        />
       </Drawer>
       {/* Foreground push notifications render here (Modal portals over UI). */}
       <PushNoticeOverlay />
