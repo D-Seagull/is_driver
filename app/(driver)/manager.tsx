@@ -25,6 +25,7 @@ import {
 import { useUser } from '@/store/auth';
 import { useDriverTruck } from '@/hooks/use-truck';
 import { fullName } from '@/lib/format';
+import type { ManagerRating } from '@/lib/manager-api';
 
 /**
  * Manager profile screen for the driver app — opened by tapping the manager
@@ -53,6 +54,8 @@ export default function ManagerScreen() {
     ratingsData?.ratingCount ?? profile?.managerRatingCount ?? 0;
   // Find this driver's own rating to pre-fill the modal (upsert semantics).
   const mine = ratings.find((r) => r.ratedBy.id === me?.id);
+  // Everyone else's reviews — shown as a list below your own.
+  const others = ratings.filter((r) => r.ratedBy.id !== me?.id);
 
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -206,6 +209,18 @@ export default function ManagerScreen() {
         </View>
       )}
 
+      {/* Other drivers' reviews */}
+      {others.length > 0 && (
+        <View style={{ gap: Spacing.sm }}>
+          <Text style={[styles.reviewsTitle, { color: c.mutedForeground }]}>
+            Reviews ({others.length})
+          </Text>
+          {others.map((r) => (
+            <ReviewCard key={r.id} rating={r} colors={c} />
+          ))}
+        </View>
+      )}
+
       <RateModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
@@ -245,6 +260,48 @@ function InfoRow({
           {value}
         </Text>
       </View>
+    </View>
+  );
+}
+
+function ReviewCard({
+  rating,
+  colors: c,
+}: {
+  rating: ManagerRating;
+  colors: typeof Colors.light;
+}) {
+  // Anonymous reviews arrive from the backend with the name already masked
+  // to "Anonymous", so we can render the raw name safely.
+  const name = fullName(rating.ratedBy) || 'Driver';
+  const date = new Date(rating.createdAt).toLocaleDateString(undefined, {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+  return (
+    <View style={[styles.reviewCard, { backgroundColor: c.card, borderColor: c.border }]}>
+      <View style={styles.reviewTop}>
+        <Text style={[styles.reviewName, { color: c.foreground }]} numberOfLines={1}>
+          {name}
+        </Text>
+        <View style={styles.starsRow}>
+          {[1, 2, 3, 4, 5].map((n) => (
+            <Ionicons
+              key={n}
+              name={n <= rating.score ? 'star' : 'star-outline'}
+              size={13}
+              color="#fbbf24"
+            />
+          ))}
+        </View>
+      </View>
+      {rating.comment ? (
+        <Text style={[styles.reviewComment, { color: c.foreground }]}>
+          {rating.comment}
+        </Text>
+      ) : null}
+      <Text style={[styles.reviewDate, { color: c.mutedForeground }]}>{date}</Text>
     </View>
   );
 }
@@ -475,6 +532,28 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
   },
   myRatingComment: { fontSize: 13, fontStyle: 'italic' },
+  reviewsTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginTop: Spacing.sm,
+  },
+  reviewCard: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+    gap: 6,
+  },
+  reviewTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.sm,
+  },
+  reviewName: { fontSize: 14, fontWeight: '600', flex: 1 },
+  reviewComment: { fontSize: 13, lineHeight: 18 },
+  reviewDate: { fontSize: 11 },
   modalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.45)',
