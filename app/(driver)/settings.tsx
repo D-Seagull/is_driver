@@ -198,7 +198,9 @@ export default function DriverSettingsScreen() {
       <ScrollView
         contentContainerStyle={{
           padding: Spacing.md,
-          paddingBottom: insets.bottom + Spacing.lg,
+          // Guarantee the logout button clears the Android nav bar even when
+          // the reported bottom inset is under-counted under edge-to-edge.
+          paddingBottom: Math.max(insets.bottom, Spacing['2xl']) + Spacing.xl,
           gap: Spacing.lg,
         }}
       >
