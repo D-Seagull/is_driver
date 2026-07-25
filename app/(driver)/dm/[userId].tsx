@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useIsFocused } from '@react-navigation/native';
 import * as Clipboard from 'expo-clipboard';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
@@ -85,6 +86,15 @@ export default function DmScreen() {
     return () => sub.remove();
   }, []);
 
+  // Drawer keeps screens mounted, so this DM screen stays alive after you
+  // navigate away. Only mark messages read while it's actually focused —
+  // otherwise incoming messages get silently ack'd and never show as unread.
+  const isFocused = useIsFocused();
+  const focusedRef = useRef(isFocused);
+  useEffect(() => {
+    focusedRef.current = isFocused;
+  }, [isFocused]);
+
   // ─── Data ──────────────────────────────────────────────────────────
   const { data: peer } = useChatUser(peerId);
   const { data: messages = [], isLoading } = useDirectMessages(peerId);
@@ -104,8 +114,8 @@ export default function DmScreen() {
   // below so we don't double-emit on every messages.length change (which
   // would echo the same event twice per render).
   useEffect(() => {
-    if (peerId) getSocket().emit('mark_as_read', { senderId: peerId });
-  }, [peerId]);
+    if (peerId && isFocused) getSocket().emit('mark_as_read', { senderId: peerId });
+  }, [peerId, isFocused]);
 
   // While the conversation is open, ACK each incoming message from the
   // peer immediately so their ✓✓ flips without waiting for the next open.
@@ -113,7 +123,7 @@ export default function DmScreen() {
     if (!peerId) return;
     const socket = getSocket();
     const onNewDirect = (m: DirectMessage) => {
-      if (m.senderId === peerId && m.receiverId === myId) {
+      if (focusedRef.current && m.senderId === peerId && m.receiverId === myId) {
         socket.emit('mark_as_read', { senderId: peerId });
       }
     };

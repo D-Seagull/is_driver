@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useIsFocused } from '@react-navigation/native';
 import * as Clipboard from 'expo-clipboard';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
@@ -97,12 +98,14 @@ export default function GroupChatScreen() {
   useChatEvents({ groupId, myUserId: myId });
   useGroupDocsSocketSync(groupId);
 
-  // Mark the whole group read on open (and whenever a new message lands
-  // while we're viewing it).
+  // Mark the whole group read on open and whenever a new message lands —
+  // but only while the screen is focused. The drawer keeps it mounted after
+  // you leave, so without the focus gate it would keep ack'ing new messages.
+  const isFocused = useIsFocused();
   useEffect(() => {
-    if (groupId) markRead.mutate(groupId);
+    if (groupId && isFocused) markRead.mutate(groupId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groupId, messages.length]);
+  }, [groupId, messages.length, isFocused]);
 
   // ─── Composer state ────────────────────────────────────────────────
   const [text, setText] = useState('');
