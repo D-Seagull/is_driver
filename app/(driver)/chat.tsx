@@ -11,7 +11,6 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ScreenPlaceholder } from '@/components/screen-placeholder';
 import { Colors, Radius, Spacing } from '@/constants/theme';
@@ -29,7 +28,6 @@ const DIR_PAGE = 20;
 export default function ChatScreen() {
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
-  const insets = useSafeAreaInsets();
   const user = useUser();
   const hasTruck = !!user?.currentTruck;
   const managerName = fullName(user?.manager) || 'your manager';
@@ -50,7 +48,6 @@ export default function ChatScreen() {
           {
             backgroundColor: c.card,
             borderBottomColor: c.border,
-            paddingTop: insets.top + Spacing.xs,
           },
         ]}
       >
@@ -484,6 +481,7 @@ function TabButton({
 const styles = StyleSheet.create({
   root: { flex: 1 },
   tabsBar: {
+    paddingTop: Spacing.xs,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   tabsRow: {
