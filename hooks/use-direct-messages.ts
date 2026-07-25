@@ -43,6 +43,9 @@ export interface Conversation {
     id: string;
     firstName: string; lastName: string | null;
     role: string;
+    phone?: string | null;
+    /** Plate of the truck this peer is assigned to (drivers only). */
+    truckPlate?: string | null;
   };
   unreadCount: number;
   lastMessage: DirectMessage;

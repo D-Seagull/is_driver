@@ -9,6 +9,7 @@ import { fullName, initials } from "@/lib/format";
 import {
   ActivityIndicator,
   Alert,
+  BackHandler,
   FlatList,
   Image,
   KeyboardAvoidingView,
@@ -70,6 +71,19 @@ export default function DmScreen() {
   const { userId: peerId } = useLocalSearchParams<{ userId: string }>();
   const me = useUser();
   const myId = me?.id ?? '';
+
+  // These screens are pushed from the Chat tab but live as drawer routes, so
+  // a plain back pops to the drawer's initial screen (Trips). Step back to
+  // the Chat list explicitly — for both the header chevron and Android's
+  // hardware back button.
+  const goBackToChat = () => router.navigate('/(driver)/chat');
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      router.navigate('/(driver)/chat');
+      return true;
+    });
+    return () => sub.remove();
+  }, []);
 
   // ─── Data ──────────────────────────────────────────────────────────
   const { data: peer } = useChatUser(peerId);
@@ -267,7 +281,7 @@ export default function DmScreen() {
         ]}
       >
         <Pressable
-          onPress={() => router.back()}
+          onPress={goBackToChat}
           hitSlop={10}
           style={styles.backBtn}
         >

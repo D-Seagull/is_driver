@@ -8,6 +8,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  BackHandler,
   FlatList,
   Image,
   KeyboardAvoidingView,
@@ -68,6 +69,19 @@ export default function GroupChatScreen() {
   const { groupId, name } = useLocalSearchParams<{ groupId: string; name?: string }>();
   const me = useUser();
   const myId = me?.id ?? '';
+
+  // Pushed from the Chat screen's Groups tab but lives as a drawer route, so a
+  // plain back pops to the drawer's initial screen (Trips). Step back to the
+  // Groups tab explicitly — for the header chevron and Android hardware back.
+  const goBackToGroups = () =>
+    router.navigate({ pathname: '/(driver)/chat', params: { tab: 'groups' } });
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      router.navigate({ pathname: '/(driver)/chat', params: { tab: 'groups' } });
+      return true;
+    });
+    return () => sub.remove();
+  }, []);
 
   // ─── Data ──────────────────────────────────────────────────────────
   const { data: messages = [], isLoading } = useGroupMessages(groupId);
@@ -246,7 +260,7 @@ export default function GroupChatScreen() {
           },
         ]}
       >
-        <Pressable onPress={() => router.back()} hitSlop={10} style={styles.backBtn}>
+        <Pressable onPress={goBackToGroups} hitSlop={10} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={26} color={c.foreground} />
         </Pressable>
         <View style={[styles.headerAvatar, { backgroundColor: c.muted }]}>
