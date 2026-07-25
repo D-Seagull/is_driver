@@ -24,6 +24,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeMode } from "@/hooks/use-theme";
 import { useDriverTruck, useTruckChangedSync } from "@/hooks/use-truck";
 import { useDriverUnread, useDriverUnreadSync } from "@/hooks/use-driver-unread";
+import { useConversations, useDmUnreadSync } from "@/hooks/use-direct-messages";
 import { usePushNotifications } from "@/hooks/use-push-notifications";
 import { useTimezoneSync } from "@/hooks/use-timezone-sync";
 import { useAppStatePresence } from "@/hooks/use-app-state-presence";
@@ -159,7 +160,9 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
   const currentRoute = props.state.routeNames[props.state.index];
   const { data: truck } = useDriverTruck();
   const { data: unread } = useDriverUnread();
+  const { data: conversations } = useConversations();
   useDriverUnreadSync();
+  useDmUnreadSync();
   useTruckChangedSync();
   usePushNotifications();
   useTimezoneSync();
@@ -175,8 +178,14 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
   const manager = truck?.manager ?? null;
   const activeTripUnread = unread?.activeTripUnread ?? 0;
   const pastTripsUnread = unread?.pastTripsUnread ?? 0;
-  const totalUnread = unread?.total ?? 0;
+  const tripUnreadTotal = unread?.total ?? 0;
   const unreadItems = unread?.items ?? [];
+
+  // Direct-chat unread — derived from the conversations list (unreadCount per
+  // peer). Feeds both the bell and the Chat nav-item badge.
+  const dmItems = (conversations ?? []).filter((c) => c.unreadCount > 0);
+  const dmUnreadTotal = dmItems.reduce((s, c) => s + c.unreadCount, 0);
+  const totalUnread = tripUnreadTotal + dmUnreadTotal;
 
   const [bellOpen, setBellOpen] = React.useState(false);
 
@@ -232,7 +241,7 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
           {/* ── Bell preview panel ── */}
           {bellOpen && (
             <View style={[styles.bellPreview, { backgroundColor: c.card, borderColor: c.sidebarBorder }]}>
-              {unreadItems.length === 0 ? (
+              {unreadItems.length === 0 && dmItems.length === 0 ? (
                 <Text style={[styles.bellEmptyText, { color: c.mutedForeground }]}>
                   No unread messages
                 </Text>
@@ -266,6 +275,33 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
                       )}
                     </Pressable>
                   ))}
+                  {dmItems.map((conv) => (
+                    <Pressable
+                      key={`dm-${conv.user.id}`}
+                      style={({ pressed }) => [
+                        styles.bellItem,
+                        { borderColor: c.sidebarBorder, backgroundColor: pressed ? c.sidebarAccent : "transparent" },
+                      ]}
+                      onPress={() => {
+                        router.push(`/(driver)/dm/${conv.user.id}` as never);
+                        setBellOpen(false);
+                      }}
+                    >
+                      <View style={styles.bellItemRow}>
+                        <Text style={[styles.bellItemTitle, { color: c.sidebarForeground }]} numberOfLines={1}>
+                          {fullName(conv.user) || "Chat"}
+                        </Text>
+                        <View style={styles.bellItemBadge}>
+                          <Text style={styles.bellItemBadgeText}>{conv.unreadCount}</Text>
+                        </View>
+                      </View>
+                      <Text style={[styles.bellItemMsg, { color: c.mutedForeground }]} numberOfLines={1}>
+                        {conv.lastMessage?.deletedAt
+                          ? "Повідомлення видалено"
+                          : conv.lastMessage?.content || "📎 File"}
+                      </Text>
+                    </Pressable>
+                  ))}
                 </ScrollView>
               )}
             </View>
@@ -278,7 +314,8 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
           const tint = focused ? c.sidebarPrimary : c.sidebarForeground;
           const badge =
             it.name === "trip" ? activeTripUnread :
-            it.name === "trips" ? pastTripsUnread : 0;
+            it.name === "trips" ? pastTripsUnread :
+            it.name === "chat" ? dmUnreadTotal : 0;
           return (
             <Pressable
               key={it.name}

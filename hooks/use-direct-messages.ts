@@ -1,6 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 
 import { api } from '@/lib/api';
+import { getSocket } from '@/lib/socket';
+import { useAuthStore } from '@/store/auth';
 
 // ─── Reply previews (shared shape between message and document quotes) ────
 
@@ -69,6 +72,30 @@ export function useConversations() {
       return res.data;
     },
   });
+}
+
+/**
+ * Call once globally (in the drawer layout) so the DM unread badge + bell
+ * stay live even when no chat screen is open — invalidates the conversations
+ * query on new/read direct messages.
+ */
+export function useDmUnreadSync() {
+  const queryClient = useQueryClient();
+  const token = useAuthStore((s) => s.token);
+
+  useEffect(() => {
+    if (!token) return;
+    const socket = getSocket(token);
+    const invalidate = () => {
+      void queryClient.invalidateQueries({ queryKey: dmKeys.conversations });
+    };
+    socket.on('new_direct_message', invalidate);
+    socket.on('messages_read', invalidate);
+    return () => {
+      socket.off('new_direct_message', invalidate);
+      socket.off('messages_read', invalidate);
+    };
+  }, [queryClient, token]);
 }
 
 export function useDirectMessages(otherUserId: string) {
