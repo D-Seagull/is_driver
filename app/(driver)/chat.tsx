@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useIsFocused } from '@react-navigation/native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { fullName, initials } from "@/lib/format";
@@ -39,6 +40,20 @@ export default function ChatScreen() {
     if (tabParam === 'groups' || tabParam === 'chat') setTab(tabParam);
   }, [tabParam]);
 
+  // Unread badges next to the tabs. DM count stays live via the drawer's
+  // socket sync; group count refreshes on focus + after reading a group.
+  const { data: conversations, refetch: refetchConvs } = useConversations();
+  const { data: driverGroups, refetch: refetchGroups } = useDriverGroups();
+  const dmUnread = (conversations ?? []).reduce((s, cv) => s + cv.unreadCount, 0);
+  const groupUnread = (driverGroups ?? []).reduce((s, g) => s + g.unreadCount, 0);
+  const isFocused = useIsFocused();
+  useEffect(() => {
+    if (isFocused) {
+      void refetchConvs();
+      void refetchGroups();
+    }
+  }, [isFocused, refetchConvs, refetchGroups]);
+
   return (
     <View style={[styles.root, { backgroundColor: c.background }]}>
       {/* ─── Top tab bar ───────────────────────────────────────────── */}
@@ -59,6 +74,7 @@ export default function ChatScreen() {
             activeColor={c.primary}
             inactiveColor={c.mutedForeground}
             underlineColor={c.primary}
+            badge={dmUnread}
           />
           <TabButton
             label="Groups"
@@ -67,6 +83,7 @@ export default function ChatScreen() {
             activeColor={c.primary}
             inactiveColor={c.mutedForeground}
             underlineColor={c.primary}
+            badge={groupUnread}
           />
         </View>
       </View>
@@ -403,6 +420,7 @@ function GroupsTab() {
 function GroupRow({ group }: { group: DriverGroup }) {
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
+  const hasUnread = group.unreadCount > 0;
 
   return (
     <Pressable
@@ -414,21 +432,41 @@ function GroupRow({ group }: { group: DriverGroup }) {
       }
       style={({ pressed }) => [
         styles.row,
-        { backgroundColor: pressed ? c.muted : 'transparent' },
+        {
+          backgroundColor: pressed
+            ? c.muted
+            : hasUnread
+            ? `${c.primary}14`
+            : 'transparent',
+        },
       ]}
     >
       <View style={[styles.avatar, { backgroundColor: c.muted }]}>
         <Ionicons name="people" size={20} color={c.primary} />
       </View>
       <View style={styles.rowText}>
-        <Text style={[styles.name, { color: c.foreground, fontWeight: '600' }]} numberOfLines={1}>
+        <Text
+          style={[
+            styles.name,
+            { color: c.foreground, fontWeight: hasUnread ? '700' : '600' },
+          ]}
+          numberOfLines={1}
+        >
           {group.name}
         </Text>
         <Text style={[styles.preview, { color: c.mutedForeground }]} numberOfLines={1}>
           {group.memberCount} {group.memberCount === 1 ? 'driver' : 'drivers'}
         </Text>
       </View>
-      <Ionicons name="chevron-forward" size={18} color={c.mutedForeground} />
+      {hasUnread ? (
+        <View style={[styles.badge, { backgroundColor: c.primary }]}>
+          <Text style={styles.badgeText}>
+            {group.unreadCount > 99 ? '99+' : group.unreadCount}
+          </Text>
+        </View>
+      ) : (
+        <Ionicons name="chevron-forward" size={18} color={c.mutedForeground} />
+      )}
     </Pressable>
   );
 }
@@ -441,6 +479,7 @@ function TabButton({
   activeColor,
   inactiveColor,
   underlineColor,
+  badge = 0,
 }: {
   label: string;
   active: boolean;
@@ -448,6 +487,7 @@ function TabButton({
   activeColor: string;
   inactiveColor: string;
   underlineColor: string;
+  badge?: number;
 }) {
   return (
     <Pressable
@@ -457,17 +497,24 @@ function TabButton({
         { opacity: pressed ? 0.7 : 1 },
       ]}
     >
-      <Text
-        style={[
-          styles.tabLabel,
-          {
-            color: active ? activeColor : inactiveColor,
-            fontWeight: active ? '600' : '500',
-          },
-        ]}
-      >
-        {label}
-      </Text>
+      <View style={styles.tabLabelRow}>
+        <Text
+          style={[
+            styles.tabLabel,
+            {
+              color: active ? activeColor : inactiveColor,
+              fontWeight: active ? '600' : '500',
+            },
+          ]}
+        >
+          {label}
+        </Text>
+        {badge > 0 && (
+          <View style={styles.tabBadge}>
+            <Text style={styles.tabBadgeText}>{badge > 99 ? '99+' : badge}</Text>
+          </View>
+        )}
+      </View>
       <View
         style={[
           styles.tabUnderline,
@@ -493,11 +540,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: Spacing.sm,
   },
+  tabLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingBottom: Spacing.sm,
+  },
   tabLabel: {
     fontSize: 15,
     letterSpacing: 0.2,
-    paddingBottom: Spacing.sm,
   },
+  tabBadge: {
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#f87171',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 5,
+  },
+  tabBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
   tabUnderline: {
     width: '100%',
     height: 2,

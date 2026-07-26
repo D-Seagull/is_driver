@@ -90,9 +90,11 @@ export function useDmUnreadSync() {
       void queryClient.invalidateQueries({ queryKey: dmKeys.conversations });
     };
     socket.on('new_direct_message', invalidate);
+    socket.on('new_direct_document', invalidate);
     socket.on('messages_read', invalidate);
     return () => {
       socket.off('new_direct_message', invalidate);
+      socket.off('new_direct_document', invalidate);
       socket.off('messages_read', invalidate);
     };
   }, [queryClient, token]);

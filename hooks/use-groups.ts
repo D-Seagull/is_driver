@@ -74,6 +74,7 @@ export interface DriverGroup {
   avatar: string | null;
   type: string;
   memberCount: number;
+  unreadCount: number;
 }
 
 /**
@@ -148,6 +149,8 @@ export function useMarkGroupRead() {
     onSuccess: (_, groupId) => {
       queryClient.invalidateQueries({ queryKey: groupKeys.messages(groupId) });
       queryClient.invalidateQueries({ queryKey: groupKeys.unread });
+      // Refresh the driver group list so the Groups tab badge clears.
+      queryClient.invalidateQueries({ queryKey: groupKeys.driverList });
     },
   });
 }
