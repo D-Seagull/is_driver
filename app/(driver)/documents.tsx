@@ -21,6 +21,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { NotificationBell } from '@/components/notification-bell';
 import { ScreenPlaceholder } from '@/components/screen-placeholder';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -175,6 +176,8 @@ export default function DocumentsScreen() {
           <Ionicons name="menu" size={24} color={c.foreground} />
         </Pressable>
         <Text style={[styles.headerTitle, { color: c.foreground }]}>Documents</Text>
+
+        <NotificationBell colors={c} />
 
         {activeTrip ? (
           <Pressable

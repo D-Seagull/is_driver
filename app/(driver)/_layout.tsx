@@ -32,6 +32,7 @@ import { useAppStatePresence } from "@/hooks/use-app-state-presence";
 import { useUserStatusSync } from "@/hooks/use-user-status-sync";
 import { usePresenceSync } from "@/hooks/use-presence";
 import { PushNoticeOverlay } from "@/components/push-notice-overlay";
+import { NotificationBell } from "@/components/notification-bell";
 import { useAuthStore, useUser } from "@/store/auth";
 
 type SidebarItem = {
@@ -83,6 +84,10 @@ export default function DriverLayout() {
           headerStyle: { backgroundColor: c.background },
           headerTintColor: c.foreground,
           headerTitleStyle: { fontWeight: "600" },
+          // Standardised notification bell in the header of every drawer
+          // screen, so new messages are always visible.
+          headerRight: () => <NotificationBell colors={c} />,
+          headerRightContainerStyle: { paddingRight: Spacing.md },
           sceneStyle: { backgroundColor: c.background },
           drawerStyle: { backgroundColor: c.sidebar, width: 300 },
           drawerActiveTintColor: c.sidebarPrimary,
@@ -559,11 +564,24 @@ function ManagerRow({
           </Text>
         ) : null}
       </View>
-      <Ionicons
-        name="chatbubble-ellipses-outline"
-        size={14}
-        color={c.mutedForeground}
-      />
+      <Pressable
+        onPress={() => router.push(`/(driver)/dm/${person.id}` as never)}
+        hitSlop={8}
+        accessibilityLabel="Message manager"
+        style={({ pressed }) => [
+          styles.managerChatBtn,
+          {
+            backgroundColor: pressed ? c.sidebarAccent : "transparent",
+            borderRadius: Radius.sm,
+          },
+        ]}
+      >
+        <Ionicons
+          name="chatbubble-ellipses-outline"
+          size={20}
+          color={c.mutedForeground}
+        />
+      </Pressable>
     </Pressable>
   );
 }
@@ -593,6 +611,12 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
   },
   logoutBtn: {
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  managerChatBtn: {
     width: 32,
     height: 32,
     alignItems: "center",
