@@ -8,6 +8,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -49,6 +50,9 @@ export function PresenceStatusSheet({
   onClose: () => void;
 }) {
   const c = Colors[useColorScheme() ?? 'light'];
+  const insets = useSafeAreaInsets();
+  // Keep the sheet's last row clear of the Android nav bar (edge-to-edge).
+  const sheetPadBottom = Math.max(insets.bottom, Spacing.sm) + Spacing.xl;
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
 
@@ -97,7 +101,7 @@ export function PresenceStatusSheet({
       >
         <Pressable style={styles.backdrop} onPress={closeAll}>
           <Pressable
-            style={[styles.sheet, { backgroundColor: c.card }]}
+            style={[styles.sheet, { backgroundColor: c.card, paddingBottom: sheetPadBottom }]}
             onPress={(e) => e.stopPropagation()}
           >
             <Text style={[styles.title, { color: c.foreground }]}>
@@ -202,7 +206,7 @@ export function PresenceStatusSheet({
       >
         <Pressable style={styles.backdrop} onPress={closeAll}>
           <Pressable
-            style={[styles.sheet, { backgroundColor: c.card }]}
+            style={[styles.sheet, { backgroundColor: c.card, paddingBottom: sheetPadBottom }]}
             onPress={(e) => e.stopPropagation()}
           >
             <Text style={[styles.title, { color: c.foreground }]}>
@@ -254,7 +258,7 @@ export function PresenceStatusSheet({
       >
         <Pressable style={styles.backdrop} onPress={closeAll}>
           <Pressable
-            style={[styles.sheet, { backgroundColor: c.card }]}
+            style={[styles.sheet, { backgroundColor: c.card, paddingBottom: sheetPadBottom }]}
             onPress={(e) => e.stopPropagation()}
           >
             <Text style={[styles.title, { color: c.foreground }]}>

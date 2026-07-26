@@ -6,7 +6,6 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -28,19 +27,10 @@ import {
   uploadAvatar,
 } from '@/lib/auth-api';
 import { fullName, initials } from '@/lib/format';
-import { STATUS_HEX, STATUS_LABEL } from '@/lib/status';
+import { STATUS_LABEL } from '@/lib/status';
 import { StatusDot } from '@/components/status-dot';
+import { PresenceStatusSheet } from '@/components/presence-status-sheet';
 import { useAuthStore, useUser } from '@/store/auth';
-
-// Sleep presets for drivers — anchored on the EU rest-break convention
-// (9 h short rest, 11 h regular rest) plus a tighter "power nap" option
-// and a free-form custom that just defaults to 30 min.
-const SLEEP_PRESETS: { label: string; hours: number }[] = [
-  { label: '30 хв', hours: 0.5 },
-  { label: '2 години', hours: 2 },
-  { label: '9 годин (короткий відпочинок)', hours: 9 },
-  { label: '11 годин (регулярний відпочинок)', hours: 11 },
-];
 
 const LANGUAGE_LABELS: Record<DriverLanguage, string> = {
   UK: 'Українська',
@@ -72,32 +62,8 @@ export default function DriverSettingsScreen() {
   const [langPickerOpen, setLangPickerOpen] = useState(false);
   const [savedHint, setSavedHint] = useState(false);
   const [statusPickerOpen, setStatusPickerOpen] = useState(false);
-  const [sleepPickerOpen, setSleepPickerOpen] = useState(false);
-  const [statusBusy, setStatusBusy] = useState(false);
 
   const currentStatus = (user?.status as DriverUserStatus | undefined) ?? 'ONLINE';
-
-  const applyStatus = async (
-    status: DriverUserStatus,
-    hours?: number,
-  ) => {
-    setStatusBusy(true);
-    try {
-      const me = await updateMe({
-        status,
-        statusUntil:
-          status !== 'ONLINE' && hours
-            ? new Date(Date.now() + hours * 60 * 60 * 1000).toISOString()
-            : null,
-      });
-      setUser(me);
-    } catch (err) {
-      Alert.alert('Помилка', 'Не вдалось оновити статус.');
-      console.warn('[settings] updateMe(status) failed', err);
-    } finally {
-      setStatusBusy(false);
-    }
-  };
 
   // Sync when the underlying user changes (e.g. after avatar upload).
   useEffect(() => {
@@ -190,19 +156,31 @@ export default function DriverSettingsScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={[styles.root, { backgroundColor: c.background }]}
+    <View
+      style={[
+        styles.root,
+        {
+          backgroundColor: c.background,
+          // Reserve the Android nav bar so the content area ends above it.
+          // With the tighter spacing below, the page fits without scrolling.
+          paddingBottom:
+            Platform.OS === 'android' ? Math.max(insets.bottom, 48) : 0,
+        },
+      ]}
     >
       <Stack.Screen options={{ title: 'Settings' }} />
       <ScrollView
+        style={{ flex: 1 }}
         contentContainerStyle={{
+          flexGrow: 1,
           padding: Spacing.md,
-          // Guarantee the logout button clears the Android nav bar even when
-          // the reported bottom inset is under-counted under edge-to-edge.
-          paddingBottom: Math.max(insets.bottom, Spacing['2xl']) + Spacing.xl,
-          gap: Spacing.lg,
+          paddingBottom: Spacing.md,
+          // Tighter on Android so everything clears the nav bar without a
+          // scroll; roomier on iOS where there's more space.
+          gap: Platform.OS === 'android' ? Spacing.sm : Spacing.lg,
         }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         {/* ── Avatar block ─────────────────────────────────────────── */}
         <SectionCard colors={c} title="Фото профілю">
@@ -302,13 +280,12 @@ export default function DriverSettingsScreen() {
         <SectionCard colors={c} title="Статус">
           <Pressable
             onPress={() => setStatusPickerOpen(true)}
-            disabled={statusBusy}
             style={({ pressed }) => [
               styles.row,
               {
                 backgroundColor: c.card,
                 borderColor: c.border,
-                opacity: pressed || statusBusy ? 0.85 : 1,
+                opacity: pressed ? 0.85 : 1,
               },
             ]}
           >
@@ -466,152 +443,12 @@ export default function DriverSettingsScreen() {
         </Pressable>
       </ScrollView>
 
-      {/* ── Status picker modal ────────────────────────────────────── */}
-      <Modal
-        transparent
-        visible={statusPickerOpen}
-        animationType="fade"
-        onRequestClose={() => setStatusPickerOpen(false)}
-      >
-        <Pressable
-          style={styles.modalBackdrop}
-          onPress={() => setStatusPickerOpen(false)}
-        >
-          <Pressable
-            style={[styles.modalSheet, { backgroundColor: c.card }]}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <Text style={[styles.modalTitle, { color: c.foreground }]}>
-              Виберіть статус
-            </Text>
-            {(['ONLINE', 'BUSY'] as const).map((s) => {
-              const selected = currentStatus === s;
-              return (
-                <Pressable
-                  key={s}
-                  onPress={() => {
-                    setStatusPickerOpen(false);
-                    applyStatus(s);
-                  }}
-                  style={({ pressed }) => [
-                    styles.modalItem,
-                    {
-                      backgroundColor:
-                        selected || pressed ? c.muted : 'transparent',
-                    },
-                  ]}
-                >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
-                    <View
-                      style={{
-                        width: 10,
-                        height: 10,
-                        borderRadius: 5,
-                        backgroundColor: STATUS_HEX[s],
-                      }}
-                    />
-                    <Text style={[styles.modalItemText, { color: c.foreground }]}>
-                      {STATUS_LABEL[s]}
-                    </Text>
-                  </View>
-                  {selected && (
-                    <Ionicons name="checkmark" size={20} color={c.primary} />
-                  )}
-                </Pressable>
-              );
-            })}
-            <Pressable
-              onPress={() => {
-                setStatusPickerOpen(false);
-                setSleepPickerOpen(true);
-              }}
-              style={({ pressed }) => [
-                styles.modalItem,
-                {
-                  backgroundColor:
-                    currentStatus === 'SLEEP' || pressed ? c.muted : 'transparent',
-                },
-              ]}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
-                <View
-                  style={{
-                    width: 10,
-                    height: 10,
-                    borderRadius: 5,
-                    backgroundColor: STATUS_HEX.SLEEP,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <Ionicons name="moon" size={7} color="#fff" />
-                </View>
-                <Text style={[styles.modalItemText, { color: c.foreground }]}>
-                  Сплю…
-                </Text>
-              </View>
-              <Ionicons
-                name="chevron-forward"
-                size={18}
-                color={c.mutedForeground}
-              />
-            </Pressable>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
-      {/* ── Sleep duration picker ─────────────────────────────────── */}
-      <Modal
-        transparent
-        visible={sleepPickerOpen}
-        animationType="fade"
-        onRequestClose={() => setSleepPickerOpen(false)}
-      >
-        <Pressable
-          style={styles.modalBackdrop}
-          onPress={() => setSleepPickerOpen(false)}
-        >
-          <Pressable
-            style={[styles.modalSheet, { backgroundColor: c.card }]}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <Text style={[styles.modalTitle, { color: c.foreground }]}>
-              На скільки?
-            </Text>
-            {SLEEP_PRESETS.map((p) => (
-              <Pressable
-                key={p.label}
-                onPress={() => {
-                  setSleepPickerOpen(false);
-                  applyStatus('SLEEP', p.hours);
-                }}
-                style={({ pressed }) => [
-                  styles.modalItem,
-                  { backgroundColor: pressed ? c.muted : 'transparent' },
-                ]}
-              >
-                <Text style={[styles.modalItemText, { color: c.foreground }]}>
-                  {p.label}
-                </Text>
-              </Pressable>
-            ))}
-            <Pressable
-              onPress={() => {
-                setSleepPickerOpen(false);
-                applyStatus('SLEEP');
-              }}
-              style={({ pressed }) => [
-                styles.modalItem,
-                { backgroundColor: pressed ? c.muted : 'transparent' },
-              ]}
-            >
-              <Text style={[styles.modalItemText, { color: c.foreground }]}>
-                Без обмеження
-              </Text>
-            </Pressable>
-          </Pressable>
-        </Pressable>
-      </Modal>
+      {/* ── Status picker — shared sheet with the full set of statuses
+          (Online / Busy / Away / Sleep ▶ / Vacation ▶) ── */}
+      <PresenceStatusSheet
+        open={statusPickerOpen}
+        onClose={() => setStatusPickerOpen(false)}
+      />
 
       {/* ── Language picker modal ──────────────────────────────────── */}
       <Modal
@@ -625,7 +462,13 @@ export default function DriverSettingsScreen() {
           onPress={() => setLangPickerOpen(false)}
         >
           <Pressable
-            style={[styles.modalSheet, { backgroundColor: c.card }]}
+            style={[
+              styles.modalSheet,
+              {
+                backgroundColor: c.card,
+                paddingBottom: Math.max(insets.bottom, Spacing.sm) + Spacing.xl,
+              },
+            ]}
             onPress={(e) => e.stopPropagation()}
           >
             <Text
@@ -673,7 +516,7 @@ export default function DriverSettingsScreen() {
           </Pressable>
         </Pressable>
       </Modal>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -687,7 +530,7 @@ function SectionCard({
   colors: ThemeColors;
 }) {
   return (
-    <View style={{ gap: Spacing.sm }}>
+    <View style={{ gap: Platform.OS === 'android' ? Spacing.xs : Spacing.sm }}>
       <Text style={[styles.sectionTitle, { color: c.mutedForeground }]}>
         {title.toUpperCase()}
       </Text>
@@ -727,9 +570,9 @@ const styles = StyleSheet.create({
   },
   avatarRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   avatarWrap: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: Platform.OS === 'android' ? 60 : 72,
+    height: Platform.OS === 'android' ? 60 : 72,
+    borderRadius: Platform.OS === 'android' ? 30 : 36,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -777,7 +620,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: Radius.sm,
     paddingHorizontal: Spacing.md,
-    paddingVertical: 10,
+    paddingVertical: Platform.OS === 'android' ? 8 : 10,
     fontSize: 15,
   },
   row: {
@@ -806,7 +649,6 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: Radius.md,
     borderWidth: 1,
-    marginTop: Spacing.md,
   },
   logoutText: { fontSize: 15, fontWeight: '700' },
   modalBackdrop: {
