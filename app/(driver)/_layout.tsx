@@ -6,6 +6,7 @@ import { PresenceStatusSheet } from "@/components/presence-status-sheet";
 import {
   DrawerContentComponentProps,
   DrawerContentScrollView,
+  useDrawerStatus,
 } from "@react-navigation/drawer";
 import { Redirect, router } from "expo-router";
 import { Drawer } from "expo-router/drawer";
@@ -159,11 +160,22 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
   const insets = useSafeAreaInsets();
   const currentRoute = props.state.routeNames[props.state.index];
   const { data: truck } = useDriverTruck();
-  const { data: unread } = useDriverUnread();
-  const { data: conversations } = useConversations();
+  const { data: unread, refetch: refetchUnread } = useDriverUnread();
+  const { data: conversations, refetch: refetchConversations } = useConversations();
   useDriverUnreadSync();
   useDmUnreadSync();
   useTruckChangedSync();
+
+  // The socket syncs keep counts live, but also hard-refresh both unread
+  // sources every time the drawer opens — so the bell always reflects the
+  // latest state the moment the user looks at it.
+  const drawerStatus = useDrawerStatus();
+  React.useEffect(() => {
+    if (drawerStatus === "open") {
+      void refetchUnread();
+      void refetchConversations();
+    }
+  }, [drawerStatus, refetchUnread, refetchConversations]);
   usePushNotifications();
   useTimezoneSync();
   useAppStatePresence();
