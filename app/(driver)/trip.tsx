@@ -9,7 +9,7 @@ import * as Clipboard from "expo-clipboard";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 import * as Linking from "expo-linking";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -41,7 +41,7 @@ import { Colors, Radius, Spacing } from "@/constants/theme";
 import { TripStatus } from "@/constants/trip-status";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useTripDocuments, useUploadDocuments } from "@/hooks/use-documents";
-import { useDriverUnread } from "@/hooks/use-driver-unread";
+import { NotificationBell } from "@/components/notification-bell";
 import { ChatMessage, useTripChat } from "@/hooks/use-trip-chat";
 import {
   useActiveTrip,
@@ -73,24 +73,6 @@ export default function TripScreen() {
     : activeQuery.isLoading;
   const refetch = explicitTripId ? specificQuery.refetch : activeQuery.refetch;
   const updateStatus = useUpdateMyTripStatus();
-  const { data: unreadData } = useDriverUnread();
-  const router = useRouter();
-
-  // Bell tap → jump to the trip with unread messages. Picks the active trip
-  // first; otherwise the first item (most recent past trip with unread).
-  const handleBellPress = () => {
-    const items = unreadData?.items ?? [];
-    if (items.length === 0) return;
-    const target = items.find((it) => it.isActiveTrip) ?? items[0];
-    if (target.isActiveTrip) {
-      router.replace("/(driver)/trip");
-    } else {
-      router.push({
-        pathname: "/(driver)/trip",
-        params: { tripId: target.tripId },
-      });
-    }
-  };
 
   const [manualRefreshing, setManualRefreshing] = useState(false);
   const handleManualRefresh = async () => {
@@ -127,8 +109,6 @@ export default function TripScreen() {
         status={status}
         onChangeStatus={handleStatusChange}
         canEditStatus={!!trip}
-        unreadCount={unreadData?.total}
-        onBellPress={handleBellPress}
       />
 
       {isLoading ? (
@@ -1448,21 +1428,16 @@ function TripHeader({
   status,
   onChangeStatus,
   canEditStatus,
-  unreadCount,
-  onBellPress,
 }: {
   truck: string;
   driver: string;
   status: TripStatus;
   onChangeStatus: (s: TripStatus) => void;
   canEditStatus: boolean;
-  unreadCount?: number;
-  onBellPress?: () => void;
 }) {
   const c = Colors[useColorScheme() ?? "light"];
   const navigation = useNavigation();
   const { top } = useSafeAreaInsets();
-  const hasUnread = (unreadCount ?? 0) > 0;
   return (
     <View
       style={[
@@ -1499,29 +1474,9 @@ function TripHeader({
               </Text>
             </>
           ) : null}
-          {/* unread bell badge — tap jumps to the trip with unread messages */}
-          <Pressable
-            onPress={hasUnread ? onBellPress : undefined}
-            disabled={!hasUnread}
-            hitSlop={8}
-            style={({ pressed }) => [
-              styles.bellWrap,
-              { opacity: pressed ? 0.6 : 1 },
-            ]}
-          >
-            <Ionicons
-              name="notifications-outline"
-              size={18}
-              color={hasUnread ? "#f87171" : c.mutedForeground}
-            />
-            {hasUnread && (
-              <View style={styles.bellBadge}>
-                <Text style={styles.bellBadgeText}>
-                  {unreadCount! > 99 ? "99+" : unreadCount}
-                </Text>
-              </View>
-            )}
-          </Pressable>
+          {/* Full notification bell — trip + DM unread, with a preview panel
+              (same as the sidebar bell). */}
+          <NotificationBell colors={c} />
         </View>
 
         {canEditStatus ? (
