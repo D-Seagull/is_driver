@@ -35,6 +35,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import EmojiPicker from "rn-emoji-keyboard";
 
 import { MessageReactionsCluster } from "@/components/message-reactions";
+import { MessageActionsSheet, type MessageActions } from "@/components/message-actions-sheet";
+import { MessageQuote } from "@/components/message-quote";
 import { ScreenPlaceholder } from "@/components/screen-placeholder";
 import { StatusPicker } from "@/components/status-picker";
 import { Colors, Radius, Spacing } from "@/constants/theme";
@@ -51,6 +53,15 @@ import {
 import { DriverDocument, UploadFileLocal } from "@/lib/documents-api";
 import { Trip } from "@/lib/types";
 import { useUser } from "@/store/auth";
+
+// Reply target for the composer banner — a message or a document quote.
+type TripReplyTarget = {
+  id: string;
+  targetType: "msg" | "doc";
+  senderName: string | null;
+  content: string;
+  isDeleted: boolean;
+};
 
 // ─── Main screen ─────────────────────────────────────────────────────────────
 
@@ -158,6 +169,10 @@ function TripWithChat({
   const insets = useSafeAreaInsets();
   const isFocused = useIsFocused();
   const [text, setText] = useState("");
+  const [replyingTo, setReplyingTo] = useState<TripReplyTarget | null>(null);
+  const [editing, setEditing] = useState<{ id: string; original: string } | null>(null);
+  const [msgSheetFor, setMsgSheetFor] = useState<ChatMessage | null>(null);
+  const [docSheetFor, setDocSheetFor] = useState<DriverDocument | null>(null);
   const [newMsgCount, setNewMsgCount] = useState(0);
   const listRef = useRef<FlatList>(null);
   // True while the list is scrolled within ~80px of the bottom. Used to
@@ -179,6 +194,7 @@ function TripWithChat({
     isLoading: chatLoading,
     connected,
     sendMessage,
+    editMessage,
     deleteMessage,
     removeDocument,
     markReadNow,
@@ -292,8 +308,22 @@ function TripWithChat({
   const handleSend = () => {
     const trimmed = text.trim();
     if (!trimmed) return;
+
+    if (editing) {
+      if (trimmed !== editing.original.trim()) editMessage(editing.id, trimmed);
+      setEditing(null);
+      setText("");
+      return;
+    }
+
+    const replyMsgId = replyingTo?.targetType === "msg" ? replyingTo.id : null;
+    const replyDocId = replyingTo?.targetType === "doc" ? replyingTo.id : null;
     setText("");
-    sendMessage(trimmed);
+    setReplyingTo(null);
+    sendMessage(trimmed, {
+      replyToId: replyMsgId,
+      replyToDocumentId: replyDocId,
+    });
     // Sending always pulls the user back down — they clearly want to see it.
     nearBottomRef.current = true;
   };
@@ -365,28 +395,6 @@ function TripWithChat({
     } catch (e) {
       Alert.alert("Cannot open", (e as Error).message);
     }
-  };
-
-  const confirmDeleteMessage = (id: string) => {
-    Alert.alert("Delete message?", "This cannot be undone.", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: () => deleteMessage(id),
-      },
-    ]);
-  };
-
-  const confirmDeleteDoc = (doc: DriverDocument) => {
-    Alert.alert("Delete file?", `${doc.fileName} will be removed.`, [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: () => removeDocument(doc.id),
-      },
-    ]);
   };
 
   return (
@@ -528,11 +536,7 @@ function TripWithChat({
                     message={item.data}
                     isMe={isMe}
                     currentUserId={user?.id}
-                    onLongPress={
-                      isMe
-                        ? () => confirmDeleteMessage(item.data.id)
-                        : undefined
-                    }
+                    onLongPress={() => setMsgSheetFor(item.data)}
                   />
                 );
               }
@@ -542,9 +546,7 @@ function TripWithChat({
                   doc={item.data}
                   isMe={isMe}
                   onOpen={() => handleOpenDoc(item.data)}
-                  onLongPress={
-                    isMe ? () => confirmDeleteDoc(item.data) : undefined
-                  }
+                  onLongPress={() => setDocSheetFor(item.data)}
                 />
               );
             }}
@@ -608,18 +610,60 @@ function TripWithChat({
           </Text>
         </View>
       ) : (
-        <View
-          style={[
-            styles.inputWrap,
-            {
-              backgroundColor: c.card,
-              borderTopColor: c.border,
-              paddingBottom: kbOpen
-                ? Spacing.sm
-                : Math.max(insets.bottom, Spacing.sm),
-            },
-          ]}
-        >
+        <>
+          {(replyingTo || editing) && (
+            <View
+              style={[
+                styles.replyBanner,
+                { backgroundColor: c.card, borderTopColor: c.border },
+              ]}
+            >
+              <View style={[styles.replyBannerBar, { backgroundColor: c.primary }]} />
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={[styles.replyBannerTitle, { color: c.primary }]}
+                  numberOfLines={1}
+                >
+                  {editing
+                    ? "Редагування повідомлення"
+                    : `Reply to ${replyingTo?.senderName ?? "Unknown"}`}
+                </Text>
+                <Text
+                  style={[styles.replyBannerText, { color: c.mutedForeground }]}
+                  numberOfLines={1}
+                >
+                  {editing
+                    ? editing.original
+                    : replyingTo?.isDeleted
+                    ? "Видалено"
+                    : replyingTo?.content}
+                </Text>
+              </View>
+              <Pressable
+                onPress={() => {
+                  setReplyingTo(null);
+                  if (editing) setText("");
+                  setEditing(null);
+                }}
+                hitSlop={8}
+                style={{ padding: 4 }}
+              >
+                <Ionicons name="close" size={18} color={c.mutedForeground} />
+              </Pressable>
+            </View>
+          )}
+          <View
+            style={[
+              styles.inputWrap,
+              {
+                backgroundColor: c.card,
+                borderTopColor: c.border,
+                paddingBottom: kbOpen
+                  ? Spacing.sm
+                  : Math.max(insets.bottom, Spacing.sm),
+              },
+            ]}
+          >
           <Pressable
             onPress={showUploadSheet}
             disabled={upload.isPending}
@@ -684,13 +728,83 @@ function TripWithChat({
           >
             <Ionicons name="send" size={16} color="#fff" />
           </Pressable>
-        </View>
+          </View>
+        </>
       )}
 
       <EmojiPicker
         open={emojiOpen}
         onClose={() => setEmojiOpen(false)}
         onEmojiSelected={(e) => setText((t) => t + e.emoji)}
+      />
+
+      {/* Long-press menu for a message — reply / copy / edit / delete */}
+      <MessageActionsSheet
+        visible={!!msgSheetFor}
+        onClose={() => setMsgSheetFor(null)}
+        actions={
+          !msgSheetFor
+            ? {}
+            : {
+                onReply: msgSheetFor.deletedAt
+                  ? undefined
+                  : () => {
+                      const m = msgSheetFor;
+                      setReplyingTo({
+                        id: m.id,
+                        targetType: "msg",
+                        senderName: fullName(m.sender) || null,
+                        content: m.content,
+                        isDeleted: !!m.deletedAt,
+                      });
+                      setEditing(null);
+                    },
+                onCopy: () => Clipboard.setStringAsync(msgSheetFor.content),
+                onEdit:
+                  msgSheetFor.senderId === user?.id &&
+                  !msgSheetFor.deletedAt &&
+                  Date.now() - new Date(msgSheetFor.createdAt).getTime() <
+                    15 * 60 * 1000
+                    ? () => {
+                        const m = msgSheetFor;
+                        setEditing({ id: m.id, original: m.content });
+                        setText(m.content);
+                        setReplyingTo(null);
+                      }
+                    : undefined,
+                onDelete:
+                  msgSheetFor.senderId === user?.id && !msgSheetFor.deletedAt
+                    ? () => deleteMessage(msgSheetFor.id)
+                    : undefined,
+              }
+        }
+      />
+
+      {/* Long-press menu for a document — reply + delete only */}
+      <MessageActionsSheet
+        visible={!!docSheetFor}
+        onClose={() => setDocSheetFor(null)}
+        actions={
+          !docSheetFor
+            ? {}
+            : {
+                onReply: () => {
+                  const d = docSheetFor;
+                  setReplyingTo({
+                    id: d.id,
+                    targetType: "doc",
+                    senderName: d.uploader ? fullName(d.uploader) : null,
+                    content: d.fileName,
+                    isDeleted: false,
+                  });
+                  setEditing(null);
+                },
+                onDelete:
+                  docSheetFor.uploadedBy === user?.id
+                    ? () => removeDocument(docSheetFor.id)
+                    : undefined,
+              }
+        }
       />
 
       <TripDocsModal
@@ -864,6 +978,24 @@ function MessageBubble({
                   },
             ]}
           >
+            {message.replyTo && (
+              <MessageQuote
+                senderName={fullName(message.replyTo.sender)}
+                content={message.replyTo.content}
+                isDeleted={!!message.replyTo.deletedAt}
+                variant={isMe ? "onPrimary" : "default"}
+              />
+            )}
+            {message.replyToDocument && (
+              <MessageQuote
+                kind="doc"
+                senderName={fullName(message.replyToDocument.uploader)}
+                fileName={message.replyToDocument.fileName}
+                content=""
+                isDeleted={!!message.replyToDocument.deletedAt}
+                variant={isMe ? "onPrimary" : "default"}
+              />
+            )}
             <Text
               style={[
                 styles.bubbleText,
@@ -876,6 +1008,11 @@ function MessageBubble({
           {!isMe && sidekick}
         </View>
         <View style={styles.bubbleMetaRow}>
+          {message.editedAt && (
+            <Text style={[styles.bubbleTime, { color: c.mutedForeground, fontStyle: "italic" }]}>
+              (ред.)
+            </Text>
+          )}
           <Text style={[styles.bubbleTime, { color: c.mutedForeground }]}>
             {time}
           </Text>
@@ -1749,6 +1886,17 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
+  replyBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  replyBannerBar: { width: 2, alignSelf: "stretch", borderRadius: 1 },
+  replyBannerTitle: { fontSize: 11, fontWeight: "600" },
+  replyBannerText: { fontSize: 11, marginTop: 1 },
   input: {
     flex: 1,
     borderRadius: Radius.lg,

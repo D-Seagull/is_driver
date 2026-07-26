@@ -12,8 +12,8 @@ import { Colors, Radius, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export interface MessageActions {
-  /** Always available — copies plain text or filename to clipboard. */
-  onCopy: () => void;
+  /** Optional — copies plain text to clipboard (messages, not files). */
+  onCopy?: () => void;
   /** Optional — caller sets the chat's "reply-to" state. */
   onReply?: () => void;
   /** Optional — caller toggles edit mode. Only own + not deleted + <15min. */
@@ -73,12 +73,14 @@ export function MessageActionsSheet({ visible, onClose, actions }: Props) {
               onPress={handle(actions.onReply)}
             />
           )}
-          <ActionRow
-            icon="copy-outline"
-            label="Copy"
-            color={c.foreground}
-            onPress={handle(actions.onCopy)}
-          />
+          {actions.onCopy && (
+            <ActionRow
+              icon="copy-outline"
+              label="Copy"
+              color={c.foreground}
+              onPress={handle(actions.onCopy)}
+            />
+          )}
           {actions.onEdit && (
             <ActionRow
               icon="create-outline"

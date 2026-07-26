@@ -144,6 +144,7 @@ export default function DmScreen() {
 
   // ─── Long-press actions sheet ──────────────────────────────────────
   const [sheetFor, setSheetFor] = useState<DirectMessage | null>(null);
+  const [docSheetFor, setDocSheetFor] = useState<ConversationDocumentFull | null>(null);
 
   // Live (non-deleted) docs power the folder count + the folder modal.
   const liveDocs = useMemo(() => documents.filter((d) => !d.deletedAt), [documents]);
@@ -352,7 +353,7 @@ export default function DmScreen() {
                 doc={item.data}
                 isOwn={item.data.uploadedBy === myId}
                 onOpen={() => openDoc(item.data)}
-                onDelete={() => deleteDoc.mutate(item.data.id)}
+                onLongPress={() => setDocSheetFor(item.data)}
               />
             )
           }
@@ -466,6 +467,31 @@ export default function DmScreen() {
           },
           onDelete: (m) => deleteMsg.mutate(m.id),
         })}
+      />
+
+      {/* Long-press menu for a document — reply + delete only */}
+      <MessageActionsSheet
+        visible={!!docSheetFor}
+        onClose={() => setDocSheetFor(null)}
+        actions={{
+          onReply: docSheetFor
+            ? () => {
+                const d = docSheetFor;
+                setReplyingTo({
+                  id: d.id,
+                  targetType: 'doc',
+                  senderName: fullName(d.uploader) || null,
+                  content: d.caption || d.fileName,
+                  isDeleted: false,
+                });
+                setEditing(null);
+              }
+            : undefined,
+          onDelete:
+            docSheetFor && docSheetFor.uploadedBy === myId
+              ? () => deleteDoc.mutate(docSheetFor.id)
+              : undefined,
+        }}
       />
 
       {/* Documents folder — quick access to every attachment in the chat */}
@@ -718,12 +744,12 @@ function DocBubble({
   doc,
   isOwn,
   onOpen,
-  onDelete,
+  onLongPress,
 }: {
   doc: ConversationDocumentFull;
   isOwn: boolean;
   onOpen: () => void;
-  onDelete: () => void;
+  onLongPress: () => void;
 }) {
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
@@ -733,14 +759,6 @@ function DocBubble({
     hour: '2-digit',
     minute: '2-digit',
   });
-
-  const confirmDelete = () => {
-    if (!isOwn || isDeleted) return;
-    Alert.alert('Delete?', `${doc.fileName} will be removed.`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: onDelete },
-    ]);
-  };
 
   if (isDeleted) {
     return (
@@ -758,7 +776,7 @@ function DocBubble({
     <View style={[styles.outerCol, isOwn && styles.outerColOwn]}>
       <Pressable
         onPress={onOpen}
-        onLongPress={confirmDelete}
+        onLongPress={onLongPress}
         delayLongPress={400}
         style={[styles.docBubble, { backgroundColor: isOwn ? c.primary : c.muted }]}
       >

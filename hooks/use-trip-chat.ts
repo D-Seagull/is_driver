@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { documentKeys } from '@/hooks/use-documents';
 import { deleteDocument, DriverDocument } from '@/lib/documents-api';
-import { deleteTripMessage, fetchTripMessages } from '@/lib/trips-api';
+import { deleteTripMessage, editTripMessage, fetchTripMessages } from '@/lib/trips-api';
 import { getSocket } from '@/lib/socket';
 import { playMessageSound } from '@/lib/sounds';
 import { useAuthStore } from '@/store/auth';
@@ -26,6 +26,21 @@ export interface ChatMessage {
   // reply UI on this screen as well.
   deletedAt?: string | null;
   editedAt?: string | null;
+  replyToId?: string | null;
+  replyTo?: {
+    id: string;
+    content: string;
+    deletedAt: string | null;
+    sender: { id: string; firstName: string; lastName: string | null };
+  } | null;
+  replyToDocumentId?: string | null;
+  replyToDocument?: {
+    id: string;
+    fileName: string;
+    fileType: 'PHOTO' | 'DOCUMENT';
+    deletedAt: string | null;
+    uploader: { id: string; firstName: string; lastName: string | null };
+  } | null;
   reactions?: { id: string; userId: string; emoji: string }[];
 }
 
@@ -316,7 +331,10 @@ export function useTripChat(
   // ── Send ────────────────────────────────────────────────────────────────
   // No optimistic insert — server echoes the message back via `newMessage`,
   // and the optimistic copy would dupe (its temp id can't match the server id).
-  const sendMessage = (content: string) => {
+  const sendMessage = (
+    content: string,
+    opts?: { replyToId?: string | null; replyToDocumentId?: string | null },
+  ) => {
     const trimmed = content.trim();
     if (!tripId || !trimmed || !myId) return;
 
@@ -328,8 +346,32 @@ export function useTripChat(
     }
 
     console.log('[chat] emit sendMessage tripId=', tripId, 'content=', trimmed.slice(0, 30));
-    sock.emit('sendMessage', { tripId, content: trimmed });
+    sock.emit('sendMessage', {
+      tripId,
+      content: trimmed,
+      replyToId: opts?.replyToId ?? null,
+      replyToDocumentId: opts?.replyToDocumentId ?? null,
+    });
     notifyStopTyping();
+  };
+
+  // Edit via HTTP PATCH — server enforces author + 15-min window, then
+  // broadcasts the updated row; we also patch optimistically.
+  const editMessage = async (messageId: string, content: string) => {
+    const trimmed = content.trim();
+    if (!trimmed) return;
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === messageId
+          ? { ...m, content: trimmed, editedAt: new Date().toISOString() }
+          : m,
+      ),
+    );
+    try {
+      await editTripMessage(messageId, trimmed);
+    } catch (e) {
+      console.warn('[chat] editMessage failed', e);
+    }
   };
 
   // ── Typing emit (debounced) ─────────────────────────────────────────────
@@ -401,6 +443,7 @@ export function useTripChat(
     error,
     connected,
     sendMessage,
+    editMessage,
     deleteMessage,
     removeDocument,
     /** Call when the user scrolls to bottom or taps the "↓ new" pill so that
