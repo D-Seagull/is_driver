@@ -169,6 +169,20 @@ export default function DmScreen() {
     return items.sort((a, b) => b.ts - a.ts);
   }, [messages, documents]);
 
+  // ─── Jump to a replied-to message/document ─────────────────────────
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const scrollToMessage = (targetId?: string | null) => {
+    if (!targetId) return;
+    const index = data.findIndex((it) => it.data.id === targetId);
+    if (index < 0) return; // original is older than the loaded page
+    listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
+    setHighlightId(targetId);
+    setTimeout(
+      () => setHighlightId((h) => (h === targetId ? null : h)),
+      1500,
+    );
+  };
+
   // ─── Attach flow ───────────────────────────────────────────────────
   const pickAndUpload = async (source: 'camera' | 'gallery' | 'document') => {
     let files: { uri: string; name: string; type: string }[] = [];
@@ -336,22 +350,22 @@ export default function DmScreen() {
           keyExtractor={(it) => `${it.kind}:${it.data.id}`}
           inverted
           contentContainerStyle={{ paddingVertical: Spacing.sm }}
+          onScrollToIndexFailed={() => {}}
           renderItem={({ item }) =>
             item.kind === 'msg' ? (
               <MessageBubble
                 msg={item.data}
                 isOwn={item.data.senderId === myId}
                 myId={myId}
+                highlighted={item.data.id === highlightId}
                 onLongPress={() => setSheetFor(item.data)}
-                onReplyJump={() => {
-                  // TODO: scroll to message id — for now no-op; the original
-                  // is somewhere above and the user can scroll manually.
-                }}
+                onReplyJump={scrollToMessage}
               />
             ) : (
               <DocBubble
                 doc={item.data}
                 isOwn={item.data.uploadedBy === myId}
+                highlighted={item.data.id === highlightId}
                 onOpen={() => openDoc(item.data)}
                 onLongPress={() => setDocSheetFor(item.data)}
               />
@@ -619,14 +633,16 @@ function MessageBubble({
   msg,
   isOwn,
   myId,
+  highlighted,
   onLongPress,
   onReplyJump,
 }: {
   msg: DirectMessage;
   isOwn: boolean;
   myId: string;
+  highlighted?: boolean;
   onLongPress: () => void;
-  onReplyJump: () => void;
+  onReplyJump: (targetId: string) => void;
 }) {
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
@@ -659,6 +675,7 @@ function MessageBubble({
           : isOwn
           ? { backgroundColor: c.primary }
           : { backgroundColor: c.muted },
+        highlighted && { borderWidth: 2, borderColor: c.primary },
       ]}
     >
       {!isDeleted && msg.replyTo && (
@@ -666,7 +683,7 @@ function MessageBubble({
           senderName={fullName(msg.replyTo.sender)}
           content={msg.replyTo.content}
           isDeleted={!!msg.replyTo.deletedAt}
-          onPress={onReplyJump}
+          onPress={() => onReplyJump(msg.replyTo!.id)}
           variant={isOwn ? 'onPrimary' : 'default'}
         />
       )}
@@ -677,7 +694,7 @@ function MessageBubble({
           fileName={msg.replyToDocument.fileName}
           content=""
           isDeleted={!!msg.replyToDocument.deletedAt}
-          onPress={onReplyJump}
+          onPress={() => onReplyJump(msg.replyToDocument!.id)}
           variant={isOwn ? 'onPrimary' : 'default'}
         />
       )}
@@ -743,11 +760,13 @@ function MessageBubble({
 function DocBubble({
   doc,
   isOwn,
+  highlighted,
   onOpen,
   onLongPress,
 }: {
   doc: ConversationDocumentFull;
   isOwn: boolean;
+  highlighted?: boolean;
   onOpen: () => void;
   onLongPress: () => void;
 }) {
@@ -778,7 +797,11 @@ function DocBubble({
         onPress={onOpen}
         onLongPress={onLongPress}
         delayLongPress={400}
-        style={[styles.docBubble, { backgroundColor: isOwn ? c.primary : c.muted }]}
+        style={[
+          styles.docBubble,
+          { backgroundColor: isOwn ? c.primary : c.muted },
+          highlighted && { borderWidth: 2, borderColor: c.primary },
+        ]}
       >
         {isPhoto ? (
           <Image source={{ uri: doc.signedUrl }} style={styles.docThumb} />

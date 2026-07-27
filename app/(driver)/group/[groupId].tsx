@@ -142,6 +142,20 @@ export default function GroupChatScreen() {
     return items.sort((a, b) => b.ts - a.ts);
   }, [messages, documents]);
 
+  // ─── Jump to a replied-to message/document ─────────────────────────
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const scrollToMessage = (targetId?: string | null) => {
+    if (!targetId) return;
+    const index = data.findIndex((it) => it.data.id === targetId);
+    if (index < 0) return;
+    listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
+    setHighlightId(targetId);
+    setTimeout(
+      () => setHighlightId((h) => (h === targetId ? null : h)),
+      1500,
+    );
+  };
+
   // ─── Attach flow ───────────────────────────────────────────────────
   const pickAndUpload = async (source: 'camera' | 'gallery' | 'document') => {
     let files: { uri: string; name: string; type: string }[] = [];
@@ -303,17 +317,21 @@ export default function GroupChatScreen() {
           keyExtractor={(it) => `${it.kind}:${it.data.id}`}
           inverted
           contentContainerStyle={{ paddingVertical: Spacing.sm }}
+          onScrollToIndexFailed={() => {}}
           renderItem={({ item }) =>
             item.kind === 'msg' ? (
               <GroupBubble
                 msg={item.data}
                 isOwn={item.data.senderId === myId}
+                highlighted={item.data.id === highlightId}
                 onLongPress={() => setSheetFor(item.data)}
+                onReplyJump={scrollToMessage}
               />
             ) : (
               <DocBubble
                 doc={item.data}
                 isOwn={item.data.uploadedBy === myId}
+                highlighted={item.data.id === highlightId}
                 onOpen={() => openDoc(item.data)}
                 onLongPress={() => setDocSheetFor(item.data)}
               />
@@ -719,11 +737,15 @@ function Banner({
 function GroupBubble({
   msg,
   isOwn,
+  highlighted,
   onLongPress,
+  onReplyJump,
 }: {
   msg: GroupMessage;
   isOwn: boolean;
+  highlighted?: boolean;
   onLongPress: () => void;
+  onReplyJump: (targetId: string) => void;
 }) {
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
@@ -764,6 +786,7 @@ function GroupBubble({
             : isOwn
             ? { backgroundColor: c.primary }
             : { backgroundColor: c.muted },
+          highlighted && { borderWidth: 2, borderColor: c.primary },
         ]}
       >
         {!isDeleted && msg.replyTo && (
@@ -771,6 +794,7 @@ function GroupBubble({
             senderName={fullName(msg.replyTo.sender)}
             content={msg.replyTo.content}
             isDeleted={!!msg.replyTo.deletedAt}
+            onPress={() => onReplyJump(msg.replyTo!.id)}
             variant={isOwn ? 'onPrimary' : 'default'}
           />
         )}
@@ -781,6 +805,7 @@ function GroupBubble({
             fileName={msg.replyToDocument.fileName}
             content=""
             isDeleted={!!msg.replyToDocument.deletedAt}
+            onPress={() => onReplyJump(msg.replyToDocument!.id)}
             variant={isOwn ? 'onPrimary' : 'default'}
           />
         )}
@@ -820,11 +845,13 @@ function GroupBubble({
 function DocBubble({
   doc,
   isOwn,
+  highlighted,
   onOpen,
   onLongPress,
 }: {
   doc: GroupDocumentFull;
   isOwn: boolean;
+  highlighted?: boolean;
   onOpen: () => void;
   onLongPress: () => void;
 }) {
@@ -864,6 +891,7 @@ function DocBubble({
         style={[
           styles.docBubble,
           { backgroundColor: isOwn ? c.primary : c.muted },
+          highlighted && { borderWidth: 2, borderColor: c.primary },
         ]}
       >
         {isPhoto ? (
