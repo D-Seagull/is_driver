@@ -29,9 +29,6 @@ const DIR_PAGE = 20;
 export default function ChatScreen() {
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
-  const user = useUser();
-  const hasTruck = !!user?.currentTruck;
-  const managerName = fullName(user?.manager) || 'your manager';
   // Allow deep-linking / back-navigation to land on a specific tab (e.g.
   // returning from a group chat re-opens the Groups tab).
   const { tab: tabParam } = useLocalSearchParams<{ tab?: string }>();
@@ -90,24 +87,14 @@ export default function ChatScreen() {
 
       {/* ─── Tab content ───────────────────────────────────────────── */}
       <View style={styles.tabContent}>
-        {tab === 'chat' ? (
-          <ChatTab hasTruck={hasTruck} managerName={managerName} />
-        ) : (
-          <GroupsTab />
-        )}
+        {tab === 'chat' ? <ChatTab /> : <GroupsTab />}
       </View>
     </View>
   );
 }
 
 // ─── Chat tab — list of DM conversations ──────────────────────────────────
-function ChatTab({
-  hasTruck,
-  managerName,
-}: {
-  hasTruck: boolean;
-  managerName: string;
-}) {
+function ChatTab() {
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
   const me = useUser();
@@ -123,18 +110,8 @@ function ChatTab({
     setVisibleDir(DIR_PAGE);
   };
 
-  // No truck yet → driver can't really chat with anyone other than the
-  // assigned manager (which they don't have). Keep the empty-state hint.
-  if (!hasTruck) {
-    return (
-      <ScreenPlaceholder
-        icon="chatbubble-ellipses-outline"
-        title={`Chat with ${managerName}`}
-        subtitle="No truck is assigned yet. Reach out to your manager — they'll set you up."
-      />
-    );
-  }
-
+  // Chat is available even before a truck is assigned — a new driver can
+  // still reach their manager and other contacts through the directory.
   if (isLoading) {
     return (
       <View style={styles.center}>
