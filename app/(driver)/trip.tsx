@@ -232,6 +232,17 @@ function TripWithChat({
     return items;
   }, [messages, tripDocs]);
 
+  // Jump to a replied-to message/document + briefly highlight it.
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const scrollToMessage = (targetId?: string | null) => {
+    if (!targetId) return;
+    const index = timeline.findIndex((it) => it.data.id === targetId);
+    if (index < 0) return; // original is older than the loaded page
+    listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
+    setHighlightId(targetId);
+    setTimeout(() => setHighlightId((h) => (h === targetId ? null : h)), 1500);
+  };
+
   // Track keyboard so the input doesn't keep its safe-area paddingBottom
   // while the keyboard is up (KAV already lifts the input above the keyboard;
   // the home-indicator inset is only relevant when the keyboard is closed).
@@ -523,6 +534,7 @@ function TripWithChat({
             keyboardShouldPersistTaps="handled"
             automaticallyAdjustContentInsets={false}
             contentInsetAdjustmentBehavior="never"
+            onScrollToIndexFailed={() => {}}
             renderItem={({ item }) => {
               if (item.kind === "msg") {
                 // System events (driver/manager changed) — Telegram-style
@@ -536,7 +548,9 @@ function TripWithChat({
                     message={item.data}
                     isMe={isMe}
                     currentUserId={user?.id}
+                    highlighted={item.data.id === highlightId}
                     onLongPress={() => setMsgSheetFor(item.data)}
+                    onReplyJump={scrollToMessage}
                   />
                 );
               }
@@ -545,6 +559,7 @@ function TripWithChat({
                 <DocBubble
                   doc={item.data}
                   isMe={isMe}
+                  highlighted={item.data.id === highlightId}
                   onOpen={() => handleOpenDoc(item.data)}
                   onLongPress={() => setDocSheetFor(item.data)}
                 />
@@ -904,12 +919,16 @@ function MessageBubble({
   message,
   isMe,
   currentUserId,
+  highlighted,
   onLongPress,
+  onReplyJump,
 }: {
   message: ChatMessage;
   isMe: boolean;
   currentUserId?: string;
+  highlighted?: boolean;
   onLongPress?: () => void;
+  onReplyJump: (targetId: string) => void;
 }) {
   const c = Colors[useColorScheme() ?? "light"];
   const isManager = message.sender.role !== "DRIVER";
@@ -976,6 +995,7 @@ function MessageBubble({
                     borderColor: c.border,
                     borderBottomLeftRadius: 4,
                   },
+              highlighted && { borderWidth: 2, borderColor: c.primary },
             ]}
           >
             {message.replyTo && (
@@ -983,6 +1003,7 @@ function MessageBubble({
                 senderName={fullName(message.replyTo.sender)}
                 content={message.replyTo.content}
                 isDeleted={!!message.replyTo.deletedAt}
+                onPress={() => onReplyJump(message.replyTo!.id)}
                 variant={isMe ? "onPrimary" : "default"}
               />
             )}
@@ -993,6 +1014,7 @@ function MessageBubble({
                 fileName={message.replyToDocument.fileName}
                 content=""
                 isDeleted={!!message.replyToDocument.deletedAt}
+                onPress={() => onReplyJump(message.replyToDocument!.id)}
                 variant={isMe ? "onPrimary" : "default"}
               />
             )}
@@ -1222,11 +1244,13 @@ function TripDocsModal({
 function DocBubble({
   doc,
   isMe,
+  highlighted,
   onOpen,
   onLongPress,
 }: {
   doc: DriverDocument;
   isMe: boolean;
+  highlighted?: boolean;
   onOpen: () => void;
   onLongPress?: () => void;
 }) {
@@ -1270,6 +1294,11 @@ function DocBubble({
           onPress={onOpen}
           onLongPress={onLongPress}
           delayLongPress={350}
+          style={
+            highlighted
+              ? { borderWidth: 2, borderColor: c.primary, borderRadius: Radius.md }
+              : undefined
+          }
         >
           {isPhoto ? (
             <Image source={{ uri: doc.signedUrl }} style={styles.docThumb} />
