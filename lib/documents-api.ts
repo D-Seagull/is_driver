@@ -11,7 +11,13 @@ export interface DriverDocument {
   createdAt: string;
   signedUrl: string;
   uploader?: { id: string; firstName: string; lastName: string | null; role: string };
-  trip?: { id: string; title: string; orderNumber: string | null };
+  trip?: {
+    id: string;
+    title: string;
+    orderNumber: string | null;
+    createdAt?: string;
+    stops?: { address: string | null }[];
+  };
 }
 
 export async function fetchTripDocuments(tripId: string): Promise<DriverDocument[]> {

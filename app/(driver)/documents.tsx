@@ -17,6 +17,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -41,6 +42,8 @@ interface FolderGroup {
   tripId: string;
   tripTitle: string;
   orderNumber: string | null;
+  /** Lowercased haystack for search: title + order# + stop addresses + date. */
+  search: string;
   docs: DriverDocument[];
   photos: number;
   docsCount: number;
@@ -60,6 +63,7 @@ export default function DocumentsScreen() {
   const upload = useUploadDocuments();
 
   const [openFolder, setOpenFolder] = useState<FolderGroup | null>(null);
+  const [query, setQuery] = useState('');
 
   const folders = useMemo<FolderGroup[]>(() => {
     if (!docs) return [];
@@ -72,10 +76,20 @@ export default function DocumentsScreen() {
         if (d.fileType === 'PHOTO') existing.photos++;
         else existing.docsCount++;
       } else {
+        const trip = d.trip;
+        const stopsText = (trip?.stops ?? [])
+          .map((s) => s.address ?? '')
+          .join(' ');
+        const dt = new Date(trip?.createdAt ?? d.createdAt);
+        const dateText = `${dt.toISOString().slice(0, 10)} ${dt.toLocaleDateString()}`;
         map.set(tripId, {
           tripId,
-          tripTitle: d.trip?.title ?? 'Trip',
-          orderNumber: d.trip?.orderNumber ?? null,
+          tripTitle: trip?.title ?? 'Trip',
+          orderNumber: trip?.orderNumber ?? null,
+          search: [trip?.title, trip?.orderNumber, stopsText, dateText]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase(),
           docs: [d],
           photos: d.fileType === 'PHOTO' ? 1 : 0,
           docsCount: d.fileType === 'DOCUMENT' ? 1 : 0,
@@ -92,6 +106,12 @@ export default function DocumentsScreen() {
       return bT - aT;
     });
   }, [docs, activeTrip?.id]);
+
+  // Search by trip #, date or postcode (all folded into folder.search).
+  const q = query.trim().toLowerCase();
+  const filteredFolders = q
+    ? folders.filter((f) => f.search.includes(q))
+    : folders;
 
   // ─── Upload flow ─────────────────────────────────────────────────────────
   const pickAndUpload = async (
@@ -228,17 +248,45 @@ export default function DocumentsScreen() {
           />
         </ScrollView>
       ) : (
-        <FlatList
-          data={folders}
-          keyExtractor={(f) => f.tripId}
-          contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.sm }}
-          refreshControl={
-            <RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} />
-          }
-          renderItem={({ item }) => (
-            <FolderCard folder={item} colors={c} onPress={() => setOpenFolder(item)} />
+        <View style={{ flex: 1 }}>
+          <View style={styles.searchWrap}>
+            <View style={[styles.searchBox, { backgroundColor: c.muted }]}>
+              <Ionicons name="search" size={16} color={c.mutedForeground} />
+              <TextInput
+                value={query}
+                onChangeText={setQuery}
+                placeholder="Trip #, date or postcode…"
+                placeholderTextColor={c.mutedForeground}
+                style={[styles.searchInput, { color: c.foreground }]}
+                autoCapitalize="none"
+                autoCorrect={false}
+                returnKeyType="search"
+              />
+              {query.length > 0 && (
+                <Pressable onPress={() => setQuery('')} hitSlop={8}>
+                  <Ionicons name="close-circle" size={16} color={c.mutedForeground} />
+                </Pressable>
+              )}
+            </View>
+          </View>
+          {filteredFolders.length === 0 ? (
+            <View style={styles.center}>
+              <Text style={{ color: c.mutedForeground }}>No matches.</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={filteredFolders}
+              keyExtractor={(f) => f.tripId}
+              contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.sm }}
+              refreshControl={
+                <RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} />
+              }
+              renderItem={({ item }) => (
+                <FolderCard folder={item} colors={c} onPress={() => setOpenFolder(item)} />
+              )}
+            />
           )}
-        />
+        </View>
       )}
 
       <FolderModal
@@ -566,6 +614,18 @@ const styles = StyleSheet.create({
   },
   uploadText: { color: '#fff', fontSize: 13, fontWeight: '700' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+
+  // Search
+  searchWrap: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md },
+  searchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    height: 38,
+    borderRadius: Radius.md,
+  },
+  searchInput: { flex: 1, fontSize: 14, padding: 0 },
 
   // Folder cards
   folderCard: {
