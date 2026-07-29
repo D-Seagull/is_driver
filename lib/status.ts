@@ -37,11 +37,5 @@ export const STATUS_HEX: Record<DisplayStatus, string> = {
   OFFLINE: '#9CA3AF',
 };
 
-export const STATUS_LABEL: Record<DisplayStatus, string> = {
-  ONLINE: 'Online',
-  BUSY: 'Не турбувати',
-  AWAY: 'Не на місці',
-  SLEEP: 'Сплю',
-  VACATION: 'Відпочиваю',
-  OFFLINE: 'Не в додатку',
-};
+// Human labels live in i18n under the `status.*` namespace (keyed by the
+// DisplayStatus value), rendered with `t('status.' + status)` at call sites.

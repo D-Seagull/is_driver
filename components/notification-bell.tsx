@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Modal,
   Pressable,
@@ -25,6 +26,7 @@ import { fullName } from '@/lib/format';
  * panel also hard-refreshes both sources so it's always current.
  */
 export function NotificationBell({ colors: c }: { colors: ThemeColors }) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { data: unread, refetch: refetchUnread } = useDriverUnread();
   const { data: conversations, refetch: refetchConversations } = useConversations();
@@ -83,7 +85,7 @@ export function NotificationBell({ colors: c }: { colors: ThemeColors }) {
           >
             {isEmpty ? (
               <Text style={[styles.emptyText, { color: c.mutedForeground }]}>
-                No unread messages
+                {t('nav.noUnread')}
               </Text>
             ) : (
               <ScrollView style={{ maxHeight: 300 }} nestedScrollEnabled>
@@ -136,7 +138,7 @@ export function NotificationBell({ colors: c }: { colors: ThemeColors }) {
                   >
                     <View style={styles.itemRow}>
                       <Text style={[styles.itemTitle, { color: c.foreground }]} numberOfLines={1}>
-                        {fullName(conv.user) || 'Chat'}
+                        {fullName(conv.user) || t('nav.chatFallback')}
                       </Text>
                       <View style={styles.itemBadge}>
                         <Text style={styles.itemBadgeText}>{conv.unreadCount}</Text>
@@ -144,8 +146,8 @@ export function NotificationBell({ colors: c }: { colors: ThemeColors }) {
                     </View>
                     <Text style={[styles.itemMsg, { color: c.mutedForeground }]} numberOfLines={1}>
                       {conv.lastMessage?.deletedAt
-                        ? 'Повідомлення видалено'
-                        : conv.lastMessage?.content || '📎 File'}
+                        ? t('common.messageDeleted')
+                        : conv.lastMessage?.content || t('nav.fileAttachment')}
                     </Text>
                   </Pressable>
                 ))}

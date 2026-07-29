@@ -1,0 +1,241 @@
+{
+  "common": {
+    "cancel": "Anuluj",
+    "delete": "Usuń",
+    "save": "Zapisz",
+    "reply": "Odpowiedz",
+    "copy": "Kopiuj",
+    "edit": "Edytuj",
+    "search": "Szukaj",
+    "upload": "Prześlij",
+    "noMatches": "Brak wyników.",
+    "loading": "Ładowanie…",
+    "messageDeleted": "Wiadomość usunięta",
+    "fileDeleted": "Plik usunięty",
+    "error": "Błąd"
+  },
+  "settings": {
+    "title": "Ustawienia",
+    "driverFallback": "Kierowca",
+    "avatar": {
+      "title": "Zdjęcie profilowe",
+      "change": "Zmień",
+      "remove": "Usuń"
+    },
+    "status": { "title": "Status" },
+    "name": {
+      "title": "Imię i nazwisko",
+      "first": "Imię",
+      "firstPlaceholder": "Jan",
+      "last": "Nazwisko (opcjonalnie)",
+      "lastPlaceholder": "Kowalski"
+    },
+    "language": {
+      "title": "Język",
+      "pick": "Wybierz język"
+    },
+    "saveChanges": "Zapisz zmiany",
+    "saved": "Zapisano zmiany ✓",
+    "logout": "Wyloguj się",
+    "logoutConfirm": {
+      "title": "Wylogowanie",
+      "body": "Na pewno się wylogować?",
+      "confirm": "Wyloguj"
+    },
+    "errors": {
+      "saveProfile": "Nie udało się zapisać zmian.",
+      "photoPermTitle": "Dostęp do zdjęć",
+      "photoPermBody": "Zezwól na dostęp do galerii, aby wybrać zdjęcie profilowe.",
+      "uploadAvatar": "Nie udało się przesłać zdjęcia.",
+      "deleteAvatar": "Nie udało się usunąć zdjęcia."
+    }
+  },
+  "auth": {
+    "phone": {
+      "title": "Zaloguj się",
+      "subtitle": "Wpisz numer telefonu — wyślemy jednorazowy kod SMS-em.",
+      "sendCode": "Wyślij kod"
+    },
+    "otp": {
+      "title": "Wpisz kod",
+      "subtitle": "Wysłaliśmy 6-cyfrowy kod na {{phone}}.",
+      "subtitleFallback": "Twój telefon",
+      "mockHint": "Tryb testowy — zadziała dowolne 6 cyfr (np. 123456).",
+      "verify": "Potwierdź",
+      "changePhone": "Zmień numer telefonu"
+    },
+    "errors": {
+      "server": "Błąd serwera ({{status}})",
+      "cannotReach": "Brak połączenia z serwerem. Sprawdź, czy backend działa, a EXPO_PUBLIC_API_URL jest poprawny.",
+      "sendFailed": "Nie udało się wysłać kodu.",
+      "invalidCode": "Nieprawidłowy kod."
+    }
+  },
+  "alarm": {
+    "myAlarms": "Moje budziki ({{count}})",
+    "new": "+ Nowy",
+    "reuseTitle": "Ponów za…",
+    "from": "od {{name}}",
+    "recurrence": {
+      "NONE": "Raz",
+      "DAILY": "Codziennie",
+      "WEEKLY": "Co tydzień"
+    },
+    "quickOffsets": {
+      "min5": "+5 min",
+      "min15": "+15 min",
+      "min30": "+30 min",
+      "hour1": "+1 godz",
+      "hour2": "+2 godz"
+    },
+    "form": {
+      "title": "Temat *",
+      "titlePlaceholder": "np. Zadzwoń do klienta",
+      "note": "Komentarz",
+      "notePlaceholder": "Szczegóły (opcjonalnie)",
+      "when": "Kiedy",
+      "recurrence": "Powtórz",
+      "submit": "Utwórz"
+    },
+    "picker": {
+      "pickDate": "Wybierz datę",
+      "pickTime": "Wybierz godzinę",
+      "done": "Gotowe"
+    },
+    "deleteConfirm": {
+      "title": "Usunąć budzik?"
+    },
+    "empty": {
+      "title": "Brak budzików",
+      "subtitle": "Naciśnij „+ Nowy”, aby ustawić przypomnienie."
+    },
+    "errors": {
+      "titleRequired": "Temat jest wymagany",
+      "createFailed": "Nie udało się utworzyć budzika"
+    }
+  },
+  "documents": {
+    "active": "Aktywna",
+    "searchPlaceholder": "Nr trasy, data lub kod pocztowy…",
+    "noTruck": {
+      "subtitle": "Dokumenty są powiązane z ciężarówką. Gdy menedżer ją przypisze, pojawią się tutaj."
+    },
+    "empty": {
+      "title": "Brak dokumentów",
+      "subtitleActive": "Naciśnij „Prześlij”, aby dodać zdjęcia lub pliki do bieżącej trasy.",
+      "subtitleInactive": "Gdy będziesz mieć trasę z przesłanymi plikami, pojawią się tutaj."
+    },
+    "nothingHere": "Tu jeszcze nic nie ma.",
+    "uploadSheet": {
+      "title": "Przesyłanie",
+      "subtitle": "Wybierz źródło",
+      "camera": "Aparat",
+      "gallery": "Galeria",
+      "file": "Plik"
+    },
+    "uploadFailed": "Przesyłanie nie powiodło się",
+    "cannotOpen": "Nie można otworzyć",
+    "deleteConfirm": {
+      "title": "Usunąć?",
+      "body": "{{name}} zostanie trwale usunięty."
+    },
+    "tabs": {
+      "all": "Wszystko",
+      "photos": "Zdjęcia",
+      "documents": "Dokumenty"
+    }
+  },
+  "truck": {
+    "status": {
+      "AVAILABLE": "Dostępna",
+      "ON_TRIP": "W trasie",
+      "REPAIR": "Naprawa"
+    },
+    "noTruck": {
+      "title": "Nie przypisano ciężarówki",
+      "subtitle": "Gdy menedżer przypisze ci ciężarówkę, pojawi się tutaj."
+    },
+    "dispatcher": "Dyspozytor",
+    "unknownUser": "Nieznany",
+    "notes": {
+      "title": "Notatki ({{count}})",
+      "placeholder": "Dodaj notatkę widoczną dla menedżera…",
+      "empty": "Brak notatek. Dodaj powyżej.",
+      "saveError": "Nie udało się zapisać notatki. Spróbuj ponownie.",
+      "deleteTitle": "Usuń notatkę",
+      "deleteBody": "Usunąć tę notatkę?"
+    }
+  },
+  "manager": {
+    "noManager": "Nie przypisano jeszcze menedżera.",
+    "noRatings": "Brak ocen",
+    "ratingCount_one": "({{count}} ocena)",
+    "ratingCount_few": "({{count}} oceny)",
+    "ratingCount_many": "({{count}} ocen)",
+    "rate": "Oceń menedżera",
+    "updateRating": "Zmień moją ocenę",
+    "yourRating": "Twoja obecna ocena",
+    "reviews": "Opinie ({{count}})",
+    "info": {
+      "email": "E-mail",
+      "phone": "Telefon"
+    },
+    "modal": {
+      "title": "Oceń swojego menedżera",
+      "commentPlaceholder": "Komentarz (opcjonalnie)",
+      "anonymous": "Zostaw anonimowo",
+      "submit": "Wyślij"
+    }
+  },
+  "nav": {
+    "items": {
+      "trip": "Trasa",
+      "trips": "Moje trasy",
+      "truck": "Moja ciężarówka",
+      "documents": "Dokumenty",
+      "chat": "Czat",
+      "alarm": "Budzik"
+    },
+    "manager": "Menedżer",
+    "groups": "Grupy",
+    "brandSubtitle": "Kierowca",
+    "noUnread": "Brak nieprzeczytanych",
+    "chatFallback": "Czat",
+    "driverFallback": "Kierowca",
+    "openSettings": "Otwórz ustawienia",
+    "toggleTheme": "Przełącz motyw",
+    "messageManager": "Napisz do menedżera",
+    "fileAttachment": "📎 Plik"
+  },
+  "push": {
+    "noticeTitle": "Powiadomienie"
+  },
+  "status": {
+    "ONLINE": "Dostępny",
+    "BUSY": "Nie przeszkadzać",
+    "AWAY": "Poza miejscem",
+    "SLEEP": "Śpię",
+    "VACATION": "Odpoczywam",
+    "OFFLINE": "Poza aplikacją"
+  },
+  "presence": {
+    "pickStatus": "Wybierz status",
+    "sleepEllipsis": "Śpię…",
+    "vacationEllipsis": "Odpoczywam…",
+    "howLong": "Na jak długo?",
+    "noLimit": "Bez ograniczeń",
+    "updateError": "Nie udało się zaktualizować statusu.",
+    "sleepPresets": {
+      "min30": "30 min",
+      "hours2": "2 godziny",
+      "shortRest": "9 godzin (krótki odpoczynek)",
+      "regularRest": "11 godzin (regularny odpoczynek)"
+    },
+    "vacationPresets": {
+      "day1": "1 dzień",
+      "days3": "3 dni",
+      "week1": "Tydzień",
+      "weeks2": "2 tygodnie"
+    }
+  }
+}

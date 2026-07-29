@@ -1,0 +1,241 @@
+{
+  "common": {
+    "cancel": "Отмена",
+    "delete": "Удалить",
+    "save": "Сохранить",
+    "reply": "Ответить",
+    "copy": "Копировать",
+    "edit": "Изменить",
+    "search": "Поиск",
+    "upload": "Загрузить",
+    "noMatches": "Ничего не найдено.",
+    "loading": "Загрузка…",
+    "messageDeleted": "Сообщение удалено",
+    "fileDeleted": "Файл удалён",
+    "error": "Ошибка"
+  },
+  "settings": {
+    "title": "Настройки",
+    "driverFallback": "Водитель",
+    "avatar": {
+      "title": "Фото профиля",
+      "change": "Изменить",
+      "remove": "Убрать"
+    },
+    "status": { "title": "Статус" },
+    "name": {
+      "title": "Имя и фамилия",
+      "first": "Имя",
+      "firstPlaceholder": "Иван",
+      "last": "Фамилия (необязательно)",
+      "lastPlaceholder": "Петров"
+    },
+    "language": {
+      "title": "Язык",
+      "pick": "Выберите язык"
+    },
+    "saveChanges": "Сохранить изменения",
+    "saved": "Изменения сохранены ✓",
+    "logout": "Выйти из аккаунта",
+    "logoutConfirm": {
+      "title": "Выход из аккаунта",
+      "body": "Точно выйти?",
+      "confirm": "Выйти"
+    },
+    "errors": {
+      "saveProfile": "Не удалось сохранить изменения.",
+      "photoPermTitle": "Доступ к фото",
+      "photoPermBody": "Разрешите доступ к галерее, чтобы выбрать фото профиля.",
+      "uploadAvatar": "Не удалось загрузить фото.",
+      "deleteAvatar": "Не удалось удалить фото."
+    }
+  },
+  "auth": {
+    "phone": {
+      "title": "Вход",
+      "subtitle": "Введите номер телефона — мы отправим одноразовый код по SMS.",
+      "sendCode": "Отправить код"
+    },
+    "otp": {
+      "title": "Введите код",
+      "subtitle": "Мы отправили 6-значный код на {{phone}}.",
+      "subtitleFallback": "ваш телефон",
+      "mockHint": "Тестовый режим — подойдут любые 6 цифр (напр. 123456).",
+      "verify": "Подтвердить",
+      "changePhone": "Изменить номер телефона"
+    },
+    "errors": {
+      "server": "Ошибка сервера ({{status}})",
+      "cannotReach": "Нет связи с сервером. Проверьте, что бэкенд запущен и EXPO_PUBLIC_API_URL правильный.",
+      "sendFailed": "Не удалось отправить код.",
+      "invalidCode": "Неверный код."
+    }
+  },
+  "alarm": {
+    "myAlarms": "Мои будильники ({{count}})",
+    "new": "+ Новый",
+    "reuseTitle": "Перезапустить через…",
+    "from": "от {{name}}",
+    "recurrence": {
+      "NONE": "Один раз",
+      "DAILY": "Ежедневно",
+      "WEEKLY": "Еженедельно"
+    },
+    "quickOffsets": {
+      "min5": "+5 мин",
+      "min15": "+15 мин",
+      "min30": "+30 мин",
+      "hour1": "+1 ч",
+      "hour2": "+2 ч"
+    },
+    "form": {
+      "title": "Тема *",
+      "titlePlaceholder": "напр. Позвонить клиенту",
+      "note": "Комментарий",
+      "notePlaceholder": "Детали (необязательно)",
+      "when": "Когда",
+      "recurrence": "Повтор",
+      "submit": "Создать"
+    },
+    "picker": {
+      "pickDate": "Выберите дату",
+      "pickTime": "Выберите время",
+      "done": "Готово"
+    },
+    "deleteConfirm": {
+      "title": "Удалить будильник?"
+    },
+    "empty": {
+      "title": "Нет будильников",
+      "subtitle": "Нажми «+ Новый», чтобы установить напоминание."
+    },
+    "errors": {
+      "titleRequired": "Тема обязательна",
+      "createFailed": "Не удалось создать будильник"
+    }
+  },
+  "documents": {
+    "active": "Активный",
+    "searchPlaceholder": "№ рейса, дата или индекс…",
+    "noTruck": {
+      "subtitle": "Документы привязаны к грузовику. Как только менеджер его назначит, они появятся здесь."
+    },
+    "empty": {
+      "title": "Документов пока нет",
+      "subtitleActive": "Нажми «Загрузить», чтобы добавить фото или файлы для текущего рейса.",
+      "subtitleInactive": "Когда появится рейс с загруженными файлами, они будут здесь."
+    },
+    "nothingHere": "Здесь пока пусто.",
+    "uploadSheet": {
+      "title": "Загрузка",
+      "subtitle": "Выберите источник",
+      "camera": "Камера",
+      "gallery": "Галерея",
+      "file": "Файл"
+    },
+    "uploadFailed": "Не удалось загрузить",
+    "cannotOpen": "Не удалось открыть",
+    "deleteConfirm": {
+      "title": "Удалить?",
+      "body": "{{name}} будет удалён навсегда."
+    },
+    "tabs": {
+      "all": "Все",
+      "photos": "Фото",
+      "documents": "Документы"
+    }
+  },
+  "truck": {
+    "status": {
+      "AVAILABLE": "Свободен",
+      "ON_TRIP": "В рейсе",
+      "REPAIR": "Ремонт"
+    },
+    "noTruck": {
+      "title": "Грузовик не назначен",
+      "subtitle": "Когда менеджер назначит тебе грузовик, он появится здесь."
+    },
+    "dispatcher": "Диспетчер",
+    "unknownUser": "Неизвестно",
+    "notes": {
+      "title": "Заметки ({{count}})",
+      "placeholder": "Добавить заметку (видна менеджеру)…",
+      "empty": "Заметок пока нет. Добавь выше.",
+      "saveError": "Не удалось сохранить заметку. Попробуй ещё раз.",
+      "deleteTitle": "Удалить заметку",
+      "deleteBody": "Удалить эту заметку?"
+    }
+  },
+  "manager": {
+    "noManager": "Менеджер ещё не назначен.",
+    "noRatings": "Пока нет оценок",
+    "ratingCount_one": "({{count}} оценка)",
+    "ratingCount_few": "({{count}} оценки)",
+    "ratingCount_many": "({{count}} оценок)",
+    "rate": "Оценить менеджера",
+    "updateRating": "Изменить мою оценку",
+    "yourRating": "Ваша текущая оценка",
+    "reviews": "Отзывы ({{count}})",
+    "info": {
+      "email": "Email",
+      "phone": "Телефон"
+    },
+    "modal": {
+      "title": "Оцените менеджера",
+      "commentPlaceholder": "Комментарий (необязательно)",
+      "anonymous": "Оставить анонимно",
+      "submit": "Отправить"
+    }
+  },
+  "nav": {
+    "items": {
+      "trip": "Рейс",
+      "trips": "Мои рейсы",
+      "truck": "Мой грузовик",
+      "documents": "Документы",
+      "chat": "Чат",
+      "alarm": "Будильник"
+    },
+    "manager": "Менеджер",
+    "groups": "Группы",
+    "brandSubtitle": "Водитель",
+    "noUnread": "Нет непрочитанных",
+    "chatFallback": "Чат",
+    "driverFallback": "Водитель",
+    "openSettings": "Открыть настройки",
+    "toggleTheme": "Сменить тему",
+    "messageManager": "Написать менеджеру",
+    "fileAttachment": "📎 Файл"
+  },
+  "push": {
+    "noticeTitle": "Уведомление"
+  },
+  "status": {
+    "ONLINE": "В сети",
+    "BUSY": "Не беспокоить",
+    "AWAY": "Отошёл",
+    "SLEEP": "Сплю",
+    "VACATION": "Отдыхаю",
+    "OFFLINE": "Не в приложении"
+  },
+  "presence": {
+    "pickStatus": "Выберите статус",
+    "sleepEllipsis": "Сплю…",
+    "vacationEllipsis": "Отдыхаю…",
+    "howLong": "На сколько?",
+    "noLimit": "Без ограничения",
+    "updateError": "Не удалось обновить статус.",
+    "sleepPresets": {
+      "min30": "30 мин",
+      "hours2": "2 часа",
+      "shortRest": "9 часов (короткий отдых)",
+      "regularRest": "11 часов (регулярный отдых)"
+    },
+    "vacationPresets": {
+      "day1": "1 день",
+      "days3": "3 дня",
+      "week1": "Неделя",
+      "weeks2": "2 недели"
+    }
+  }
+}

@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import Constants from 'expo-constants';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Modal, Platform, Pressable, StyleSheet, Text } from 'react-native';
 
 // In Android Expo Go SDK 53+ importing expo-notifications THROWS at module
@@ -39,6 +40,7 @@ interface Notice {
  * modal — the data is fresh by the time they look at it.
  */
 export function PushNoticeOverlay() {
+  const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? 'light'];
   const qc = useQueryClient();
   const [notice, setNotice] = useState<Notice | null>(null);
@@ -107,7 +109,7 @@ export function PushNoticeOverlay() {
       if (payload?.type === 'ALARM') playAlarmSound();
 
       setNotice({
-        title: title ?? 'Сповіщення',
+        title: title ?? t('push.noticeTitle'),
         body: body ?? '',
         data: payload,
       });
@@ -123,7 +125,7 @@ export function PushNoticeOverlay() {
       recvSub.remove();
       respSub.remove();
     };
-  }, [qc]);
+  }, [qc, t]);
 
   return (
     <Modal

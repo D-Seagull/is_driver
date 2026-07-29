@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { fullName } from "@/lib/format";
 import {
   ActivityIndicator,
@@ -31,12 +32,13 @@ import {
 import { useUser } from '@/store/auth';
 import type { Alarm, AlarmRecurrence } from '@/lib/alarms-api';
 
-const QUICK_OFFSETS: { label: string; minutes: number }[] = [
-  { label: '+5 хв', minutes: 5 },
-  { label: '+15 хв', minutes: 15 },
-  { label: '+30 хв', minutes: 30 },
-  { label: '+1 год', minutes: 60 },
-  { label: '+2 год', minutes: 120 },
+// `key` resolves to the i18n label under alarm.quickOffsets.*
+const QUICK_OFFSETS: { key: string; minutes: number }[] = [
+  { key: 'min5', minutes: 5 },
+  { key: 'min15', minutes: 15 },
+  { key: 'min30', minutes: 30 },
+  { key: 'hour1', minutes: 60 },
+  { key: 'hour2', minutes: 120 },
 ];
 
 function offsetDate(minutes: number): Date {
@@ -45,11 +47,8 @@ function offsetDate(minutes: number): Date {
   return d;
 }
 
-const RECURRENCE_LABELS: Record<AlarmRecurrence, string> = {
-  NONE: 'Один раз',
-  DAILY: 'Щодня',
-  WEEKLY: 'Щотижня',
-};
+// Recurrence labels live in i18n under alarm.recurrence.* (keyed by the
+// AlarmRecurrence value), rendered with t(`alarm.recurrence.${r}`).
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleString();
@@ -65,6 +64,7 @@ function toWallClock(d: Date): string {
 }
 
 export default function AlarmScreen() {
+  const { t } = useTranslation();
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
   const user = useUser();
@@ -118,7 +118,7 @@ export default function AlarmScreen() {
   const handleCreate = async () => {
     if (!user) return;
     if (!title.trim()) {
-      Alert.alert("Тема обов'язкова");
+      Alert.alert(t('alarm.errors.titleRequired'));
       return;
     }
     try {
@@ -136,15 +136,15 @@ export default function AlarmScreen() {
       setShowForm(false);
     } catch (e) {
       console.warn('[alarm] create failed', e);
-      Alert.alert('Не вдалось створити будильник');
+      Alert.alert(t('alarm.errors.createFailed'));
     }
   };
 
   const confirmDelete = (alarm: Alarm) => {
-    Alert.alert('Видалити будильник?', alarm.title, [
-      { text: 'Скасувати', style: 'cancel' },
+    Alert.alert(t('alarm.deleteConfirm.title'), alarm.title, [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Видалити',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: () => deleteAlarm.mutate(alarm.id),
       },
@@ -156,18 +156,18 @@ export default function AlarmScreen() {
    *  because the offset is already absolute. */
   const reuseAlarm = (alarm: Alarm) => {
     Alert.alert(
-      'Перезапустити через…',
+      t('alarm.reuseTitle'),
       alarm.title,
       [
         ...QUICK_OFFSETS.map((q) => ({
-          text: q.label,
+          text: t(`alarm.quickOffsets.${q.key}`),
           onPress: () =>
             updateAlarm.mutate({
               id: alarm.id,
               patch: { time: offsetDate(q.minutes).toISOString() },
             }),
         })),
-        { text: 'Скасувати', style: 'cancel' as const },
+        { text: t('common.cancel'), style: 'cancel' as const },
       ],
     );
   };
@@ -192,7 +192,7 @@ export default function AlarmScreen() {
           <View style={styles.headerLabel}>
             <Ionicons name="alarm-outline" size={18} color={c.foreground} />
             <Text style={[styles.headerText, { color: c.foreground }]}>
-              Мої будильники ({alarms.length})
+              {t('alarm.myAlarms', { count: alarms.length })}
             </Text>
           </View>
           <Pressable
@@ -212,7 +212,7 @@ export default function AlarmScreen() {
                 fontSize: 13,
               }}
             >
-              {showForm ? 'Скасувати' : '+ Новий'}
+              {showForm ? t('common.cancel') : t('alarm.new')}
             </Text>
           </Pressable>
         </View>
@@ -226,12 +226,12 @@ export default function AlarmScreen() {
             ]}
           >
             <Text style={[styles.label, { color: c.mutedForeground }]}>
-              Тема *
+              {t('alarm.form.title')}
             </Text>
             <TextInput
               value={title}
               onChangeText={setTitle}
-              placeholder="напр. Зателефонувати клієнту"
+              placeholder={t('alarm.form.titlePlaceholder')}
               placeholderTextColor={c.mutedForeground}
               style={[
                 styles.input,
@@ -241,12 +241,12 @@ export default function AlarmScreen() {
             />
 
             <Text style={[styles.label, { color: c.mutedForeground }]}>
-              Коментар
+              {t('alarm.form.note')}
             </Text>
             <TextInput
               value={note}
               onChangeText={setNote}
-              placeholder="Деталі (необов'язково)"
+              placeholder={t('alarm.form.notePlaceholder')}
               placeholderTextColor={c.mutedForeground}
               style={[
                 styles.input,
@@ -259,7 +259,7 @@ export default function AlarmScreen() {
             />
 
             <Text style={[styles.label, { color: c.mutedForeground }]}>
-              Коли
+              {t('alarm.form.when')}
             </Text>
             <View style={styles.dateRow}>
               <Pressable
@@ -316,14 +316,14 @@ export default function AlarmScreen() {
                   <Text
                     style={{ color: c.foreground, fontSize: 11, fontWeight: '600' }}
                   >
-                    {q.label}
+                    {t(`alarm.quickOffsets.${q.key}`)}
                   </Text>
                 </Pressable>
               ))}
             </View>
 
             <Text style={[styles.label, { color: c.mutedForeground }]}>
-              Повтор
+              {t('alarm.form.recurrence')}
             </Text>
             <View style={styles.recurrenceRow}>
               {(['NONE', 'DAILY', 'WEEKLY'] as AlarmRecurrence[]).map((r) => (
@@ -346,7 +346,7 @@ export default function AlarmScreen() {
                       fontWeight: '600',
                     }}
                   >
-                    {RECURRENCE_LABELS[r]}
+                    {t(`alarm.recurrence.${r}`)}
                   </Text>
                 </Pressable>
               ))}
@@ -369,7 +369,7 @@ export default function AlarmScreen() {
               {createAlarm.isPending ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.submitText}>Створити</Text>
+                <Text style={styles.submitText}>{t('alarm.form.submit')}</Text>
               )}
             </Pressable>
           </View>
@@ -414,11 +414,13 @@ export default function AlarmScreen() {
                 <View style={styles.pickerHeader}>
                   <Pressable onPress={() => setPickerMode(null)} hitSlop={6}>
                     <Text style={{ color: c.mutedForeground, fontSize: 14 }}>
-                      Скасувати
+                      {t('common.cancel')}
                     </Text>
                   </Pressable>
                   <Text style={[styles.pickerTitle, { color: c.foreground }]}>
-                    {pickerMode === 'date' ? 'Оберіть дату' : 'Оберіть час'}
+                    {pickerMode === 'date'
+                      ? t('alarm.picker.pickDate')
+                      : t('alarm.picker.pickTime')}
                   </Text>
                   <Pressable onPress={acceptPicker} hitSlop={6}>
                     <Text
@@ -428,7 +430,7 @@ export default function AlarmScreen() {
                         fontWeight: '700',
                       }}
                     >
-                      Готово
+                      {t('alarm.picker.done')}
                     </Text>
                   </Pressable>
                 </View>
@@ -455,8 +457,8 @@ export default function AlarmScreen() {
         ) : alarms.length === 0 ? (
           <ScreenPlaceholder
             icon="alarm-outline"
-            title="Немає будильників"
-            subtitle='Натисни «+ Новий», щоб встановити нагадування.'
+            title={t('alarm.empty.title')}
+            subtitle={t('alarm.empty.subtitle')}
           />
         ) : (
           <FlatList
@@ -490,6 +492,7 @@ function AlarmRow({
   onReuse: () => void;
   colors: ThemeColors;
 }) {
+  const { t } = useTranslation();
   return (
     <View
       style={[
@@ -531,13 +534,13 @@ function AlarmRow({
                 color={c.mutedForeground}
               />
               <Text style={[styles.metaText, { color: c.mutedForeground }]}>
-                {RECURRENCE_LABELS[alarm.recurrence]}
+                {t(`alarm.recurrence.${alarm.recurrence}`)}
               </Text>
             </View>
           )}
           {alarm.creator.id !== alarm.target.id ? (
             <Text style={[styles.metaText, { color: c.mutedForeground }]}>
-              від {fullName(alarm.creator) || '—'}
+              {t('alarm.from', { name: fullName(alarm.creator) || '—' })}
             </Text>
           ) : null}
         </View>

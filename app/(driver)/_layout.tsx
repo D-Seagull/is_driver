@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { fullName, initials } from "@/lib/format";
 import { StatusDot } from "@/components/status-dot";
@@ -36,8 +37,8 @@ import { NotificationBell } from "@/components/notification-bell";
 import { useAuthStore, useUser } from "@/store/auth";
 
 type SidebarItem = {
+  // `name` doubles as the i18n key under nav.items.* for the label.
   name: string;
-  label: string;
   renderIcon: (color: string, size: number) => React.ReactNode;
 };
 
@@ -57,15 +58,16 @@ const mci =
   );
 
 const ITEMS: SidebarItem[] = [
-  { name: "trip", label: "Trip", renderIcon: ion("navigate-outline") },
-  { name: "trips", label: "My Trips", renderIcon: ion("list-outline") },
-  { name: "truck", label: "My Truck", renderIcon: mci("truck-outline") },
-  { name: "documents", label: "Documents", renderIcon: ion("folder-outline") },
-  { name: "chat", label: "Chat", renderIcon: ion("chatbubbles-outline") },
-  { name: "alarm", label: "Alarm", renderIcon: ion("alarm-outline") },
+  { name: "trip", renderIcon: ion("navigate-outline") },
+  { name: "trips", renderIcon: ion("list-outline") },
+  { name: "truck", renderIcon: mci("truck-outline") },
+  { name: "documents", renderIcon: ion("folder-outline") },
+  { name: "chat", renderIcon: ion("chatbubbles-outline") },
+  { name: "alarm", renderIcon: ion("alarm-outline") },
 ];
 
 export default function DriverLayout() {
+  const { t } = useTranslation();
   const scheme = useColorScheme() ?? "light";
   const c = Colors[scheme];
   const token = useAuthStore((s) => s.token);
@@ -100,8 +102,8 @@ export default function DriverLayout() {
             key={it.name}
             name={it.name}
             options={{
-              title: it.label,
-              drawerLabel: it.label,
+              title: t(`nav.items.${it.name}`),
+              drawerLabel: t(`nav.items.${it.name}`),
               drawerIcon: ({ color, size }) => it.renderIcon(color, size),
             }}
           />
@@ -111,7 +113,7 @@ export default function DriverLayout() {
         <Drawer.Screen
           name="manager"
           options={{
-            title: "Manager",
+            title: t("nav.manager"),
             drawerItemStyle: { display: "none" },
           }}
         />
@@ -120,7 +122,7 @@ export default function DriverLayout() {
         <Drawer.Screen
           name="groups"
           options={{
-            title: "Groups",
+            title: t("nav.groups"),
             drawerItemStyle: { display: "none" },
           }}
         />
@@ -129,7 +131,7 @@ export default function DriverLayout() {
         <Drawer.Screen
           name="settings"
           options={{
-            title: "Settings",
+            title: t("settings.title"),
             drawerItemStyle: { display: "none" },
           }}
         />
@@ -160,6 +162,7 @@ export default function DriverLayout() {
 }
 
 function DriverDrawerContent(props: DrawerContentComponentProps) {
+  const { t } = useTranslation();
   const scheme = useColorScheme() ?? "light";
   const c = Colors[scheme];
   const insets = useSafeAreaInsets();
@@ -223,7 +226,7 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
                 IS Fleet
               </Text>
               <Text style={[styles.brandSub, { color: c.mutedForeground }]}>
-                Driver
+                {t("nav.brandSubtitle")}
               </Text>
             </View>
             {/* Bell button */}
@@ -260,7 +263,7 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
             <View style={[styles.bellPreview, { backgroundColor: c.card, borderColor: c.sidebarBorder }]}>
               {unreadItems.length === 0 && dmItems.length === 0 ? (
                 <Text style={[styles.bellEmptyText, { color: c.mutedForeground }]}>
-                  No unread messages
+                  {t("nav.noUnread")}
                 </Text>
               ) : (
                 <ScrollView style={{ maxHeight: 220 }} nestedScrollEnabled>
@@ -306,7 +309,7 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
                     >
                       <View style={styles.bellItemRow}>
                         <Text style={[styles.bellItemTitle, { color: c.sidebarForeground }]} numberOfLines={1}>
-                          {fullName(conv.user) || "Chat"}
+                          {fullName(conv.user) || t("nav.chatFallback")}
                         </Text>
                         <View style={styles.bellItemBadge}>
                           <Text style={styles.bellItemBadgeText}>{conv.unreadCount}</Text>
@@ -314,8 +317,8 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
                       </View>
                       <Text style={[styles.bellItemMsg, { color: c.mutedForeground }]} numberOfLines={1}>
                         {conv.lastMessage?.deletedAt
-                          ? "Повідомлення видалено"
-                          : conv.lastMessage?.content || "📎 File"}
+                          ? t("common.messageDeleted")
+                          : conv.lastMessage?.content || t("nav.fileAttachment")}
                       </Text>
                     </Pressable>
                   ))}
@@ -360,7 +363,7 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
                   { color: tint, fontWeight: focused ? "600" : "500" },
                 ]}
               >
-                {it.label}
+                {t(`nav.items.${it.name}`)}
               </Text>
               {badge > 0 && (
                 <View style={styles.itemBadge}>
@@ -388,7 +391,7 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
           <ManagerRow
             person={{
               id: manager.id,
-              name: fullName(manager) || "Manager",
+              name: fullName(manager) || t("nav.manager"),
               phone: manager.phone ?? "",
               avatar: manager.avatar,
               status: manager.status ?? null,
@@ -403,8 +406,9 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
 }
 
 function DriverFooter({ colors: c }: { colors: ThemeColors }) {
+  const { t } = useTranslation();
   const user = useUser();
-  const name = fullName(user) || "Driver";
+  const name = fullName(user) || t("nav.driverFallback");
   const subtitle = user?.phone ?? "";
   const peerInitials = initials(user);
   const [statusOpen, setStatusOpen] = React.useState(false);
@@ -455,7 +459,7 @@ function DriverFooter({ colors: c }: { colors: ThemeColors }) {
         <Pressable
           onPress={() => router.push("/(driver)/settings")}
           hitSlop={8}
-          accessibilityLabel="Open settings"
+          accessibilityLabel={t("nav.openSettings")}
           style={({ pressed }) => [
             styles.logoutBtn,
             {
@@ -476,13 +480,14 @@ function DriverFooter({ colors: c }: { colors: ThemeColors }) {
 }
 
 function ThemeToggleButton({ colors: c }: { colors: ThemeColors }) {
+  const { t } = useTranslation();
   const { resolved, toggle } = useThemeMode();
   const isDark = resolved === "dark";
   return (
     <Pressable
       onPress={toggle}
       hitSlop={8}
-      accessibilityLabel="Toggle theme"
+      accessibilityLabel={t("nav.toggleTheme")}
       style={({ pressed }) => [
         styles.themeBtn,
         {
@@ -515,6 +520,7 @@ function ManagerRow({
   };
   colors: ThemeColors;
 }) {
+  const { t } = useTranslation();
   return (
     <Pressable
       onPress={() => router.push("/(driver)/manager")}
@@ -547,7 +553,7 @@ function ManagerRow({
           style={[styles.managerLabel, { color: c.mutedForeground }]}
           numberOfLines={1}
         >
-          Manager
+          {t("nav.manager")}
         </Text>
         <Text
           style={[styles.managerName, { color: c.sidebarForeground }]}
@@ -567,7 +573,7 @@ function ManagerRow({
       <Pressable
         onPress={() => router.push(`/(driver)/dm/${person.id}` as never)}
         hitSlop={8}
-        accessibilityLabel="Message manager"
+        accessibilityLabel={t("nav.messageManager")}
         style={({ pressed }) => [
           styles.managerChatBtn,
           {

@@ -1,6 +1,7 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { fullName } from "@/lib/format";
 import {
   ActivityIndicator,
@@ -33,19 +34,16 @@ const TRUCK_STATUS_COLORS: Record<TruckStatus, { bg: string; text: string }> = {
   REPAIR: { bg: "#FEE2E2", text: "#991B1B" },
 };
 
-const TRUCK_STATUS_LABELS: Record<TruckStatus, string> = {
-  AVAILABLE: "Available",
-  ON_TRIP: "On trip",
-  REPAIR: "Repair",
-};
+// Status labels live in i18n under truck.status.* (keyed by TruckStatus).
 
 function TruckStatusBadge({ status }: { status: TruckStatus }) {
+  const { t } = useTranslation();
   const { bg, text } =
     TRUCK_STATUS_COLORS[status] ?? TRUCK_STATUS_COLORS.AVAILABLE;
   return (
     <View style={[styles.badge, { backgroundColor: bg }]}>
       <Text style={[styles.badgeText, { color: text }]}>
-        {TRUCK_STATUS_LABELS[status] ?? status}
+        {t(`truck.status.${status}`)}
       </Text>
     </View>
   );
@@ -87,6 +85,7 @@ function NoteCard({
   canDelete: boolean;
   onDelete: () => void;
 }) {
+  const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? "light"];
   const date = new Date(note.createdAt).toLocaleDateString(undefined, {
     day: "2-digit",
@@ -105,7 +104,7 @@ function NoteCard({
           {note.content}
         </Text>
         <Text style={[styles.noteMeta, { color: c.mutedForeground }]}>
-          {fullName(note.user) || "Unknown"} · {date}
+          {fullName(note.user) || t("truck.unknownUser")} · {date}
         </Text>
       </View>
       {canDelete && (
@@ -120,6 +119,7 @@ function NoteCard({
 // ─── Main screen ─────────────────────────────────────────────────────────────
 
 export default function TruckScreen() {
+  const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? "light"];
   const user = useUser();
 
@@ -144,17 +144,17 @@ export default function TruckScreen() {
       await createNote.mutateAsync(content);
       setNoteText("");
     } catch {
-      Alert.alert("Error", "Could not save note. Please try again.");
+      Alert.alert(t("common.error"), t("truck.notes.saveError"));
     } finally {
       setIsSending(false);
     }
   };
 
   const handleDeleteNote = (noteId: string) => {
-    Alert.alert("Delete note", "Remove this note?", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t("truck.notes.deleteTitle"), t("truck.notes.deleteBody"), [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Delete",
+        text: t("common.delete"),
         style: "destructive",
         onPress: () => deleteNote.mutate(noteId),
       },
@@ -183,8 +183,8 @@ export default function TruckScreen() {
       >
         <ScreenPlaceholder
           icon="car-outline"
-          title="No truck assigned"
-          subtitle="When a manager assigns a truck to you, it'll appear here."
+          title={t("truck.noTruck.title")}
+          subtitle={t("truck.noTruck.subtitle")}
         />
       </ScrollView>
     );
@@ -235,7 +235,7 @@ export default function TruckScreen() {
                 color={c.mutedForeground}
               />
             }
-            label="Dispatcher"
+            label={t("truck.dispatcher")}
             value={
               fullName(manager)
                 ? manager.phone
@@ -255,7 +255,7 @@ export default function TruckScreen() {
           color={c.mutedForeground}
         />
         <Text style={[styles.sectionTitle, { color: c.mutedForeground }]}>
-          Notes ({notes.length})
+          {t("truck.notes.title", { count: notes.length })}
         </Text>
       </View>
 
@@ -269,7 +269,7 @@ export default function TruckScreen() {
         <TextInput
           value={noteText}
           onChangeText={setNoteText}
-          placeholder="Add a note visible to manager…"
+          placeholder={t("truck.notes.placeholder")}
           placeholderTextColor={c.mutedForeground}
           style={[styles.noteInput, { color: c.foreground }]}
           multiline
@@ -299,7 +299,7 @@ export default function TruckScreen() {
       {notes.length === 0 ? (
         <View style={[styles.emptyNotes, { borderColor: c.border }]}>
           <Text style={[styles.emptyNotesText, { color: c.mutedForeground }]}>
-            No notes yet. Add one above.
+            {t("truck.notes.empty")}
           </Text>
         </View>
       ) : (

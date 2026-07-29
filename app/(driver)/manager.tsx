@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack } from 'expo-router';
 import {
@@ -35,6 +36,7 @@ import type { ManagerRating } from '@/lib/manager-api';
  * also edit their existing rating (backend upserts).
  */
 export default function ManagerScreen() {
+  const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? 'light'];
   const insets = useSafeAreaInsets();
   const me = useUser();
@@ -62,14 +64,14 @@ export default function ManagerScreen() {
   if (!managerId) {
     return (
       <View style={[styles.center, { backgroundColor: c.background }]}>
-        <Stack.Screen options={{ title: 'Manager' }} />
+        <Stack.Screen options={{ title: t('nav.manager') }} />
         <Ionicons
           name="person-outline"
           size={48}
           color={c.mutedForeground}
         />
         <Text style={[styles.placeholder, { color: c.mutedForeground }]}>
-          No manager assigned yet.
+          {t('manager.noManager')}
         </Text>
       </View>
     );
@@ -78,13 +80,13 @@ export default function ManagerScreen() {
   if (isLoading || !profile) {
     return (
       <View style={[styles.center, { backgroundColor: c.background }]}>
-        <Stack.Screen options={{ title: 'Manager' }} />
+        <Stack.Screen options={{ title: t('nav.manager') }} />
         <ActivityIndicator color={c.primary} />
       </View>
     );
   }
 
-  const displayName = fullName(profile) || profile.email || 'Manager';
+  const displayName = fullName(profile) || profile.email || t('nav.manager');
 
   return (
     <ScrollView
@@ -95,7 +97,7 @@ export default function ManagerScreen() {
         gap: Spacing.lg,
       }}
     >
-      <Stack.Screen options={{ title: 'Manager' }} />
+      <Stack.Screen options={{ title: t('nav.manager') }} />
 
       {/* Profile card */}
       <View
@@ -133,15 +135,14 @@ export default function ManagerScreen() {
                       { color: c.mutedForeground },
                     ]}
                   >
-                    ({ratingCount}{' '}
-                    {ratingCount === 1 ? 'rating' : 'ratings'})
+                    {t('manager.ratingCount', { count: ratingCount })}
                   </Text>
                 </>
               ) : (
                 <Text
                   style={[styles.ratingMeta, { color: c.mutedForeground }]}
                 >
-                  No ratings yet
+                  {t('manager.noRatings')}
                 </Text>
               )}
             </View>
@@ -152,13 +153,13 @@ export default function ManagerScreen() {
 
         <InfoRow
           icon="mail-outline"
-          label="Email"
+          label={t('manager.info.email')}
           value={profile.email ?? '—'}
           colors={c}
         />
         <InfoRow
           icon="call-outline"
-          label="Phone"
+          label={t('manager.info.phone')}
           value={profile.phone ?? '—'}
           colors={c}
         />
@@ -177,7 +178,7 @@ export default function ManagerScreen() {
       >
         <Ionicons name="star" size={18} color="#fff" />
         <Text style={styles.rateBtnText}>
-          {mine ? 'Update my rating' : 'Rate manager'}
+          {mine ? t('manager.updateRating') : t('manager.rate')}
         </Text>
       </Pressable>
 
@@ -189,7 +190,7 @@ export default function ManagerScreen() {
           ]}
         >
           <Text style={[styles.myRatingTitle, { color: c.mutedForeground }]}>
-            Your current rating
+            {t('manager.yourRating')}
           </Text>
           <View style={styles.starsRow}>
             {[1, 2, 3, 4, 5].map((n) => (
@@ -213,7 +214,7 @@ export default function ManagerScreen() {
       {others.length > 0 && (
         <View style={{ gap: Spacing.sm }}>
           <Text style={[styles.reviewsTitle, { color: c.mutedForeground }]}>
-            Reviews ({others.length})
+            {t('manager.reviews', { count: others.length })}
           </Text>
           {others.map((r) => (
             <ReviewCard key={r.id} rating={r} colors={c} />
@@ -271,9 +272,10 @@ function ReviewCard({
   rating: ManagerRating;
   colors: typeof Colors.light;
 }) {
+  const { t } = useTranslation();
   // Anonymous reviews arrive from the backend with the name already masked
   // to "Anonymous", so we can render the raw name safely.
-  const name = fullName(rating.ratedBy) || 'Driver';
+  const name = fullName(rating.ratedBy) || t('nav.driverFallback');
   const date = new Date(rating.createdAt).toLocaleDateString(undefined, {
     day: '2-digit',
     month: 'short',
@@ -329,6 +331,7 @@ function RateModal({
   }) => Promise<void>;
   colors: typeof Colors.light;
 }) {
+  const { t } = useTranslation();
   const [score, setScore] = useState(initialScore);
   const [comment, setComment] = useState(initialComment);
   const [anonymous, setAnonymous] = useState(initialAnonymous);
@@ -367,7 +370,7 @@ function RateModal({
           onPress={() => {}}
         >
           <Text style={[styles.modalTitle, { color: colors.foreground }]}>
-            Rate your manager
+            {t('manager.modal.title')}
           </Text>
 
           {/* Stars */}
@@ -392,7 +395,7 @@ function RateModal({
           <TextInput
             value={comment}
             onChangeText={setComment}
-            placeholder="Comment (optional)"
+            placeholder={t('manager.modal.commentPlaceholder')}
             placeholderTextColor={colors.mutedForeground}
             maxLength={300}
             style={[
@@ -409,7 +412,7 @@ function RateModal({
           {/* Anonymous */}
           <View style={styles.anonRow}>
             <Text style={{ color: colors.foreground, flex: 1 }}>
-              Leave anonymously
+              {t('manager.modal.anonymous')}
             </Text>
             <Switch
               value={anonymous}
@@ -429,7 +432,7 @@ function RateModal({
               onPress={onClose}
             >
               <Text style={{ color: colors.foreground, fontWeight: '600' }}>
-                Cancel
+                {t('common.cancel')}
               </Text>
             </Pressable>
             <Pressable
@@ -448,7 +451,7 @@ function RateModal({
                 <ActivityIndicator color="#fff" />
               ) : (
                 <Text style={{ color: '#fff', fontWeight: '600' }}>
-                  Submit
+                  {t('manager.modal.submit')}
                 </Text>
               )}
             </Pressable>

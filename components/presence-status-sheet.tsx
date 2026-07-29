@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import {
   Alert,
@@ -13,26 +14,27 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { DriverUserStatus, updateMe } from '@/lib/auth-api';
-import { STATUS_HEX, STATUS_LABEL } from '@/lib/status';
+import { STATUS_HEX } from '@/lib/status';
 import { useAuthStore } from '@/store/auth';
 
 // Sleep presets — EU rest-break convention (9 h short rest, 11 h regular
 // rest) plus a tighter "power nap" and an indefinite mode for end-of-day.
-const SLEEP_PRESETS: { label: string; hours: number }[] = [
-  { label: '30 хв', hours: 0.5 },
-  { label: '2 години', hours: 2 },
-  { label: '9 годин (короткий відпочинок)', hours: 9 },
-  { label: '11 годин (регулярний відпочинок)', hours: 11 },
+// `key` resolves to the i18n label under presence.sleepPresets.*
+const SLEEP_PRESETS: { key: string; hours: number }[] = [
+  { key: 'min30', hours: 0.5 },
+  { key: 'hours2', hours: 2 },
+  { key: 'shortRest', hours: 9 },
+  { key: 'regularRest', hours: 11 },
 ];
 
 // Vacation presets — day-based, since rest stretches across more than
-// one rest cycle. Drivers can override with "Без обмеження" for an
-// open-ended break.
-const VACATION_PRESETS: { label: string; hours: number }[] = [
-  { label: '1 день', hours: 24 },
-  { label: '3 дні', hours: 72 },
-  { label: 'Тиждень', hours: 168 },
-  { label: '2 тижні', hours: 336 },
+// one rest cycle. Drivers can override with the "no limit" row for an
+// open-ended break. `key` resolves to presence.vacationPresets.*
+const VACATION_PRESETS: { key: string; hours: number }[] = [
+  { key: 'day1', hours: 24 },
+  { key: 'days3', hours: 72 },
+  { key: 'week1', hours: 168 },
+  { key: 'weeks2', hours: 336 },
 ];
 
 /**
@@ -49,6 +51,7 @@ export function PresenceStatusSheet({
   open: boolean;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? 'light'];
   const insets = useSafeAreaInsets();
   // Keep the sheet's last row clear of the Android nav bar (edge-to-edge).
@@ -77,7 +80,7 @@ export function PresenceStatusSheet({
       const me = await updateMe({ status, statusUntil });
       setUser(me);
     } catch (err) {
-      Alert.alert('Помилка', 'Не вдалось оновити статус.');
+      Alert.alert(t('common.error'), t('presence.updateError'));
       console.warn('[presence-status-sheet] updateMe failed', err);
     } finally {
       setBusy(false);
@@ -105,7 +108,7 @@ export function PresenceStatusSheet({
             onPress={(e) => e.stopPropagation()}
           >
             <Text style={[styles.title, { color: c.foreground }]}>
-              Виберіть статус
+              {t('presence.pickStatus')}
             </Text>
             {(['ONLINE', 'BUSY', 'AWAY'] as const).map((s) => {
               const selected = currentStatus === s;
@@ -130,7 +133,7 @@ export function PresenceStatusSheet({
                       style={[styles.dot, { backgroundColor: STATUS_HEX[s] }]}
                     />
                     <Text style={[styles.itemText, { color: c.foreground }]}>
-                      {STATUS_LABEL[s]}
+                      {t(`status.${s}`)}
                     </Text>
                   </View>
                   {selected && (
@@ -157,7 +160,7 @@ export function PresenceStatusSheet({
                   <Ionicons name="moon" size={7} color="#fff" />
                 </View>
                 <Text style={[styles.itemText, { color: c.foreground }]}>
-                  Сплю…
+                  {t('presence.sleepEllipsis')}
                 </Text>
               </View>
               <Ionicons
@@ -184,7 +187,7 @@ export function PresenceStatusSheet({
                   <Text style={{ fontSize: 7 }}>🌴</Text>
                 </View>
                 <Text style={[styles.itemText, { color: c.foreground }]}>
-                  Відпочиваю…
+                  {t('presence.vacationEllipsis')}
                 </Text>
               </View>
               <Ionicons
@@ -210,11 +213,11 @@ export function PresenceStatusSheet({
             onPress={(e) => e.stopPropagation()}
           >
             <Text style={[styles.title, { color: c.foreground }]}>
-              На скільки?
+              {t('presence.howLong')}
             </Text>
             {SLEEP_PRESETS.map((p) => (
               <Pressable
-                key={p.label}
+                key={p.key}
                 disabled={busy}
                 onPress={() => {
                   closeAll();
@@ -226,7 +229,7 @@ export function PresenceStatusSheet({
                 ]}
               >
                 <Text style={[styles.itemText, { color: c.foreground }]}>
-                  {p.label}
+                  {t(`presence.sleepPresets.${p.key}`)}
                 </Text>
               </Pressable>
             ))}
@@ -242,7 +245,7 @@ export function PresenceStatusSheet({
               ]}
             >
               <Text style={[styles.itemText, { color: c.foreground }]}>
-                Без обмеження
+                {t('presence.noLimit')}
               </Text>
             </Pressable>
           </Pressable>
@@ -262,11 +265,11 @@ export function PresenceStatusSheet({
             onPress={(e) => e.stopPropagation()}
           >
             <Text style={[styles.title, { color: c.foreground }]}>
-              На скільки?
+              {t('presence.howLong')}
             </Text>
             {VACATION_PRESETS.map((p) => (
               <Pressable
-                key={p.label}
+                key={p.key}
                 disabled={busy}
                 onPress={() => {
                   closeAll();
@@ -278,7 +281,7 @@ export function PresenceStatusSheet({
                 ]}
               >
                 <Text style={[styles.itemText, { color: c.foreground }]}>
-                  {p.label}
+                  {t(`presence.vacationPresets.${p.key}`)}
                 </Text>
               </Pressable>
             ))}
@@ -294,7 +297,7 @@ export function PresenceStatusSheet({
               ]}
             >
               <Text style={[styles.itemText, { color: c.foreground }]}>
-                Без обмеження
+                {t('presence.noLimit')}
               </Text>
             </Pressable>
           </Pressable>

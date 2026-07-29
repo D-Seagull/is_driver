@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { Stack } from 'expo-router';
@@ -27,23 +28,21 @@ import {
   uploadAvatar,
 } from '@/lib/auth-api';
 import { fullName, initials } from '@/lib/format';
-import { STATUS_LABEL } from '@/lib/status';
 import { StatusDot } from '@/components/status-dot';
 import { PresenceStatusSheet } from '@/components/presence-status-sheet';
 import { useAuthStore, useUser } from '@/store/auth';
 
-const LANGUAGE_LABELS: Record<DriverLanguage, string> = {
-  UK: 'Українська',
+// The five languages the app ships UI translations for.
+const LANGUAGE_LABELS: Partial<Record<DriverLanguage, string>> = {
   EN: 'English',
+  UK: 'Українська',
   PL: 'Polski',
   LT: 'Lietuvių',
-  UZ: "O'zbekcha",
-  KZ: 'Қазақша',
-  HI: 'हिन्दी',
   RU: 'Русский',
 };
 
 export default function DriverSettingsScreen() {
+  const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? 'light'];
   const insets = useSafeAreaInsets();
   const user = useUser();
@@ -93,7 +92,7 @@ export default function DriverSettingsScreen() {
       setSavedHint(true);
       setTimeout(() => setSavedHint(false), 2000);
     } catch (err) {
-      Alert.alert('Помилка', 'Не вдалось зберегти зміни.');
+      Alert.alert(t('common.error'), t('settings.errors.saveProfile'));
       console.warn('[settings] updateMe failed', err);
     } finally {
       setSavingProfile(false);
@@ -105,8 +104,8 @@ export default function DriverSettingsScreen() {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
       Alert.alert(
-        'Доступ до фото',
-        'Дозволь доступ до галереї щоб обрати фото профілю.',
+        t('settings.errors.photoPermTitle'),
+        t('settings.errors.photoPermBody'),
       );
       return;
     }
@@ -127,7 +126,7 @@ export default function DriverSettingsScreen() {
       });
       setUser(me);
     } catch (err) {
-      Alert.alert('Помилка', 'Не вдалось завантажити фото.');
+      Alert.alert(t('common.error'), t('settings.errors.uploadAvatar'));
       console.warn('[settings] uploadAvatar failed', err);
     } finally {
       setAvatarBusy(null);
@@ -141,7 +140,7 @@ export default function DriverSettingsScreen() {
       const me = await deleteAvatar();
       setUser(me);
     } catch (err) {
-      Alert.alert('Помилка', 'Не вдалось видалити фото.');
+      Alert.alert(t('common.error'), t('settings.errors.deleteAvatar'));
       console.warn('[settings] deleteAvatar failed', err);
     } finally {
       setAvatarBusy(null);
@@ -149,9 +148,13 @@ export default function DriverSettingsScreen() {
   };
 
   const handleLogout = () => {
-    Alert.alert('Вихід з акаунту', 'Точно вийти?', [
-      { text: 'Скасувати', style: 'cancel' },
-      { text: 'Вийти', style: 'destructive', onPress: logout },
+    Alert.alert(t('settings.logoutConfirm.title'), t('settings.logoutConfirm.body'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('settings.logoutConfirm.confirm'),
+        style: 'destructive',
+        onPress: logout,
+      },
     ]);
   };
 
@@ -168,7 +171,7 @@ export default function DriverSettingsScreen() {
         },
       ]}
     >
-      <Stack.Screen options={{ title: 'Settings' }} />
+      <Stack.Screen options={{ title: t('settings.title') }} />
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
@@ -183,7 +186,7 @@ export default function DriverSettingsScreen() {
         keyboardShouldPersistTaps="handled"
       >
         {/* ── Avatar block ─────────────────────────────────────────── */}
-        <SectionCard colors={c} title="Фото профілю">
+        <SectionCard colors={c} title={t('settings.avatar.title')}>
           <View style={styles.avatarRow}>
             <View
               style={[styles.avatarWrap, { backgroundColor: c.muted }]}
@@ -211,7 +214,7 @@ export default function DriverSettingsScreen() {
             </View>
             <View style={{ flex: 1, gap: Spacing.xs }}>
               <Text style={[styles.name, { color: c.foreground }]}>
-                {fullName(user) || 'Driver'}
+                {fullName(user) || t('settings.driverFallback')}
               </Text>
               <Text
                 style={[styles.role, { color: c.mutedForeground }]}
@@ -241,7 +244,7 @@ export default function DriverSettingsScreen() {
                       { color: c.primaryForeground },
                     ]}
                   >
-                    {user?.avatar ? 'Змінити' : 'Завантажити'}
+                    {user?.avatar ? t('settings.avatar.change') : t('common.upload')}
                   </Text>
                 </Pressable>
                 {user?.avatar && (
@@ -267,7 +270,7 @@ export default function DriverSettingsScreen() {
                         { color: c.foreground },
                       ]}
                     >
-                      Прибрати
+                      {t('settings.avatar.remove')}
                     </Text>
                   </Pressable>
                 )}
@@ -277,7 +280,7 @@ export default function DriverSettingsScreen() {
         </SectionCard>
 
         {/* ── Status ───────────────────────────────────────────────── */}
-        <SectionCard colors={c} title="Статус">
+        <SectionCard colors={c} title={t('settings.status.title')}>
           <Pressable
             onPress={() => setStatusPickerOpen(true)}
             style={({ pressed }) => [
@@ -296,7 +299,7 @@ export default function DriverSettingsScreen() {
               ring={c.card}
             />
             <Text style={[styles.rowText, { color: c.foreground }]}>
-              {STATUS_LABEL[currentStatus] ?? 'Online'}
+              {t(`status.${currentStatus}`)}
             </Text>
             <Ionicons
               name="chevron-forward"
@@ -307,9 +310,9 @@ export default function DriverSettingsScreen() {
         </SectionCard>
 
         {/* ── Name fields ──────────────────────────────────────────── */}
-        <SectionCard colors={c} title="Імʼя та прізвище">
+        <SectionCard colors={c} title={t('settings.name.title')}>
           <View style={{ gap: Spacing.md }}>
-            <FieldLabel colors={c}>Імʼя</FieldLabel>
+            <FieldLabel colors={c}>{t('settings.name.first')}</FieldLabel>
             <TextInput
               style={[
                 styles.input,
@@ -321,11 +324,11 @@ export default function DriverSettingsScreen() {
               ]}
               value={firstName}
               onChangeText={setFirstName}
-              placeholder="Іван"
+              placeholder={t('settings.name.firstPlaceholder')}
               placeholderTextColor={c.mutedForeground}
               autoCapitalize="words"
             />
-            <FieldLabel colors={c}>Прізвище (необовʼязково)</FieldLabel>
+            <FieldLabel colors={c}>{t('settings.name.last')}</FieldLabel>
             <TextInput
               style={[
                 styles.input,
@@ -337,7 +340,7 @@ export default function DriverSettingsScreen() {
               ]}
               value={lastName}
               onChangeText={setLastName}
-              placeholder="Петренко"
+              placeholder={t('settings.name.lastPlaceholder')}
               placeholderTextColor={c.mutedForeground}
               autoCapitalize="words"
             />
@@ -345,7 +348,7 @@ export default function DriverSettingsScreen() {
         </SectionCard>
 
         {/* ── Language ─────────────────────────────────────────────── */}
-        <SectionCard colors={c} title="Мова">
+        <SectionCard colors={c} title={t('settings.language.title')}>
           <Pressable
             onPress={() => setLangPickerOpen(true)}
             style={({ pressed }) => [
@@ -363,7 +366,7 @@ export default function DriverSettingsScreen() {
               color={c.foreground}
             />
             <Text style={[styles.rowText, { color: c.foreground }]}>
-              {LANGUAGE_LABELS[language]}
+              {LANGUAGE_LABELS[language] ?? 'English'}
             </Text>
             <Ionicons
               name="chevron-forward"
@@ -399,7 +402,7 @@ export default function DriverSettingsScreen() {
                   },
                 ]}
               >
-                Зберегти зміни
+                {t('settings.saveChanges')}
               </Text>
             )}
           </Pressable>
@@ -410,7 +413,7 @@ export default function DriverSettingsScreen() {
                 { color: c.primary },
               ]}
             >
-              Зміни збережено ✓
+              {t('settings.saved')}
             </Text>
           )}
         </View>
@@ -438,7 +441,7 @@ export default function DriverSettingsScreen() {
               { color: c.destructive ?? '#dc2626' },
             ]}
           >
-            Вийти з акаунту
+            {t('settings.logout')}
           </Text>
         </Pressable>
       </ScrollView>
@@ -474,7 +477,7 @@ export default function DriverSettingsScreen() {
             <Text
               style={[styles.modalTitle, { color: c.foreground }]}
             >
-              Виберіть мову
+              {t('settings.language.pick')}
             </Text>
             {(Object.entries(LANGUAGE_LABELS) as [DriverLanguage, string][]).map(
               ([value, label]) => {

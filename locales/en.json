@@ -1,0 +1,240 @@
+{
+  "common": {
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "save": "Save",
+    "reply": "Reply",
+    "copy": "Copy",
+    "edit": "Edit",
+    "search": "Search",
+    "upload": "Upload",
+    "noMatches": "No matches.",
+    "loading": "Loading…",
+    "messageDeleted": "Message deleted",
+    "fileDeleted": "File deleted",
+    "error": "Error"
+  },
+  "settings": {
+    "title": "Settings",
+    "driverFallback": "Driver",
+    "avatar": {
+      "title": "Profile photo",
+      "change": "Change",
+      "remove": "Remove"
+    },
+    "status": { "title": "Status" },
+    "name": {
+      "title": "Name",
+      "first": "First name",
+      "firstPlaceholder": "John",
+      "last": "Last name (optional)",
+      "lastPlaceholder": "Smith"
+    },
+    "language": {
+      "title": "Language",
+      "pick": "Choose language"
+    },
+    "saveChanges": "Save changes",
+    "saved": "Changes saved ✓",
+    "logout": "Log out",
+    "logoutConfirm": {
+      "title": "Log out",
+      "body": "Log out for sure?",
+      "confirm": "Log out"
+    },
+    "errors": {
+      "saveProfile": "Couldn't save changes.",
+      "photoPermTitle": "Photo access",
+      "photoPermBody": "Allow gallery access to pick a profile photo.",
+      "uploadAvatar": "Couldn't upload photo.",
+      "deleteAvatar": "Couldn't delete photo."
+    }
+  },
+  "auth": {
+    "phone": {
+      "title": "Sign in",
+      "subtitle": "Enter your phone number — we'll send a one-time code via SMS.",
+      "sendCode": "Send code"
+    },
+    "otp": {
+      "title": "Enter code",
+      "subtitle": "We sent a 6-digit code to {{phone}}.",
+      "subtitleFallback": "your phone",
+      "mockHint": "Mock mode — any 6 digits will work (e.g. 123456).",
+      "verify": "Verify",
+      "changePhone": "Change phone number"
+    },
+    "errors": {
+      "server": "Server error ({{status}})",
+      "cannotReach": "Cannot reach server. Check that the backend is running and EXPO_PUBLIC_API_URL is correct.",
+      "sendFailed": "Failed to send code.",
+      "invalidCode": "Invalid code."
+    }
+  },
+  "alarm": {
+    "myAlarms": "My alarms ({{count}})",
+    "new": "+ New",
+    "reuseTitle": "Restart in…",
+    "from": "from {{name}}",
+    "recurrence": {
+      "NONE": "Once",
+      "DAILY": "Daily",
+      "WEEKLY": "Weekly"
+    },
+    "quickOffsets": {
+      "min5": "+5 min",
+      "min15": "+15 min",
+      "min30": "+30 min",
+      "hour1": "+1 h",
+      "hour2": "+2 h"
+    },
+    "form": {
+      "title": "Title *",
+      "titlePlaceholder": "e.g. Call the client",
+      "note": "Comment",
+      "notePlaceholder": "Details (optional)",
+      "when": "When",
+      "recurrence": "Repeat",
+      "submit": "Create"
+    },
+    "picker": {
+      "pickDate": "Choose date",
+      "pickTime": "Choose time",
+      "done": "Done"
+    },
+    "deleteConfirm": {
+      "title": "Delete alarm?"
+    },
+    "empty": {
+      "title": "No alarms",
+      "subtitle": "Tap \"+ New\" to set a reminder."
+    },
+    "errors": {
+      "titleRequired": "Title is required",
+      "createFailed": "Couldn't create the alarm"
+    }
+  },
+  "documents": {
+    "active": "Active",
+    "searchPlaceholder": "Trip #, date or postcode…",
+    "noTruck": {
+      "subtitle": "Documents are linked to your truck. Once your manager assigns one, they'll show up here."
+    },
+    "empty": {
+      "title": "No documents yet",
+      "subtitleActive": "Tap Upload to add photos or files for the current trip.",
+      "subtitleInactive": "When you have a trip with uploaded files, they'll appear here."
+    },
+    "nothingHere": "Nothing here yet.",
+    "uploadSheet": {
+      "title": "Upload",
+      "subtitle": "Choose source",
+      "camera": "Camera",
+      "gallery": "Gallery",
+      "file": "File"
+    },
+    "uploadFailed": "Upload failed",
+    "cannotOpen": "Cannot open",
+    "deleteConfirm": {
+      "title": "Delete?",
+      "body": "{{name}} will be permanently removed."
+    },
+    "tabs": {
+      "all": "All",
+      "photos": "Photos",
+      "documents": "Documents"
+    }
+  },
+  "truck": {
+    "status": {
+      "AVAILABLE": "Available",
+      "ON_TRIP": "On trip",
+      "REPAIR": "Repair"
+    },
+    "noTruck": {
+      "title": "No truck assigned",
+      "subtitle": "When a manager assigns a truck to you, it'll appear here."
+    },
+    "dispatcher": "Dispatcher",
+    "unknownUser": "Unknown",
+    "notes": {
+      "title": "Notes ({{count}})",
+      "placeholder": "Add a note visible to manager…",
+      "empty": "No notes yet. Add one above.",
+      "saveError": "Could not save note. Please try again.",
+      "deleteTitle": "Delete note",
+      "deleteBody": "Remove this note?"
+    }
+  },
+  "manager": {
+    "noManager": "No manager assigned yet.",
+    "noRatings": "No ratings yet",
+    "ratingCount_one": "({{count}} rating)",
+    "ratingCount_other": "({{count}} ratings)",
+    "rate": "Rate manager",
+    "updateRating": "Update my rating",
+    "yourRating": "Your current rating",
+    "reviews": "Reviews ({{count}})",
+    "info": {
+      "email": "Email",
+      "phone": "Phone"
+    },
+    "modal": {
+      "title": "Rate your manager",
+      "commentPlaceholder": "Comment (optional)",
+      "anonymous": "Leave anonymously",
+      "submit": "Submit"
+    }
+  },
+  "nav": {
+    "items": {
+      "trip": "Trip",
+      "trips": "My Trips",
+      "truck": "My Truck",
+      "documents": "Documents",
+      "chat": "Chat",
+      "alarm": "Alarm"
+    },
+    "manager": "Manager",
+    "groups": "Groups",
+    "brandSubtitle": "Driver",
+    "noUnread": "No unread messages",
+    "chatFallback": "Chat",
+    "driverFallback": "Driver",
+    "openSettings": "Open settings",
+    "toggleTheme": "Toggle theme",
+    "messageManager": "Message manager",
+    "fileAttachment": "📎 File"
+  },
+  "push": {
+    "noticeTitle": "Notification"
+  },
+  "status": {
+    "ONLINE": "Online",
+    "BUSY": "Do not disturb",
+    "AWAY": "Away",
+    "SLEEP": "Sleeping",
+    "VACATION": "On vacation",
+    "OFFLINE": "Not in app"
+  },
+  "presence": {
+    "pickStatus": "Choose status",
+    "sleepEllipsis": "Sleep…",
+    "vacationEllipsis": "Vacation…",
+    "howLong": "For how long?",
+    "noLimit": "No limit",
+    "updateError": "Couldn't update status.",
+    "sleepPresets": {
+      "min30": "30 min",
+      "hours2": "2 hours",
+      "shortRest": "9 hours (short rest)",
+      "regularRest": "11 hours (regular rest)"
+    },
+    "vacationPresets": {
+      "day1": "1 day",
+      "days3": "3 days",
+      "week1": "Week",
+      "weeks2": "2 weeks"
+    }
+  }
+}

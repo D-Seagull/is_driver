@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Pressable,
@@ -16,6 +17,7 @@ import { MOCK_AUTH } from '@/lib/config';
 import { useAuthStore } from '@/store/auth';
 
 export default function OtpScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { phone = '' } = useLocalSearchParams<{ phone?: string }>();
   const c = Colors[useColorScheme() ?? 'light'];
@@ -44,7 +46,7 @@ export default function OtpScreen() {
       const target = user?.currentTruck ? '/(driver)/trip' : '/(driver)/chat';
       router.replace(target);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Invalid code.');
+      setError(e instanceof Error ? e.message : t('auth.errors.invalidCode'));
     } finally {
       setSubmitting(false);
     }
@@ -55,9 +57,13 @@ export default function OtpScreen() {
       <View style={[styles.iconWrap, { backgroundColor: c.muted }]}>
         <Ionicons name="shield-checkmark-outline" size={36} color={c.mutedForeground} />
       </View>
-      <Text style={[styles.title, { color: c.foreground }]}>Enter code</Text>
+      <Text style={[styles.title, { color: c.foreground }]}>
+        {t('auth.otp.title')}
+      </Text>
       <Text style={[styles.sub, { color: c.mutedForeground }]}>
-        We sent a 6-digit code to {phone || 'your phone'}.
+        {t('auth.otp.subtitle', {
+          phone: phone || t('auth.otp.subtitleFallback'),
+        })}
       </Text>
       <TextInput
         value={code}
@@ -78,7 +84,7 @@ export default function OtpScreen() {
       />
       {MOCK_AUTH && (
         <Text style={[styles.hint, { color: c.mutedForeground }]}>
-          Mock mode — any 6 digits will work (e.g. 123456).
+          {t('auth.otp.mockHint')}
         </Text>
       )}
       {error && (
@@ -99,7 +105,9 @@ export default function OtpScreen() {
         {submitting ? (
           <ActivityIndicator color={c.primaryForeground} />
         ) : (
-          <Text style={[styles.btnText, { color: c.primaryForeground }]}>Verify</Text>
+          <Text style={[styles.btnText, { color: c.primaryForeground }]}>
+            {t('auth.otp.verify')}
+          </Text>
         )}
       </Pressable>
 
@@ -109,7 +117,7 @@ export default function OtpScreen() {
         style={({ pressed }) => [styles.linkBtn, { opacity: pressed ? 0.6 : 1 }]}
       >
         <Text style={[styles.linkText, { color: c.mutedForeground }]}>
-          Change phone number
+          {t('auth.otp.changePhone')}
         </Text>
       </Pressable>
     </View>

@@ -1,0 +1,241 @@
+{
+  "common": {
+    "cancel": "Скасувати",
+    "delete": "Видалити",
+    "save": "Зберегти",
+    "reply": "Відповісти",
+    "copy": "Копіювати",
+    "edit": "Редагувати",
+    "search": "Пошук",
+    "upload": "Завантажити",
+    "noMatches": "Нічого не знайдено.",
+    "loading": "Завантаження…",
+    "messageDeleted": "Повідомлення видалено",
+    "fileDeleted": "Файл видалено",
+    "error": "Помилка"
+  },
+  "settings": {
+    "title": "Налаштування",
+    "driverFallback": "Водій",
+    "avatar": {
+      "title": "Фото профілю",
+      "change": "Змінити",
+      "remove": "Прибрати"
+    },
+    "status": { "title": "Статус" },
+    "name": {
+      "title": "Імʼя та прізвище",
+      "first": "Імʼя",
+      "firstPlaceholder": "Іван",
+      "last": "Прізвище (необовʼязково)",
+      "lastPlaceholder": "Петренко"
+    },
+    "language": {
+      "title": "Мова",
+      "pick": "Виберіть мову"
+    },
+    "saveChanges": "Зберегти зміни",
+    "saved": "Зміни збережено ✓",
+    "logout": "Вийти з акаунту",
+    "logoutConfirm": {
+      "title": "Вихід з акаунту",
+      "body": "Точно вийти?",
+      "confirm": "Вийти"
+    },
+    "errors": {
+      "saveProfile": "Не вдалось зберегти зміни.",
+      "photoPermTitle": "Доступ до фото",
+      "photoPermBody": "Дозволь доступ до галереї щоб обрати фото профілю.",
+      "uploadAvatar": "Не вдалось завантажити фото.",
+      "deleteAvatar": "Не вдалось видалити фото."
+    }
+  },
+  "auth": {
+    "phone": {
+      "title": "Вхід",
+      "subtitle": "Введіть номер телефону — ми надішлемо одноразовий код у SMS.",
+      "sendCode": "Надіслати код"
+    },
+    "otp": {
+      "title": "Введіть код",
+      "subtitle": "Ми надіслали 6-значний код на {{phone}}.",
+      "subtitleFallback": "ваш телефон",
+      "mockHint": "Тестовий режим — підійдуть будь-які 6 цифр (напр. 123456).",
+      "verify": "Підтвердити",
+      "changePhone": "Змінити номер телефону"
+    },
+    "errors": {
+      "server": "Помилка сервера ({{status}})",
+      "cannotReach": "Немає зʼєднання з сервером. Перевірте, що бекенд запущено і EXPO_PUBLIC_API_URL правильний.",
+      "sendFailed": "Не вдалось надіслати код.",
+      "invalidCode": "Невірний код."
+    }
+  },
+  "alarm": {
+    "myAlarms": "Мої будильники ({{count}})",
+    "new": "+ Новий",
+    "reuseTitle": "Перезапустити через…",
+    "from": "від {{name}}",
+    "recurrence": {
+      "NONE": "Один раз",
+      "DAILY": "Щодня",
+      "WEEKLY": "Щотижня"
+    },
+    "quickOffsets": {
+      "min5": "+5 хв",
+      "min15": "+15 хв",
+      "min30": "+30 хв",
+      "hour1": "+1 год",
+      "hour2": "+2 год"
+    },
+    "form": {
+      "title": "Тема *",
+      "titlePlaceholder": "напр. Зателефонувати клієнту",
+      "note": "Коментар",
+      "notePlaceholder": "Деталі (необов'язково)",
+      "when": "Коли",
+      "recurrence": "Повтор",
+      "submit": "Створити"
+    },
+    "picker": {
+      "pickDate": "Оберіть дату",
+      "pickTime": "Оберіть час",
+      "done": "Готово"
+    },
+    "deleteConfirm": {
+      "title": "Видалити будильник?"
+    },
+    "empty": {
+      "title": "Немає будильників",
+      "subtitle": "Натисни «+ Новий», щоб встановити нагадування."
+    },
+    "errors": {
+      "titleRequired": "Тема обов'язкова",
+      "createFailed": "Не вдалось створити будильник"
+    }
+  },
+  "documents": {
+    "active": "Активний",
+    "searchPlaceholder": "№ рейсу, дата або індекс…",
+    "noTruck": {
+      "subtitle": "Документи прив'язані до вантажівки. Щойно менеджер її призначить, вони з'являться тут."
+    },
+    "empty": {
+      "title": "Документів ще немає",
+      "subtitleActive": "Натисни «Завантажити», щоб додати фото чи файли для поточного рейсу.",
+      "subtitleInactive": "Коли з'явиться рейс із завантаженими файлами, вони будуть тут."
+    },
+    "nothingHere": "Тут поки порожньо.",
+    "uploadSheet": {
+      "title": "Завантаження",
+      "subtitle": "Оберіть джерело",
+      "camera": "Камера",
+      "gallery": "Галерея",
+      "file": "Файл"
+    },
+    "uploadFailed": "Не вдалось завантажити",
+    "cannotOpen": "Не вдалось відкрити",
+    "deleteConfirm": {
+      "title": "Видалити?",
+      "body": "{{name}} буде видалено назавжди."
+    },
+    "tabs": {
+      "all": "Усі",
+      "photos": "Фото",
+      "documents": "Документи"
+    }
+  },
+  "truck": {
+    "status": {
+      "AVAILABLE": "Вільна",
+      "ON_TRIP": "В рейсі",
+      "REPAIR": "Ремонт"
+    },
+    "noTruck": {
+      "title": "Вантажівку не призначено",
+      "subtitle": "Коли менеджер призначить тобі вантажівку, вона з'явиться тут."
+    },
+    "dispatcher": "Диспетчер",
+    "unknownUser": "Невідомо",
+    "notes": {
+      "title": "Нотатки ({{count}})",
+      "placeholder": "Додати нотатку (видно менеджеру)…",
+      "empty": "Нотаток ще немає. Додай вище.",
+      "saveError": "Не вдалось зберегти нотатку. Спробуй ще раз.",
+      "deleteTitle": "Видалити нотатку",
+      "deleteBody": "Видалити цю нотатку?"
+    }
+  },
+  "manager": {
+    "noManager": "Менеджера ще не призначено.",
+    "noRatings": "Ще немає оцінок",
+    "ratingCount_one": "({{count}} оцінка)",
+    "ratingCount_few": "({{count}} оцінки)",
+    "ratingCount_many": "({{count}} оцінок)",
+    "rate": "Оцінити менеджера",
+    "updateRating": "Змінити мою оцінку",
+    "yourRating": "Ваша поточна оцінка",
+    "reviews": "Відгуки ({{count}})",
+    "info": {
+      "email": "Email",
+      "phone": "Телефон"
+    },
+    "modal": {
+      "title": "Оцініть менеджера",
+      "commentPlaceholder": "Коментар (необов'язково)",
+      "anonymous": "Залишити анонімно",
+      "submit": "Надіслати"
+    }
+  },
+  "nav": {
+    "items": {
+      "trip": "Рейс",
+      "trips": "Мої рейси",
+      "truck": "Моя вантажівка",
+      "documents": "Документи",
+      "chat": "Чат",
+      "alarm": "Будильник"
+    },
+    "manager": "Менеджер",
+    "groups": "Групи",
+    "brandSubtitle": "Водій",
+    "noUnread": "Немає непрочитаних",
+    "chatFallback": "Чат",
+    "driverFallback": "Водій",
+    "openSettings": "Відкрити налаштування",
+    "toggleTheme": "Змінити тему",
+    "messageManager": "Написати менеджеру",
+    "fileAttachment": "📎 Файл"
+  },
+  "push": {
+    "noticeTitle": "Сповіщення"
+  },
+  "status": {
+    "ONLINE": "Online",
+    "BUSY": "Не турбувати",
+    "AWAY": "Не на місці",
+    "SLEEP": "Сплю",
+    "VACATION": "Відпочиваю",
+    "OFFLINE": "Не в додатку"
+  },
+  "presence": {
+    "pickStatus": "Виберіть статус",
+    "sleepEllipsis": "Сплю…",
+    "vacationEllipsis": "Відпочиваю…",
+    "howLong": "На скільки?",
+    "noLimit": "Без обмеження",
+    "updateError": "Не вдалось оновити статус.",
+    "sleepPresets": {
+      "min30": "30 хв",
+      "hours2": "2 години",
+      "shortRest": "9 годин (короткий відпочинок)",
+      "regularRest": "11 годин (регулярний відпочинок)"
+    },
+    "vacationPresets": {
+      "day1": "1 день",
+      "days3": "3 дні",
+      "week1": "Тиждень",
+      "weeks2": "2 тижні"
+    }
+  }
+}

@@ -1,0 +1,241 @@
+{
+  "common": {
+    "cancel": "Atšaukti",
+    "delete": "Ištrinti",
+    "save": "Išsaugoti",
+    "reply": "Atsakyti",
+    "copy": "Kopijuoti",
+    "edit": "Redaguoti",
+    "search": "Ieškoti",
+    "upload": "Įkelti",
+    "noMatches": "Nėra atitikmenų.",
+    "loading": "Įkeliama…",
+    "messageDeleted": "Žinutė ištrinta",
+    "fileDeleted": "Failas ištrintas",
+    "error": "Klaida"
+  },
+  "settings": {
+    "title": "Nustatymai",
+    "driverFallback": "Vairuotojas",
+    "avatar": {
+      "title": "Profilio nuotrauka",
+      "change": "Keisti",
+      "remove": "Pašalinti"
+    },
+    "status": { "title": "Būsena" },
+    "name": {
+      "title": "Vardas ir pavardė",
+      "first": "Vardas",
+      "firstPlaceholder": "Jonas",
+      "last": "Pavardė (nebūtina)",
+      "lastPlaceholder": "Kazlauskas"
+    },
+    "language": {
+      "title": "Kalba",
+      "pick": "Pasirinkite kalbą"
+    },
+    "saveChanges": "Išsaugoti pakeitimus",
+    "saved": "Pakeitimai išsaugoti ✓",
+    "logout": "Atsijungti",
+    "logoutConfirm": {
+      "title": "Atsijungimas",
+      "body": "Tikrai atsijungti?",
+      "confirm": "Atsijungti"
+    },
+    "errors": {
+      "saveProfile": "Nepavyko išsaugoti pakeitimų.",
+      "photoPermTitle": "Prieiga prie nuotraukų",
+      "photoPermBody": "Leiskite pasiekti galeriją, kad pasirinktumėte profilio nuotrauką.",
+      "uploadAvatar": "Nepavyko įkelti nuotraukos.",
+      "deleteAvatar": "Nepavyko ištrinti nuotraukos."
+    }
+  },
+  "auth": {
+    "phone": {
+      "title": "Prisijungimas",
+      "subtitle": "Įveskite telefono numerį — atsiųsime vienkartinį kodą SMS žinute.",
+      "sendCode": "Siųsti kodą"
+    },
+    "otp": {
+      "title": "Įveskite kodą",
+      "subtitle": "Išsiuntėme 6 skaitmenų kodą į {{phone}}.",
+      "subtitleFallback": "jūsų telefoną",
+      "mockHint": "Bandomasis režimas — tiks bet kokie 6 skaitmenys (pvz. 123456).",
+      "verify": "Patvirtinti",
+      "changePhone": "Keisti telefono numerį"
+    },
+    "errors": {
+      "server": "Serverio klaida ({{status}})",
+      "cannotReach": "Nepavyksta pasiekti serverio. Patikrinkite, ar veikia backend'as ir ar EXPO_PUBLIC_API_URL teisingas.",
+      "sendFailed": "Nepavyko išsiųsti kodo.",
+      "invalidCode": "Neteisingas kodas."
+    }
+  },
+  "alarm": {
+    "myAlarms": "Mano žadintuvai ({{count}})",
+    "new": "+ Naujas",
+    "reuseTitle": "Kartoti po…",
+    "from": "nuo {{name}}",
+    "recurrence": {
+      "NONE": "Vieną kartą",
+      "DAILY": "Kasdien",
+      "WEEKLY": "Kas savaitę"
+    },
+    "quickOffsets": {
+      "min5": "+5 min",
+      "min15": "+15 min",
+      "min30": "+30 min",
+      "hour1": "+1 val",
+      "hour2": "+2 val"
+    },
+    "form": {
+      "title": "Tema *",
+      "titlePlaceholder": "pvz. Paskambinti klientui",
+      "note": "Komentaras",
+      "notePlaceholder": "Detalės (nebūtina)",
+      "when": "Kada",
+      "recurrence": "Kartoti",
+      "submit": "Sukurti"
+    },
+    "picker": {
+      "pickDate": "Pasirinkite datą",
+      "pickTime": "Pasirinkite laiką",
+      "done": "Atlikta"
+    },
+    "deleteConfirm": {
+      "title": "Ištrinti žadintuvą?"
+    },
+    "empty": {
+      "title": "Nėra žadintuvų",
+      "subtitle": "Bakstelėkite „+ Naujas“, kad nustatytumėte priminimą."
+    },
+    "errors": {
+      "titleRequired": "Tema privaloma",
+      "createFailed": "Nepavyko sukurti žadintuvo"
+    }
+  },
+  "documents": {
+    "active": "Aktyvus",
+    "searchPlaceholder": "Reiso nr., data ar pašto kodas…",
+    "noTruck": {
+      "subtitle": "Dokumentai susieti su jūsų vilkiku. Kai vadovas jį priskirs, jie atsiras čia."
+    },
+    "empty": {
+      "title": "Kol kas nėra dokumentų",
+      "subtitleActive": "Bakstelėkite „Įkelti”, kad pridėtumėte nuotraukų ar failų dabartiniam reisui.",
+      "subtitleInactive": "Kai turėsite reisą su įkeltais failais, jie atsiras čia."
+    },
+    "nothingHere": "Čia dar nieko nėra.",
+    "uploadSheet": {
+      "title": "Įkėlimas",
+      "subtitle": "Pasirinkite šaltinį",
+      "camera": "Kamera",
+      "gallery": "Galerija",
+      "file": "Failas"
+    },
+    "uploadFailed": "Nepavyko įkelti",
+    "cannotOpen": "Nepavyko atidaryti",
+    "deleteConfirm": {
+      "title": "Ištrinti?",
+      "body": "{{name}} bus visam laikui pašalintas."
+    },
+    "tabs": {
+      "all": "Visi",
+      "photos": "Nuotraukos",
+      "documents": "Dokumentai"
+    }
+  },
+  "truck": {
+    "status": {
+      "AVAILABLE": "Laisvas",
+      "ON_TRIP": "Reise",
+      "REPAIR": "Remontas"
+    },
+    "noTruck": {
+      "title": "Vilkikas nepriskirtas",
+      "subtitle": "Kai vadovas priskirs jums vilkiką, jis atsiras čia."
+    },
+    "dispatcher": "Dispečeris",
+    "unknownUser": "Nežinomas",
+    "notes": {
+      "title": "Užrašai ({{count}})",
+      "placeholder": "Pridėkite užrašą, matomą vadovui…",
+      "empty": "Užrašų dar nėra. Pridėkite viršuje.",
+      "saveError": "Nepavyko išsaugoti užrašo. Bandykite dar kartą.",
+      "deleteTitle": "Ištrinti užrašą",
+      "deleteBody": "Ištrinti šį užrašą?"
+    }
+  },
+  "manager": {
+    "noManager": "Vadovas dar nepriskirtas.",
+    "noRatings": "Kol kas nėra įvertinimų",
+    "ratingCount_one": "({{count}} įvertinimas)",
+    "ratingCount_few": "({{count}} įvertinimai)",
+    "ratingCount_other": "({{count}} įvertinimų)",
+    "rate": "Įvertinti vadovą",
+    "updateRating": "Keisti mano įvertinimą",
+    "yourRating": "Jūsų dabartinis įvertinimas",
+    "reviews": "Atsiliepimai ({{count}})",
+    "info": {
+      "email": "El. paštas",
+      "phone": "Telefonas"
+    },
+    "modal": {
+      "title": "Įvertinkite savo vadovą",
+      "commentPlaceholder": "Komentaras (nebūtina)",
+      "anonymous": "Palikti anonimiškai",
+      "submit": "Pateikti"
+    }
+  },
+  "nav": {
+    "items": {
+      "trip": "Reisas",
+      "trips": "Mano reisai",
+      "truck": "Mano vilkikas",
+      "documents": "Dokumentai",
+      "chat": "Pokalbiai",
+      "alarm": "Žadintuvas"
+    },
+    "manager": "Vadovas",
+    "groups": "Grupės",
+    "brandSubtitle": "Vairuotojas",
+    "noUnread": "Nėra neperskaitytų",
+    "chatFallback": "Pokalbiai",
+    "driverFallback": "Vairuotojas",
+    "openSettings": "Atverti nustatymus",
+    "toggleTheme": "Keisti temą",
+    "messageManager": "Rašyti vadovui",
+    "fileAttachment": "📎 Failas"
+  },
+  "push": {
+    "noticeTitle": "Pranešimas"
+  },
+  "status": {
+    "ONLINE": "Prisijungęs",
+    "BUSY": "Netrukdyti",
+    "AWAY": "Išėjęs",
+    "SLEEP": "Miegu",
+    "VACATION": "Ilsiuosi",
+    "OFFLINE": "Ne programoje"
+  },
+  "presence": {
+    "pickStatus": "Pasirinkite būseną",
+    "sleepEllipsis": "Miegu…",
+    "vacationEllipsis": "Ilsiuosi…",
+    "howLong": "Kiek laiko?",
+    "noLimit": "Neribotai",
+    "updateError": "Nepavyko atnaujinti būsenos.",
+    "sleepPresets": {
+      "min30": "30 min",
+      "hours2": "2 valandos",
+      "shortRest": "9 valandų (trumpas poilsis)",
+      "regularRest": "11 valandų (reguliarus poilsis)"
+    },
+    "vacationPresets": {
+      "day1": "1 diena",
+      "days3": "3 dienos",
+      "week1": "Savaitė",
+      "weeks2": "2 savaitės"
+    }
+  }
+}

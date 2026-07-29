@@ -5,6 +5,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Stack } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { fullName } from "@/lib/format";
 import {
   ActivityIndicator,
@@ -51,6 +52,7 @@ interface FolderGroup {
 }
 
 export default function DocumentsScreen() {
+  const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? 'light'];
   const navigation = useNavigation();
   const { top } = useSafeAreaInsets();
@@ -84,7 +86,7 @@ export default function DocumentsScreen() {
         const dateText = `${dt.toISOString().slice(0, 10)} ${dt.toLocaleDateString()}`;
         map.set(tripId, {
           tripId,
-          tripTitle: trip?.title ?? 'Trip',
+          tripTitle: trip?.title ?? t('nav.items.trip'),
           orderNumber: trip?.orderNumber ?? null,
           search: [trip?.title, trip?.orderNumber, stopsText, dateText]
             .filter(Boolean)
@@ -105,7 +107,7 @@ export default function DocumentsScreen() {
       const bT = new Date(b.docs[0].createdAt).getTime();
       return bT - aT;
     });
-  }, [docs, activeTrip?.id]);
+  }, [docs, activeTrip?.id, t]);
 
   // Search by trip #, date or postcode (all folded into folder.search).
   const q = query.trim().toLowerCase();
@@ -161,16 +163,16 @@ export default function DocumentsScreen() {
       if (files.length === 0) return;
       await upload.mutateAsync({ tripId, files });
     } catch (e) {
-      Alert.alert('Upload failed', (e as Error).message);
+      Alert.alert(t('documents.uploadFailed'), (e as Error).message);
     }
   };
 
   const showUploadSheet = (tripId: string) => {
-    Alert.alert('Upload', 'Choose source', [
-      { text: 'Camera', onPress: () => pickAndUpload('camera', tripId) },
-      { text: 'Gallery', onPress: () => pickAndUpload('gallery', tripId) },
-      { text: 'File', onPress: () => pickAndUpload('document', tripId) },
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('documents.uploadSheet.title'), t('documents.uploadSheet.subtitle'), [
+      { text: t('documents.uploadSheet.camera'), onPress: () => pickAndUpload('camera', tripId) },
+      { text: t('documents.uploadSheet.gallery'), onPress: () => pickAndUpload('gallery', tripId) },
+      { text: t('documents.uploadSheet.file'), onPress: () => pickAndUpload('document', tripId) },
+      { text: t('common.cancel'), style: 'cancel' },
     ]);
   };
 
@@ -195,7 +197,9 @@ export default function DocumentsScreen() {
         >
           <Ionicons name="menu" size={24} color={c.foreground} />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: c.foreground }]}>Documents</Text>
+        <Text style={[styles.headerTitle, { color: c.foreground }]}>
+          {t('nav.items.documents')}
+        </Text>
 
         <NotificationBell colors={c} />
 
@@ -213,7 +217,7 @@ export default function DocumentsScreen() {
             ) : (
               <Ionicons name="cloud-upload-outline" size={16} color="#fff" />
             )}
-            <Text style={styles.uploadText}>Upload</Text>
+            <Text style={styles.uploadText}>{t('common.upload')}</Text>
           </Pressable>
         ) : (
           <View style={{ width: 0 }} />
@@ -223,8 +227,8 @@ export default function DocumentsScreen() {
       {!truckId ? (
         <ScreenPlaceholder
           icon="document-text-outline"
-          title="No truck assigned"
-          subtitle="Documents are linked to your truck. Once your manager assigns one, they'll show up here."
+          title={t('truck.noTruck.title')}
+          subtitle={t('documents.noTruck.subtitle')}
         />
       ) : isLoading ? (
         <View style={styles.center}>
@@ -239,11 +243,11 @@ export default function DocumentsScreen() {
         >
           <ScreenPlaceholder
             icon="folder-open-outline"
-            title="No documents yet"
+            title={t('documents.empty.title')}
             subtitle={
               activeTrip
-                ? 'Tap Upload to add photos or files for the current trip.'
-                : "When you have a trip with uploaded files, they'll appear here."
+                ? t('documents.empty.subtitleActive')
+                : t('documents.empty.subtitleInactive')
             }
           />
         </ScrollView>
@@ -255,7 +259,7 @@ export default function DocumentsScreen() {
               <TextInput
                 value={query}
                 onChangeText={setQuery}
-                placeholder="Trip #, date or postcode…"
+                placeholder={t('documents.searchPlaceholder')}
                 placeholderTextColor={c.mutedForeground}
                 style={[styles.searchInput, { color: c.foreground }]}
                 autoCapitalize="none"
@@ -271,7 +275,7 @@ export default function DocumentsScreen() {
           </View>
           {filteredFolders.length === 0 ? (
             <View style={styles.center}>
-              <Text style={{ color: c.mutedForeground }}>No matches.</Text>
+              <Text style={{ color: c.mutedForeground }}>{t('common.noMatches')}</Text>
             </View>
           ) : (
             <FlatList
@@ -310,6 +314,7 @@ function FolderCard({
   colors: typeof Colors.light;
   onPress: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <Pressable
       onPress={onPress}
@@ -337,7 +342,7 @@ function FolderCard({
           </Text>
           {folder.isActive && (
             <View style={[styles.activePill, { backgroundColor: c.primary }]}>
-              <Text style={styles.activePillText}>Active</Text>
+              <Text style={styles.activePillText}>{t('documents.active')}</Text>
             </View>
           )}
         </View>
@@ -380,6 +385,7 @@ function FolderModal({
   onClose: () => void;
   onUpload: () => void;
 }) {
+  const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? 'light'];
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<Tab>('ALL');
@@ -395,19 +401,23 @@ function FolderModal({
     try {
       await WebBrowser.openBrowserAsync(doc.signedUrl);
     } catch (e) {
-      Alert.alert('Cannot open', (e as Error).message);
+      Alert.alert(t('documents.cannotOpen'), (e as Error).message);
     }
   };
 
   const handleDelete = (doc: DriverDocument) => {
-    Alert.alert('Delete?', `${doc.fileName} will be permanently removed.`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () => del.mutate(doc.id),
-      },
-    ]);
+    Alert.alert(
+      t('documents.deleteConfirm.title'),
+      t('documents.deleteConfirm.body', { name: doc.fileName }),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('common.delete'),
+          style: 'destructive',
+          onPress: () => del.mutate(doc.id),
+        },
+      ],
+    );
   };
 
   const counts = {
@@ -461,20 +471,25 @@ function FolderModal({
               ]}
             >
               <Ionicons name="cloud-upload-outline" size={16} color="#fff" />
-              <Text style={styles.uploadText}>Upload</Text>
+              <Text style={styles.uploadText}>{t('common.upload')}</Text>
             </Pressable>
           )}
         </View>
 
         {/* Tabs */}
         <View style={[styles.tabs, { borderBottomColor: c.border }]}>
-          {(['ALL', 'PHOTO', 'DOCUMENT'] as Tab[]).map((t) => {
-            const active = t === tab;
-            const label = t === 'ALL' ? 'All' : t === 'PHOTO' ? 'Photos' : 'Documents';
+          {(['ALL', 'PHOTO', 'DOCUMENT'] as Tab[]).map((tabKey) => {
+            const active = tabKey === tab;
+            const label =
+              tabKey === 'ALL'
+                ? t('documents.tabs.all')
+                : tabKey === 'PHOTO'
+                  ? t('documents.tabs.photos')
+                  : t('documents.tabs.documents');
             return (
               <Pressable
-                key={t}
-                onPress={() => setTab(t)}
+                key={tabKey}
+                onPress={() => setTab(tabKey)}
                 style={[
                   styles.tab,
                   active && { borderBottomColor: c.primary, borderBottomWidth: 2 },
@@ -489,7 +504,7 @@ function FolderModal({
                     },
                   ]}
                 >
-                  {label} ({counts[t]})
+                  {label} ({counts[tabKey]})
                 </Text>
               </Pressable>
             );
@@ -499,7 +514,7 @@ function FolderModal({
         {/* List */}
         {filtered.length === 0 ? (
           <View style={styles.center}>
-            <Text style={{ color: c.mutedForeground }}>Nothing here yet.</Text>
+            <Text style={{ color: c.mutedForeground }}>{t('documents.nothingHere')}</Text>
           </View>
         ) : (
           <FlatList

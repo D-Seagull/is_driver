@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import {
   ActivityIndicator,
@@ -16,6 +17,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuthStore } from '@/store/auth';
 
 export default function PhoneScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const c = Colors[useColorScheme() ?? 'light'];
   const requestOtp = useAuthStore((s) => s.requestOtp);
@@ -38,18 +40,16 @@ export default function PhoneScreen() {
         if (e.response) {
           const data = e.response.data as { message?: string | string[] };
           const msg = Array.isArray(data?.message) ? data.message[0] : data?.message;
-          setError(msg ?? `Server error (${e.response.status})`);
+          setError(msg ?? t('auth.errors.server', { status: e.response.status }));
         } else if (e.request) {
-          setError(
-            `Cannot reach server. Check that the backend is running and EXPO_PUBLIC_API_URL is correct.`,
-          );
+          setError(t('auth.errors.cannotReach'));
         } else {
           setError(e.message);
         }
       } else if (e instanceof Error) {
         setError(e.message);
       } else {
-        setError('Failed to send code.');
+        setError(t('auth.errors.sendFailed'));
       }
     } finally {
       setSubmitting(false);
@@ -61,9 +61,11 @@ export default function PhoneScreen() {
       <View style={[styles.iconWrap, { backgroundColor: c.muted }]}>
         <Ionicons name="call-outline" size={36} color={c.mutedForeground} />
       </View>
-      <Text style={[styles.title, { color: c.foreground }]}>Sign in</Text>
+      <Text style={[styles.title, { color: c.foreground }]}>
+        {t('auth.phone.title')}
+      </Text>
       <Text style={[styles.sub, { color: c.mutedForeground }]}>
-        Enter your phone number — we&apos;ll send a one-time code via SMS.
+        {t('auth.phone.subtitle')}
       </Text>
       <TextInput
         value={phone}
@@ -100,7 +102,9 @@ export default function PhoneScreen() {
         {submitting ? (
           <ActivityIndicator color={c.primaryForeground} />
         ) : (
-          <Text style={[styles.btnText, { color: c.primaryForeground }]}>Send code</Text>
+          <Text style={[styles.btnText, { color: c.primaryForeground }]}>
+            {t('auth.phone.sendCode')}
+          </Text>
         )}
       </Pressable>
     </View>
