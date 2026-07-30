@@ -114,6 +114,55 @@
       "createFailed": "Не вдалось створити будильник"
     }
   },
+  "chat": {
+    "typingOne": "набирає",
+    "typingMany": "набирають",
+    "editingMessage": "Редагування повідомлення",
+    "replyTo": "Відповідь: {{name}}",
+    "unknownSender": "Невідомо",
+    "deleted": "Видалено",
+    "editedShort": "(ред.)",
+    "messagePlaceholder": "Повідомлення…",
+    "emptyChat": "Повідомлень ще немає. Почніть розмову."
+  },
+  "trip": {
+    "noActiveTrip": {
+      "title": "Немає активного рейсу",
+      "subtitle": "Коли менеджер призначить рейс, він з'явиться тут. Потягни вниз, щоб оновити."
+    },
+    "chatLabel": "Чат рейсу",
+    "online": "онлайн",
+    "connecting": "під'єднання…",
+    "newCount_one": "{{count}} нове",
+    "newCount_few": "{{count}} нові",
+    "newCount_many": "{{count}} нових",
+    "readOnlyNotice": "Ви більше не учасник цього чату — перегляд тільки для читання.",
+    "docsTitle": "Документи рейсу",
+    "attachSheet": { "title": "Прикріпити" },
+    "stops": {
+      "loading": "Завантаження",
+      "unloading": "Розвантаження"
+    }
+  },
+  "tripStatus": {
+    "ASSIGNED": "Призначено",
+    "ACCEPTED": "Прийнято",
+    "ON_WAY": "В дорозі",
+    "ON_SITE": "На місці",
+    "LOADED": "Завантажено",
+    "DELIVERED": "Доставлено"
+  },
+  "trips": {
+    "searchPlaceholder": "Пошук за маршрутом, № замовлення, адресою…",
+    "empty": {
+      "title": "Рейсів ще немає",
+      "subtitle": "Призначені тобі рейси з'являться тут."
+    },
+    "noMatches": {
+      "title": "Нічого не знайдено",
+      "subtitle": "Спробуй інший запит."
+    }
+  },
   "documents": {
     "active": "Активний",
     "searchPlaceholder": "№ рейсу, дата або індекс…",

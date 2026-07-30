@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dimensions,
   Modal,
@@ -13,12 +14,12 @@ import { Colors, Radius, Spacing } from '@/constants/theme';
 import {
   TRIP_STATUSES,
   TRIP_STATUS_COLORS,
-  TRIP_STATUS_LABELS,
   TripStatus,
 } from '@/constants/trip-status';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export function StatusBadge({ status }: { status: TripStatus }) {
+  const { t } = useTranslation();
   const tone = TRIP_STATUS_COLORS[status] ?? TRIP_STATUS_COLORS.ASSIGNED;
   return (
     <View
@@ -28,7 +29,7 @@ export function StatusBadge({ status }: { status: TripStatus }) {
       ]}
     >
       <Text style={[styles.badgeText, { color: tone.fg }]}>
-        {TRIP_STATUS_LABELS[status]}
+        {t(`tripStatus.${status}`)}
       </Text>
     </View>
   );
@@ -43,6 +44,7 @@ export function StatusPicker({
   value: TripStatus;
   onChange: (next: TripStatus) => void;
 }) {
+  const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? 'light'];
   const triggerRef = useRef<View>(null);
   const [open, setOpen] = useState(false);
@@ -132,7 +134,7 @@ export function StatusPicker({
                       ]}
                     />
                     <Text style={[styles.rowLabel, { color: c.foreground }]}>
-                      {TRIP_STATUS_LABELS[s]}
+                      {t(`tripStatus.${s}`)}
                     </Text>
                     {selected && (
                       <Ionicons name="checkmark" size={16} color={c.primary} />

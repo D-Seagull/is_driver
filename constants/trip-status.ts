@@ -20,14 +20,8 @@ export const TRIP_STATUSES: TripStatus[] = [
   'DELIVERED',
 ];
 
-export const TRIP_STATUS_LABELS: Record<TripStatus, string> = {
-  ASSIGNED: 'Assigned',
-  ACCEPTED: 'Accepted',
-  ON_WAY: 'On Way',
-  ON_SITE: 'On Site',
-  LOADED: 'Loaded',
-  DELIVERED: 'Delivered',
-};
+// Status labels live in i18n under tripStatus.* (keyed by TripStatus),
+// rendered with t(`tripStatus.${status}`).
 
 // Tailwind ~500/600 palette ported from web TRIP_STATUS_COLORS.
 export const TRIP_STATUS_COLORS: Record<TripStatus, { bg: string; fg: string; border: string }> = {

@@ -114,6 +114,55 @@
       "createFailed": "Nepavyko sukurti žadintuvo"
     }
   },
+  "chat": {
+    "typingOne": "rašo",
+    "typingMany": "rašo",
+    "editingMessage": "Žinutės redagavimas",
+    "replyTo": "Atsakymas: {{name}}",
+    "unknownSender": "Nežinomas",
+    "deleted": "Ištrinta",
+    "editedShort": "(red.)",
+    "messagePlaceholder": "Žinutė…",
+    "emptyChat": "Žinučių dar nėra. Pradėkite pokalbį."
+  },
+  "trip": {
+    "noActiveTrip": {
+      "title": "Nėra aktyvaus reiso",
+      "subtitle": "Kai vadovas priskirs reisą, jis atsiras čia. Patraukite žemyn, kad atnaujintumėte."
+    },
+    "chatLabel": "Reiso pokalbis",
+    "online": "prisijungęs",
+    "connecting": "jungiamasi…",
+    "newCount_one": "{{count}} nauja",
+    "newCount_few": "{{count}} naujos",
+    "newCount_other": "{{count}} naujų",
+    "readOnlyNotice": "Jūs nebeesate šio pokalbio narys — tik skaitymui.",
+    "docsTitle": "Reiso dokumentai",
+    "attachSheet": { "title": "Prisegti" },
+    "stops": {
+      "loading": "Pakrovimas",
+      "unloading": "Iškrovimas"
+    }
+  },
+  "tripStatus": {
+    "ASSIGNED": "Priskirtas",
+    "ACCEPTED": "Priimtas",
+    "ON_WAY": "Kelyje",
+    "ON_SITE": "Vietoje",
+    "LOADED": "Pakrautas",
+    "DELIVERED": "Pristatytas"
+  },
+  "trips": {
+    "searchPlaceholder": "Ieškoti pagal maršrutą, užsakymo nr., adresą…",
+    "empty": {
+      "title": "Kol kas nėra reisų",
+      "subtitle": "Jums priskirti reisai atsiras čia."
+    },
+    "noMatches": {
+      "title": "Nėra atitikmenų",
+      "subtitle": "Pabandykite kitą paiešką."
+    }
+  },
   "documents": {
     "active": "Aktyvus",
     "searchPlaceholder": "Reiso nr., data ar pašto kodas…",

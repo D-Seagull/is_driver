@@ -114,6 +114,55 @@
       "createFailed": "Nie udało się utworzyć budzika"
     }
   },
+  "chat": {
+    "typingOne": "pisze",
+    "typingMany": "piszą",
+    "editingMessage": "Edycja wiadomości",
+    "replyTo": "Odpowiedź: {{name}}",
+    "unknownSender": "Nieznany",
+    "deleted": "Usunięto",
+    "editedShort": "(edyt.)",
+    "messagePlaceholder": "Wiadomość…",
+    "emptyChat": "Brak wiadomości. Rozpocznij rozmowę."
+  },
+  "trip": {
+    "noActiveTrip": {
+      "title": "Brak aktywnej trasy",
+      "subtitle": "Gdy menedżer przydzieli trasę, pojawi się tutaj. Pociągnij w dół, aby odświeżyć."
+    },
+    "chatLabel": "Czat trasy",
+    "online": "online",
+    "connecting": "łączenie…",
+    "newCount_one": "{{count}} nowa",
+    "newCount_few": "{{count}} nowe",
+    "newCount_many": "{{count}} nowych",
+    "readOnlyNotice": "Nie jesteś już członkiem tego czatu — tylko do odczytu.",
+    "docsTitle": "Dokumenty trasy",
+    "attachSheet": { "title": "Załącz" },
+    "stops": {
+      "loading": "Załadunek",
+      "unloading": "Rozładunek"
+    }
+  },
+  "tripStatus": {
+    "ASSIGNED": "Przydzielona",
+    "ACCEPTED": "Zaakceptowana",
+    "ON_WAY": "W drodze",
+    "ON_SITE": "Na miejscu",
+    "LOADED": "Załadowana",
+    "DELIVERED": "Dostarczona"
+  },
+  "trips": {
+    "searchPlaceholder": "Szukaj po trasie, nr zamówienia, adresie…",
+    "empty": {
+      "title": "Brak tras",
+      "subtitle": "Przydzielone ci trasy pojawią się tutaj."
+    },
+    "noMatches": {
+      "title": "Brak wyników",
+      "subtitle": "Spróbuj innego wyszukiwania."
+    }
+  },
   "documents": {
     "active": "Aktywna",
     "searchPlaceholder": "Nr trasy, data lub kod pocztowy…",

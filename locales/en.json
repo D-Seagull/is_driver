@@ -114,6 +114,54 @@
       "createFailed": "Couldn't create the alarm"
     }
   },
+  "chat": {
+    "typingOne": "is typing",
+    "typingMany": "are typing",
+    "editingMessage": "Editing message",
+    "replyTo": "Reply to {{name}}",
+    "unknownSender": "Unknown",
+    "deleted": "Deleted",
+    "editedShort": "(ed.)",
+    "messagePlaceholder": "Message…",
+    "emptyChat": "No messages yet. Start the conversation."
+  },
+  "trip": {
+    "noActiveTrip": {
+      "title": "No active trip",
+      "subtitle": "When your manager assigns a trip, it'll show up here. Pull down to refresh."
+    },
+    "chatLabel": "Trip chat",
+    "online": "online",
+    "connecting": "connecting…",
+    "newCount_one": "{{count}} new",
+    "newCount_other": "{{count}} new",
+    "readOnlyNotice": "You're no longer a member of this chat — read-only.",
+    "docsTitle": "Trip documents",
+    "attachSheet": { "title": "Attach" },
+    "stops": {
+      "loading": "Loading",
+      "unloading": "Unloading"
+    }
+  },
+  "tripStatus": {
+    "ASSIGNED": "Assigned",
+    "ACCEPTED": "Accepted",
+    "ON_WAY": "On Way",
+    "ON_SITE": "On Site",
+    "LOADED": "Loaded",
+    "DELIVERED": "Delivered"
+  },
+  "trips": {
+    "searchPlaceholder": "Search by route, order #, address…",
+    "empty": {
+      "title": "No trips yet",
+      "subtitle": "Trips assigned to you will appear here."
+    },
+    "noMatches": {
+      "title": "No matches",
+      "subtitle": "Try a different search."
+    }
+  },
   "documents": {
     "active": "Active",
     "searchPlaceholder": "Trip #, date or postcode…",

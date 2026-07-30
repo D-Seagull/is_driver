@@ -12,6 +12,7 @@ import * as Linking from "expo-linking";
 import { Stack, useLocalSearchParams } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
@@ -66,6 +67,7 @@ type TripReplyTarget = {
 // ─── Main screen ─────────────────────────────────────────────────────────────
 
 export default function TripScreen() {
+  const { t } = useTranslation();
   const scheme = useColorScheme() ?? "light";
   const c = Colors[scheme];
   const user = useUser();
@@ -101,7 +103,7 @@ export default function TripScreen() {
   // If there's no truck at all — leave it null and the header hides the block
   // entirely (no lone dash next to a phantom truck icon).
   const truckPlate = trip?.truck?.plate ?? user?.currentTruck?.plate ?? null;
-  const driverName = fullName(trip?.driver) || fullName(user) || "Driver";
+  const driverName = fullName(trip?.driver) || fullName(user) || t("nav.driverFallback");
   const status: TripStatus = trip?.status ?? "ASSIGNED";
 
   return (
@@ -138,8 +140,8 @@ export default function TripScreen() {
         >
           <ScreenPlaceholder
             icon="document-text-outline"
-            title="No active trip"
-            subtitle="When your manager assigns a trip, it'll show up here. Pull down to refresh."
+            title={t("trip.noActiveTrip.title")}
+            subtitle={t("trip.noActiveTrip.subtitle")}
           />
         </ScrollView>
       ) : (
@@ -164,6 +166,7 @@ function TripWithChat({
   onRefresh: () => void;
   refreshing: boolean;
 }) {
+  const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? "light"];
   const user = useUser();
   const insets = useSafeAreaInsets();
@@ -387,16 +390,16 @@ function TripWithChat({
       await upload.mutateAsync({ tripId: trip.id, files });
       nearBottomRef.current = true;
     } catch (e) {
-      Alert.alert("Upload failed", (e as Error).message);
+      Alert.alert(t("documents.uploadFailed"), (e as Error).message);
     }
   };
 
   const showUploadSheet = () => {
-    Alert.alert("Attach", "Choose source", [
-      { text: "Camera", onPress: () => pickAndUpload("camera") },
-      { text: "Gallery", onPress: () => pickAndUpload("gallery") },
-      { text: "File", onPress: () => pickAndUpload("document") },
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t("trip.attachSheet.title"), t("documents.uploadSheet.subtitle"), [
+      { text: t("documents.uploadSheet.camera"), onPress: () => pickAndUpload("camera") },
+      { text: t("documents.uploadSheet.gallery"), onPress: () => pickAndUpload("gallery") },
+      { text: t("documents.uploadSheet.file"), onPress: () => pickAndUpload("document") },
+      { text: t("common.cancel"), style: "cancel" },
     ]);
   };
 
@@ -404,7 +407,7 @@ function TripWithChat({
     try {
       await WebBrowser.openBrowserAsync(doc.signedUrl);
     } catch (e) {
-      Alert.alert("Cannot open", (e as Error).message);
+      Alert.alert(t("documents.cannotOpen"), (e as Error).message);
     }
   };
 
@@ -423,7 +426,7 @@ function TripWithChat({
             color={c.mutedForeground}
           />
           <Text style={[styles.chatLabelText, { color: c.mutedForeground }]}>
-            Trip chat
+            {t("trip.chatLabel")}
           </Text>
           {/* Connection indicator */}
           <View
@@ -438,7 +441,7 @@ function TripWithChat({
               { color: connected ? "#10B981" : "#f87171" },
             ]}
           >
-            {connected ? "online" : "connecting…"}
+            {connected ? t("trip.online") : t("trip.connecting")}
           </Text>
           <View style={{ flex: 1 }} />
           <Pressable
@@ -468,7 +471,7 @@ function TripWithChat({
         ) : timeline.length === 0 ? (
           <View style={styles.emptyChat}>
             <Text style={[styles.emptyChatText, { color: c.mutedForeground }]}>
-              No messages yet. Start the conversation.
+              {t("chat.emptyChat")}
             </Text>
           </View>
         ) : (
@@ -582,7 +585,7 @@ function TripWithChat({
             }}
           >
             <Ionicons name="chevron-down" size={16} color="#fff" />
-            <Text style={styles.scrollDownText}>{newMsgCount} new</Text>
+            <Text style={styles.scrollDownText}>{t("trip.newCount", { count: newMsgCount })}</Text>
           </Pressable>
         )}
       </View>
@@ -597,7 +600,7 @@ function TripWithChat({
             numberOfLines={1}
           >
             {Array.from(typers.values()).join(", ")}{" "}
-            {typers.size === 1 ? "набирає" : "набирають"}
+            {typers.size === 1 ? t("chat.typingOne") : t("chat.typingMany")}
           </Text>
           <TypingDots color={c.mutedForeground} />
         </View>
@@ -621,7 +624,7 @@ function TripWithChat({
           ]}
         >
           <Text style={[styles.inactiveNotice, { color: c.mutedForeground }]}>
-            Ви більше не учасник цього чату — перегляд тільки для читання.
+            {t("trip.readOnlyNotice")}
           </Text>
         </View>
       ) : (
@@ -640,8 +643,10 @@ function TripWithChat({
                   numberOfLines={1}
                 >
                   {editing
-                    ? "Редагування повідомлення"
-                    : `Reply to ${replyingTo?.senderName ?? "Unknown"}`}
+                    ? t("chat.editingMessage")
+                    : t("chat.replyTo", {
+                        name: replyingTo?.senderName ?? t("chat.unknownSender"),
+                      })}
                 </Text>
                 <Text
                   style={[styles.replyBannerText, { color: c.mutedForeground }]}
@@ -650,7 +655,7 @@ function TripWithChat({
                   {editing
                     ? editing.original
                     : replyingTo?.isDeleted
-                    ? "Видалено"
+                    ? t("chat.deleted")
                     : replyingTo?.content}
                 </Text>
               </View>
@@ -719,7 +724,7 @@ function TripWithChat({
               else notifyStopTyping();
             }}
             onBlur={notifyStopTyping}
-            placeholder="Message…"
+            placeholder={t("chat.messagePlaceholder")}
             placeholderTextColor={c.mutedForeground}
             style={[
               styles.input,
@@ -750,7 +755,7 @@ function TripWithChat({
       <EmojiPicker
         open={emojiOpen}
         onClose={() => setEmojiOpen(false)}
-        onEmojiSelected={(e) => setText((t) => t + e.emoji)}
+        onEmojiSelected={(e) => setText((prev) => prev + e.emoji)}
       />
 
       {/* Long-press menu for a message — reply / copy / edit / delete */}
@@ -930,6 +935,7 @@ function MessageBubble({
   onLongPress?: () => void;
   onReplyJump: (targetId: string) => void;
 }) {
+  const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? "light"];
   const isManager = message.sender.role !== "DRIVER";
   const isDeleted = !!message.deletedAt;
@@ -973,7 +979,8 @@ function MessageBubble({
       <View style={styles.bubbleCol}>
         {!isMe && (
           <Text style={[styles.bubbleSender, { color: c.mutedForeground }]}>
-            {fullName(message.sender) || (isManager ? "Manager" : "Driver")}
+            {fullName(message.sender) ||
+              (isManager ? t("nav.manager") : t("nav.driverFallback"))}
           </Text>
         )}
         <View style={styles.bubbleInlineRow}>
@@ -1032,7 +1039,7 @@ function MessageBubble({
         <View style={styles.bubbleMetaRow}>
           {message.editedAt && (
             <Text style={[styles.bubbleTime, { color: c.mutedForeground, fontStyle: "italic" }]}>
-              (ред.)
+              {t("chat.editedShort")}
             </Text>
           )}
           <Text style={[styles.bubbleTime, { color: c.mutedForeground }]}>
@@ -1073,6 +1080,7 @@ function TripDocsModal({
   uploading: boolean;
   onOpenDoc: (d: DriverDocument) => void;
 }) {
+  const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? "light"];
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<DocTab>("ALL");
@@ -1114,7 +1122,7 @@ function TripDocsModal({
             <Ionicons name="close" size={24} color={c.foreground} />
           </Pressable>
           <Text style={[styles.docsTitle, { color: c.foreground }]}>
-            Trip documents
+            {t("trip.docsTitle")}
           </Text>
           <Pressable
             onPress={onUpload}
@@ -1133,20 +1141,24 @@ function TripDocsModal({
             ) : (
               <Ionicons name="cloud-upload-outline" size={16} color="#fff" />
             )}
-            <Text style={styles.uploadText}>Upload</Text>
+            <Text style={styles.uploadText}>{t("common.upload")}</Text>
           </Pressable>
         </View>
 
         {/* Tabs */}
         <View style={[styles.docsTabs, { borderBottomColor: c.border }]}>
-          {(["ALL", "PHOTO", "DOCUMENT"] as DocTab[]).map((t) => {
-            const active = t === tab;
+          {(["ALL", "PHOTO", "DOCUMENT"] as DocTab[]).map((tabKey) => {
+            const active = tabKey === tab;
             const label =
-              t === "ALL" ? "All" : t === "PHOTO" ? "Photos" : "Documents";
+              tabKey === "ALL"
+                ? t("documents.tabs.all")
+                : tabKey === "PHOTO"
+                  ? t("documents.tabs.photos")
+                  : t("documents.tabs.documents");
             return (
               <Pressable
-                key={t}
-                onPress={() => setTab(t)}
+                key={tabKey}
+                onPress={() => setTab(tabKey)}
                 style={[
                   styles.docsTab,
                   active && {
@@ -1164,7 +1176,7 @@ function TripDocsModal({
                     },
                   ]}
                 >
-                  {label} ({counts[t]})
+                  {label} ({counts[tabKey]})
                 </Text>
               </Pressable>
             );
@@ -1173,7 +1185,7 @@ function TripDocsModal({
 
         {filtered.length === 0 ? (
           <View style={styles.center}>
-            <Text style={{ color: c.mutedForeground }}>Nothing here yet.</Text>
+            <Text style={{ color: c.mutedForeground }}>{t("documents.nothingHere")}</Text>
           </View>
         ) : (
           <FlatList
@@ -1254,6 +1266,7 @@ function DocBubble({
   onOpen: () => void;
   onLongPress?: () => void;
 }) {
+  const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? "light"];
   const isPhoto = doc.fileType === "PHOTO";
   const time = new Date(doc.createdAt).toLocaleTimeString(undefined, {
@@ -1287,7 +1300,8 @@ function DocBubble({
       <View style={styles.bubbleCol}>
         {!isMe && (
           <Text style={[styles.bubbleSender, { color: c.mutedForeground }]}>
-            {fullName(doc.uploader) || (isManager ? "Manager" : "Driver")}
+            {fullName(doc.uploader) ||
+              (isManager ? t("nav.manager") : t("nav.driverFallback"))}
           </Text>
         )}
         <Pressable
@@ -1375,6 +1389,7 @@ function TripInfoCard({
   onRefresh: () => void;
   refreshing: boolean;
 }) {
+  const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? "light"];
   const [collapsed, setCollapsed] = useState(false);
   const loading = trip.stops.filter((s) => s.type === "LOADING");
@@ -1415,10 +1430,10 @@ function TripInfoCard({
       {!collapsed && (
         <>
           {loading.length > 0 && (
-            <StopsBlock label="Loading" color="#10B981" stops={loading} />
+            <StopsBlock label={t("trip.stops.loading")} color="#10B981" stops={loading} />
           )}
           {unloading.length > 0 && (
-            <StopsBlock label="Unloading" color="#f87171" stops={unloading} />
+            <StopsBlock label={t("trip.stops.unloading")} color="#f87171" stops={unloading} />
           )}
           {trip.notes ? (
             <View style={[styles.notes, { borderTopColor: c.border }]}>

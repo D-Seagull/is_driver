@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   FlatList,
@@ -22,6 +23,7 @@ import { useMyTrips } from '@/hooks/use-trips';
 import { Trip } from '@/lib/types';
 
 export default function TripsScreen() {
+  const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? 'light'];
   const { data: trips = [], isLoading, refetch } = useMyTrips();
   const { data: unreadData } = useDriverUnread();
@@ -38,11 +40,11 @@ export default function TripsScreen() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return trips;
-    return trips.filter((t) => {
-      if (t.title.toLowerCase().includes(q)) return true;
-      if ((t.orderNumber ?? '').toLowerCase().includes(q)) return true;
-      if ((t.truck?.plate ?? '').toLowerCase().includes(q)) return true;
-      if (t.stops.some((s) => (s.address ?? '').toLowerCase().includes(q))) return true;
+    return trips.filter((trip) => {
+      if (trip.title.toLowerCase().includes(q)) return true;
+      if ((trip.orderNumber ?? '').toLowerCase().includes(q)) return true;
+      if ((trip.truck?.plate ?? '').toLowerCase().includes(q)) return true;
+      if (trip.stops.some((s) => (s.address ?? '').toLowerCase().includes(q))) return true;
       return false;
     });
   }, [trips, query]);
@@ -59,7 +61,7 @@ export default function TripsScreen() {
         <TextInput
           value={query}
           onChangeText={setQuery}
-          placeholder="Search by route, order #, address…"
+          placeholder={t('trips.searchPlaceholder')}
           placeholderTextColor={c.mutedForeground}
           style={[styles.searchInput, { color: c.foreground }]}
         />
@@ -83,8 +85,8 @@ export default function TripsScreen() {
         >
           <ScreenPlaceholder
             icon="list-outline"
-            title="No trips yet"
-            subtitle="Trips assigned to you will appear here."
+            title={t('trips.empty.title')}
+            subtitle={t('trips.empty.subtitle')}
           />
         </ScrollView>
       ) : filtered.length === 0 ? (
@@ -96,8 +98,8 @@ export default function TripsScreen() {
         >
           <ScreenPlaceholder
             icon="search-outline"
-            title="No matches"
-            subtitle="Try a different search."
+            title={t('trips.noMatches.title')}
+            subtitle={t('trips.noMatches.subtitle')}
           />
         </ScrollView>
       ) : (

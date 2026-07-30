@@ -114,6 +114,55 @@
       "createFailed": "Не удалось создать будильник"
     }
   },
+  "chat": {
+    "typingOne": "печатает",
+    "typingMany": "печатают",
+    "editingMessage": "Редактирование сообщения",
+    "replyTo": "Ответ: {{name}}",
+    "unknownSender": "Неизвестно",
+    "deleted": "Удалено",
+    "editedShort": "(ред.)",
+    "messagePlaceholder": "Сообщение…",
+    "emptyChat": "Сообщений пока нет. Начните разговор."
+  },
+  "trip": {
+    "noActiveTrip": {
+      "title": "Нет активного рейса",
+      "subtitle": "Когда менеджер назначит рейс, он появится здесь. Потяни вниз, чтобы обновить."
+    },
+    "chatLabel": "Чат рейса",
+    "online": "онлайн",
+    "connecting": "подключение…",
+    "newCount_one": "{{count}} новое",
+    "newCount_few": "{{count}} новых",
+    "newCount_many": "{{count}} новых",
+    "readOnlyNotice": "Вы больше не участник этого чата — только для чтения.",
+    "docsTitle": "Документы рейса",
+    "attachSheet": { "title": "Прикрепить" },
+    "stops": {
+      "loading": "Погрузка",
+      "unloading": "Разгрузка"
+    }
+  },
+  "tripStatus": {
+    "ASSIGNED": "Назначен",
+    "ACCEPTED": "Принят",
+    "ON_WAY": "В пути",
+    "ON_SITE": "На месте",
+    "LOADED": "Загружен",
+    "DELIVERED": "Доставлен"
+  },
+  "trips": {
+    "searchPlaceholder": "Поиск по маршруту, № заказа, адресу…",
+    "empty": {
+      "title": "Рейсов пока нет",
+      "subtitle": "Назначенные тебе рейсы появятся здесь."
+    },
+    "noMatches": {
+      "title": "Ничего не найдено",
+      "subtitle": "Попробуй другой запрос."
+    }
+  },
   "documents": {
     "active": "Активный",
     "searchPlaceholder": "№ рейса, дата или индекс…",
