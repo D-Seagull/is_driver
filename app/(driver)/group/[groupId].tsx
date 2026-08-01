@@ -44,6 +44,7 @@ import {
   type GroupMessage,
 } from '@/hooks/use-groups';
 import { fullName } from '@/lib/format';
+import { formatDate, formatTime } from '@/lib/format-date';
 import { getSocket } from '@/lib/socket';
 import { useUser } from '@/store/auth';
 
@@ -654,7 +655,7 @@ function DocsFolderModal({
                     {item.fileName}
                   </Text>
                   <Text style={[styles.docRowMeta, { color: c.mutedForeground }]}>
-                    {new Date(item.createdAt).toLocaleDateString()}
+                    {formatDate(item.createdAt)}
                     {fullName(item.uploader) ? ` · ${fullName(item.uploader)}` : ''}
                   </Text>
                 </View>
@@ -762,10 +763,7 @@ function GroupBubble({
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
   const isDeleted = !!msg.deletedAt;
-  const time = new Date(msg.createdAt).toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const time = formatTime(msg.createdAt, { hour: '2-digit', minute: '2-digit' });
 
   // System notices ("added X") render as centred, muted text — no bubble.
   if (msg.isSystem) {
@@ -872,10 +870,7 @@ function DocBubble({
   const c = Colors[scheme];
   const isDeleted = !!doc.deletedAt;
   const isPhoto = doc.fileType === 'PHOTO';
-  const time = new Date(doc.createdAt).toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const time = formatTime(doc.createdAt, { hour: '2-digit', minute: '2-digit' });
   const senderName = fullName(doc.uploader) || doc.uploader?.role || t('nav.driverFallback');
 
   if (isDeleted) {

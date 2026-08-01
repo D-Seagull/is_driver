@@ -52,6 +52,7 @@ import {
   useUpdateMyTripStatus,
 } from "@/hooks/use-trips";
 import { DriverDocument, UploadFileLocal } from "@/lib/documents-api";
+import { formatDate, formatTime } from "@/lib/format-date";
 import { Trip } from "@/lib/types";
 import { useUser } from "@/store/auth";
 
@@ -939,10 +940,7 @@ function MessageBubble({
   const c = Colors[useColorScheme() ?? "light"];
   const isManager = message.sender.role !== "DRIVER";
   const isDeleted = !!message.deletedAt;
-  const time = new Date(message.createdAt).toLocaleTimeString(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const time = formatTime(message.createdAt, { hour: "2-digit", minute: "2-digit" });
 
   // Cluster sidekick — Trigger (mine / idle) + others' emojis inline.
   const sidekick =
@@ -1238,7 +1236,7 @@ function TripDocsModal({
                   <Text
                     style={[styles.docFileMeta, { color: c.mutedForeground }]}
                   >
-                    {new Date(item.createdAt).toLocaleDateString()}
+                    {formatDate(item.createdAt)}
                     {fullName(item.uploader) ? ` · ${fullName(item.uploader)}` : ""}
                   </Text>
                 </View>
@@ -1269,10 +1267,7 @@ function DocBubble({
   const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? "light"];
   const isPhoto = doc.fileType === "PHOTO";
-  const time = new Date(doc.createdAt).toLocaleTimeString(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const time = formatTime(doc.createdAt, { hour: "2-digit", minute: "2-digit" });
   const isManager = doc.uploader?.role !== "DRIVER";
   const ext = doc.fileName.split(".").pop()?.toUpperCase() ?? "FILE";
 

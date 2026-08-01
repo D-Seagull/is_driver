@@ -24,6 +24,7 @@ import {
   useDriverTruck,
 } from "@/hooks/use-truck";
 import { TruckNote, TruckStatus } from "@/lib/types";
+import { formatDate } from "@/lib/format-date";
 import { useUser } from "@/store/auth";
 
 // ─── Status badge ────────────────────────────────────────────────────────────
@@ -87,7 +88,7 @@ function NoteCard({
 }) {
   const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? "light"];
-  const date = new Date(note.createdAt).toLocaleDateString(undefined, {
+  const date = formatDate(note.createdAt, {
     day: "2-digit",
     month: "short",
     year: "numeric",

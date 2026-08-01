@@ -35,6 +35,7 @@ import {
 import { useActiveTrip } from '@/hooks/use-trips';
 import { useDriverTruck } from '@/hooks/use-truck';
 import { DriverDocument, UploadFileLocal } from '@/lib/documents-api';
+import { formatDate } from '@/lib/format-date';
 import { useUser } from '@/store/auth';
 
 type Tab = 'ALL' | 'PHOTO' | 'DOCUMENT';
@@ -83,7 +84,7 @@ export default function DocumentsScreen() {
           .map((s) => s.address ?? '')
           .join(' ');
         const dt = new Date(trip?.createdAt ?? d.createdAt);
-        const dateText = `${dt.toISOString().slice(0, 10)} ${dt.toLocaleDateString()}`;
+        const dateText = `${dt.toISOString().slice(0, 10)} ${formatDate(dt)}`;
         map.set(tripId, {
           tripId,
           tripTitle: trip?.title ?? t('nav.items.trip'),
@@ -553,7 +554,7 @@ function DocCard({
   deleting: boolean;
 }) {
   const isPhoto = doc.fileType === 'PHOTO';
-  const created = new Date(doc.createdAt).toLocaleDateString(undefined, {
+  const created = formatDate(doc.createdAt, {
     day: '2-digit',
     month: 'short',
     year: 'numeric',

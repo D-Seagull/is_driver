@@ -26,6 +26,7 @@ import {
 import { useUser } from '@/store/auth';
 import { useDriverTruck } from '@/hooks/use-truck';
 import { fullName } from '@/lib/format';
+import { formatDate } from '@/lib/format-date';
 import type { ManagerRating } from '@/lib/manager-api';
 
 /**
@@ -276,7 +277,7 @@ function ReviewCard({
   // Anonymous reviews arrive from the backend with the name already masked
   // to "Anonymous", so we can render the raw name safely.
   const name = fullName(rating.ratedBy) || t('nav.driverFallback');
-  const date = new Date(rating.createdAt).toLocaleDateString(undefined, {
+  const date = formatDate(rating.createdAt, {
     day: '2-digit',
     month: 'short',
     year: 'numeric',

@@ -30,6 +30,7 @@ import {
   useUpdateAlarm,
 } from '@/hooks/use-alarms';
 import { useUser } from '@/store/auth';
+import { formatDate, formatDateTime, formatTime } from '@/lib/format-date';
 import type { Alarm, AlarmRecurrence } from '@/lib/alarms-api';
 
 // `key` resolves to the i18n label under alarm.quickOffsets.*
@@ -51,7 +52,7 @@ function offsetDate(minutes: number): Date {
 // AlarmRecurrence value), rendered with t(`alarm.recurrence.${r}`).
 
 function fmtDate(iso: string) {
-  return new Date(iso).toLocaleString();
+  return formatDateTime(iso);
 }
 
 /** Render a Date as a wall-clock string the backend interprets in the
@@ -275,7 +276,7 @@ export default function AlarmScreen() {
                   color={c.foreground}
                 />
                 <Text style={[styles.dateText, { color: c.foreground }]}>
-                  {time.toLocaleDateString()}
+                  {formatDate(time)}
                 </Text>
               </Pressable>
               <Pressable
@@ -291,10 +292,7 @@ export default function AlarmScreen() {
                   color={c.foreground}
                 />
                 <Text style={[styles.dateText, { color: c.foreground }]}>
-                  {time.toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
+                  {formatTime(time, { hour: '2-digit', minute: '2-digit' })}
                 </Text>
               </Pressable>
             </View>

@@ -46,6 +46,7 @@ import {
   type DirectMessage,
 } from '@/hooks/use-direct-messages';
 import { useReactionsSocketSync } from '@/hooks/use-message-reactions';
+import { formatDate, formatTime } from '@/lib/format-date';
 import { getSocket } from '@/lib/socket';
 import { useUser } from '@/store/auth';
 
@@ -653,10 +654,7 @@ function MessageBubble({
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
   const isDeleted = !!msg.deletedAt;
-  const time = new Date(msg.createdAt).toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const time = formatTime(msg.createdAt, { hour: '2-digit', minute: '2-digit' });
 
   // Cluster sits inline with the bubble (own→left, other→right). It always
   // renders my Trigger (active emoji or idle 👍 outline) and appends the
@@ -781,10 +779,7 @@ function DocBubble({
   const c = Colors[scheme];
   const isDeleted = !!doc.deletedAt;
   const isPhoto = doc.fileType === 'PHOTO';
-  const time = new Date(doc.createdAt).toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const time = formatTime(doc.createdAt, { hour: '2-digit', minute: '2-digit' });
 
   if (isDeleted) {
     return (
@@ -984,7 +979,7 @@ function DocsFolderModal({
                     {item.fileName}
                   </Text>
                   <Text style={[styles.docRowMeta, { color: c.mutedForeground }]}>
-                    {new Date(item.createdAt).toLocaleDateString()}
+                    {formatDate(item.createdAt)}
                     {fullName(item.uploader) ? ` · ${fullName(item.uploader)}` : ''}
                   </Text>
                 </View>

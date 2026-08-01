@@ -20,6 +20,7 @@ import { Colors, Radius, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useDriverUnread } from '@/hooks/use-driver-unread';
 import { useMyTrips } from '@/hooks/use-trips';
+import { formatDate } from '@/lib/format-date';
 import { Trip } from '@/lib/types';
 
 export default function TripsScreen() {
@@ -122,7 +123,7 @@ function TripRow({ trip, unreadCount }: { trip: Trip; unreadCount: number }) {
   const c = Colors[scheme];
   const router = useRouter();
   const hasUnread = unreadCount > 0;
-  const date = new Date(trip.createdAt).toLocaleDateString(undefined, {
+  const date = formatDate(trip.createdAt, {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
