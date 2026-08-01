@@ -1491,7 +1491,7 @@ function TripInfoCard({
           )}
           {trip.notes ? (
             <View style={[styles.notes, { borderTopColor: c.border }]}>
-              <Text style={[styles.notesText, { color: c.mutedForeground }]}>
+              <Text style={[styles.notesText, { color: "#dc2626" }]}>
                 {trip.notes}
               </Text>
             </View>

@@ -78,13 +78,17 @@ export default function AlarmScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [showForm, setShowForm] = useState(false);
 
-  // Form state — defaults to "30 minutes from now".
+  // Plate of the truck the driver is currently on — prefilled into the alarm
+  // title so it's clear which vehicle the reminder belongs to.
+  const truckPlate = user?.currentTruck?.plate ?? '';
+
+  // Form state — time defaults to "right now"; the driver picks the target.
   const defaultTime = useMemo(() => {
     const d = new Date();
-    d.setMinutes(d.getMinutes() + 30, 0, 0);
+    d.setSeconds(0, 0);
     return d;
   }, []);
-  const [title, setTitle] = useState('');
+  const [title, setTitle] = useState(truckPlate);
   const [note, setNote] = useState('');
   const [time, setTime] = useState<Date>(defaultTime);
   const [recurrence, setRecurrence] = useState<AlarmRecurrence>('NONE');
@@ -110,10 +114,17 @@ export default function AlarmScreen() {
   };
 
   const resetForm = () => {
-    setTitle('');
+    setTitle(truckPlate);
     setNote('');
     setTime(defaultTime);
     setRecurrence('NONE');
+  };
+
+  // Prefill the title with the truck plate when opening the form (user loads
+  // async, so the initial state may have missed it).
+  const toggleForm = () => {
+    if (!showForm && !title.trim() && truckPlate) setTitle(truckPlate);
+    setShowForm((v) => !v);
   };
 
   const handleCreate = async () => {
@@ -197,7 +208,7 @@ export default function AlarmScreen() {
             </Text>
           </View>
           <Pressable
-            onPress={() => setShowForm((v) => !v)}
+            onPress={toggleForm}
             style={({ pressed }) => [
               styles.newBtn,
               {
