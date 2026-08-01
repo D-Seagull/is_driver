@@ -26,6 +26,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeMode } from "@/hooks/use-theme";
 import { useDriverTruck, useTruckChangedSync } from "@/hooks/use-truck";
 import { useTripsSync } from "@/hooks/use-trips";
+import { useChatSound } from "@/hooks/use-chat-sound";
 import { useDriverUnread, useDriverUnreadSync } from "@/hooks/use-driver-unread";
 import { useConversations, useDmUnreadSync } from "@/hooks/use-direct-messages";
 import { usePushNotifications } from "@/hooks/use-push-notifications";
@@ -176,6 +177,7 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
   useDmUnreadSync();
   useTruckChangedSync();
   useTripsSync();
+  useChatSound();
 
   // The socket syncs keep counts live, but also hard-refresh both unread
   // sources every time the drawer opens — so the bell always reflects the
