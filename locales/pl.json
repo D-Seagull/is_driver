@@ -131,6 +131,10 @@
       "createFailed": "Nie udało się utworzyć budzika"
     }
   },
+  "sys": {
+    "driverAssigned": "Kierowca {{name}} przydzielony do ciężarówki {{plate}}",
+    "managerAssigned": "Menedżer {{name}} przydzielony do ciężarówki {{plate}}"
+  },
   "chat": {
     "typingOne": "pisze",
     "typingMany": "piszą",
@@ -152,6 +156,8 @@
       "subtitle": "Gdy menedżer przydzieli trasę, pojawi się tutaj. Pociągnij w dół, aby odświeżyć."
     },
     "chatLabel": "Czat trasy",
+    "nextTripLabel": "Następny: {{title}}",
+    "nextTripHint": "Stanie się aktywna po zakończeniu bieżącej",
     "online": "online",
     "connecting": "łączenie…",
     "newCount_one": "{{count}} nowa",
@@ -175,6 +181,10 @@
   },
   "trips": {
     "searchPlaceholder": "Szukaj po trasie, nr zamówienia, adresie…",
+    "active": "Aktywna",
+    "next": "Nadchodzące",
+    "nextTag": "Następny",
+    "done": "Zakończone",
     "empty": {
       "title": "Brak tras",
       "subtitle": "Przydzielone ci trasy pojawią się tutaj."

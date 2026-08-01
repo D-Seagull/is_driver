@@ -130,6 +130,10 @@
       "createFailed": "Couldn't create the alarm"
     }
   },
+  "sys": {
+    "driverAssigned": "Driver {{name}} assigned to truck {{plate}}",
+    "managerAssigned": "Manager {{name}} assigned to truck {{plate}}"
+  },
   "chat": {
     "typingOne": "is typing",
     "typingMany": "are typing",
@@ -151,6 +155,8 @@
       "subtitle": "When your manager assigns a trip, it'll show up here. Pull down to refresh."
     },
     "chatLabel": "Trip chat",
+    "nextTripLabel": "Next: {{title}}",
+    "nextTripHint": "Becomes active once the current one is finished",
     "online": "online",
     "connecting": "connecting…",
     "newCount_one": "{{count}} new",
@@ -173,6 +179,10 @@
   },
   "trips": {
     "searchPlaceholder": "Search by route, order #, address…",
+    "active": "Active",
+    "next": "Upcoming",
+    "nextTag": "Next",
+    "done": "Completed",
     "empty": {
       "title": "No trips yet",
       "subtitle": "Trips assigned to you will appear here."

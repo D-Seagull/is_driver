@@ -131,6 +131,10 @@
       "createFailed": "Nepavyko sukurti žadintuvo"
     }
   },
+  "sys": {
+    "driverAssigned": "Vairuotojas {{name}} priskirtas vilkikui {{plate}}",
+    "managerAssigned": "Vadovas {{name}} priskirtas vilkikui {{plate}}"
+  },
   "chat": {
     "typingOne": "rašo",
     "typingMany": "rašo",
@@ -152,6 +156,8 @@
       "subtitle": "Kai vadovas priskirs reisą, jis atsiras čia. Patraukite žemyn, kad atnaujintumėte."
     },
     "chatLabel": "Reiso pokalbis",
+    "nextTripLabel": "Kitas: {{title}}",
+    "nextTripHint": "Taps aktyvus, kai bus baigtas dabartinis",
     "online": "prisijungęs",
     "connecting": "jungiamasi…",
     "newCount_one": "{{count}} nauja",
@@ -175,6 +181,10 @@
   },
   "trips": {
     "searchPlaceholder": "Ieškoti pagal maršrutą, užsakymo nr., adresą…",
+    "active": "Aktyvus",
+    "next": "Būsimi",
+    "nextTag": "Kitas",
+    "done": "Užbaigti",
     "empty": {
       "title": "Kol kas nėra reisų",
       "subtitle": "Jums priskirti reisai atsiras čia."

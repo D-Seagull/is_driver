@@ -25,6 +25,7 @@ import { Colors, Radius, Spacing, ThemeColors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeMode } from "@/hooks/use-theme";
 import { useDriverTruck, useTruckChangedSync } from "@/hooks/use-truck";
+import { useTripsSync } from "@/hooks/use-trips";
 import { useDriverUnread, useDriverUnreadSync } from "@/hooks/use-driver-unread";
 import { useConversations, useDmUnreadSync } from "@/hooks/use-direct-messages";
 import { usePushNotifications } from "@/hooks/use-push-notifications";
@@ -34,6 +35,7 @@ import { useUserStatusSync } from "@/hooks/use-user-status-sync";
 import { usePresenceSync } from "@/hooks/use-presence";
 import { PushNoticeOverlay } from "@/components/push-notice-overlay";
 import { NotificationBell } from "@/components/notification-bell";
+import { systemMessageText } from "@/lib/system-message";
 import { useAuthStore, useUser } from "@/store/auth";
 
 type SidebarItem = {
@@ -173,6 +175,7 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
   useDriverUnreadSync();
   useDmUnreadSync();
   useTruckChangedSync();
+  useTripsSync();
 
   // The socket syncs keep counts live, but also hard-refresh both unread
   // sources every time the drawer opens — so the bell always reflects the
@@ -290,7 +293,7 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
                       {item.latestMessage && (
                         <Text style={[styles.bellItemMsg, { color: c.mutedForeground }]} numberOfLines={1}>
                           <Text style={{ fontWeight: "600" }}>{item.latestMessage.senderName}: </Text>
-                          {item.latestMessage.content}
+                          {systemMessageText(item.latestMessage.content, t)}
                         </Text>
                       )}
                     </Pressable>

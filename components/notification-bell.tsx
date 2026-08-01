@@ -16,6 +16,7 @@ import { Radius, Spacing, ThemeColors } from '@/constants/theme';
 import { useConversations } from '@/hooks/use-direct-messages';
 import { useDriverUnread } from '@/hooks/use-driver-unread';
 import { fullName } from '@/lib/format';
+import { systemMessageText } from '@/lib/system-message';
 
 /**
  * Notification bell shared by the sidebar and the trip header. Shows total
@@ -119,7 +120,7 @@ export function NotificationBell({ colors: c }: { colors: ThemeColors }) {
                     {item.latestMessage && (
                       <Text style={[styles.itemMsg, { color: c.mutedForeground }]} numberOfLines={1}>
                         <Text style={{ fontWeight: '600' }}>{item.latestMessage.senderName}: </Text>
-                        {item.latestMessage.content}
+                        {systemMessageText(item.latestMessage.content, t)}
                       </Text>
                     )}
                   </Pressable>

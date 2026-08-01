@@ -9,7 +9,7 @@ import * as Clipboard from "expo-clipboard";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 import * as Linking from "expo-linking";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { router, Stack, useLocalSearchParams } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -48,11 +48,13 @@ import { NotificationBell } from "@/components/notification-bell";
 import { ChatMessage, useTripChat } from "@/hooks/use-trip-chat";
 import {
   useActiveTrip,
+  useMyTrips,
   useTrip,
   useUpdateMyTripStatus,
 } from "@/hooks/use-trips";
 import { DriverDocument, UploadFileLocal } from "@/lib/documents-api";
 import { formatDate, formatTime } from "@/lib/format-date";
+import { systemMessageText } from "@/lib/system-message";
 import { Trip } from "@/lib/types";
 import { useUser } from "@/store/auth";
 
@@ -150,6 +152,7 @@ export default function TripScreen() {
           trip={trip}
           onRefresh={handleManualRefresh}
           refreshing={manualRefreshing}
+          isActiveView={!explicitTripId}
         />
       )}
     </KeyboardAvoidingView>
@@ -162,14 +165,22 @@ function TripWithChat({
   trip,
   onRefresh,
   refreshing,
+  isActiveView,
 }: {
   trip: Trip;
   onRefresh: () => void;
   refreshing: boolean;
+  isActiveView: boolean;
 }) {
   const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? "light"];
   const user = useUser();
+  // On the active-trip view, surface any pre-assigned upcoming trip as a
+  // clearly-separate strip so the driver doesn't confuse it with this one.
+  const { data: myTrips = [] } = useMyTrips();
+  const nextTrip = isActiveView
+    ? myTrips.find((tp) => tp.id !== trip.id && tp.status !== "DELIVERED")
+    : undefined;
   const insets = useSafeAreaInsets();
   const isFocused = useIsFocused();
   const [text, setText] = useState("");
@@ -416,6 +427,33 @@ function TripWithChat({
     <View style={{ flex: 1 }}>
       {/* Trip info — collapses to make room for chat */}
       <TripInfoCard trip={trip} onRefresh={onRefresh} refreshing={refreshing} />
+
+      {/* Pre-assigned upcoming trip — clearly separate from the active one */}
+      {nextTrip && (
+        <Pressable
+          onPress={() =>
+            router.push({
+              pathname: "/(driver)/trip",
+              params: { tripId: nextTrip.id },
+            })
+          }
+          style={({ pressed }) => [
+            styles.nextStrip,
+            { backgroundColor: c.card, borderLeftColor: c.mutedForeground, opacity: pressed ? 0.7 : 1 },
+          ]}
+        >
+          <Ionicons name="arrow-forward" size={16} color={c.mutedForeground} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.nextStripTitle, { color: c.foreground }]} numberOfLines={1}>
+              {t("trip.nextTripLabel", { title: nextTrip.title })}
+            </Text>
+            <Text style={[styles.nextStripHint, { color: c.mutedForeground }]} numberOfLines={1}>
+              {t("trip.nextTripHint")}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={c.mutedForeground} />
+        </Pressable>
+      )}
 
       {/* Chat area */}
       <View style={[styles.chatWrap, { borderTopColor: c.border }]}>
@@ -904,6 +942,7 @@ function TypingDots({ color }: { color: string }) {
 // ─── System notice (driver/manager changed) ───────────────────────────────
 
 function SystemNotice({ text }: { text: string }) {
+  const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? "light"];
   return (
     <View style={styles.systemRow}>
@@ -913,7 +952,7 @@ function SystemNotice({ text }: { text: string }) {
           { color: c.mutedForeground, backgroundColor: c.muted },
         ]}
       >
-        {text}
+        {systemMessageText(text, t)}
       </Text>
     </View>
   );
@@ -1714,6 +1753,20 @@ const styles = StyleSheet.create({
   },
 
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
+
+  nextStrip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.sm,
+    paddingVertical: 10,
+    paddingHorizontal: Spacing.md,
+    borderLeftWidth: 3,
+    borderRadius: Radius.sm,
+  },
+  nextStripTitle: { fontSize: 13, fontWeight: "600" },
+  nextStripHint: { fontSize: 11, marginTop: 1 },
 
   // Trip info card
   card: {
