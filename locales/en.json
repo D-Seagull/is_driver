@@ -12,7 +12,23 @@
     "loading": "Loading…",
     "messageDeleted": "Message deleted",
     "fileDeleted": "File deleted",
+    "file": "File",
     "error": "Error"
+  },
+  "chatDir": {
+    "searchPlaceholder": "Search name, phone or truck…",
+    "otherContacts": "Other contacts",
+    "noConversations": "No conversations yet.",
+    "teamlead": "Teamlead"
+  },
+  "groups": {
+    "empty": {
+      "title": "No groups yet",
+      "subtitle": "Your company's driver group will appear here."
+    },
+    "memberCount_one": "{{count}} driver",
+    "memberCount_other": "{{count}} drivers",
+    "placeholderSubtitle": "Driver-only groups. You can add other drivers as members."
   },
   "settings": {
     "title": "Settings",
@@ -123,7 +139,11 @@
     "deleted": "Deleted",
     "editedShort": "(ed.)",
     "messagePlaceholder": "Message…",
-    "emptyChat": "No messages yet. Start the conversation."
+    "editPlaceholder": "Edit the message…",
+    "emptyChat": "No messages yet. Start the conversation.",
+    "groupFallback": "Group",
+    "groupChat": "Group chat",
+    "groupDocsTitle": "Group documents"
   },
   "trip": {
     "noActiveTrip": {

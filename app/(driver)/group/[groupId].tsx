@@ -6,6 +6,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Alert,
@@ -64,6 +65,7 @@ type TimelineItem =
   | { kind: 'doc'; data: GroupDocumentFull; ts: number };
 
 export default function GroupChatScreen() {
+  const { t } = useTranslation();
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
   const insets = useSafeAreaInsets();
@@ -200,16 +202,16 @@ export default function GroupChatScreen() {
       if (files.length === 0) return;
       await uploadDocs.mutateAsync({ files });
     } catch (e) {
-      Alert.alert('Upload failed', (e as Error).message);
+      Alert.alert(t('documents.uploadFailed'), (e as Error).message);
     }
   };
 
   const showAttachSheet = () => {
-    Alert.alert('Attach', 'Choose source', [
-      { text: 'Camera', onPress: () => pickAndUpload('camera') },
-      { text: 'Gallery', onPress: () => pickAndUpload('gallery') },
-      { text: 'File', onPress: () => pickAndUpload('document') },
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('trip.attachSheet.title'), t('documents.uploadSheet.subtitle'), [
+      { text: t('documents.uploadSheet.camera'), onPress: () => pickAndUpload('camera') },
+      { text: t('documents.uploadSheet.gallery'), onPress: () => pickAndUpload('gallery') },
+      { text: t('documents.uploadSheet.file'), onPress: () => pickAndUpload('document') },
+      { text: t('common.cancel'), style: 'cancel' },
     ]);
   };
 
@@ -223,7 +225,7 @@ export default function GroupChatScreen() {
     try {
       await WebBrowser.openBrowserAsync(doc.signedUrl);
     } catch (e) {
-      Alert.alert('Cannot open', (e as Error).message);
+      Alert.alert(t('documents.cannotOpen'), (e as Error).message);
     }
   };
 
@@ -260,7 +262,7 @@ export default function GroupChatScreen() {
   };
 
   // ─── Header ────────────────────────────────────────────────────────
-  const groupName = name || 'Group';
+  const groupName = name || t('chat.groupFallback');
 
   return (
     <KeyboardAvoidingView
@@ -289,7 +291,7 @@ export default function GroupChatScreen() {
             {groupName}
           </Text>
           <Text style={[styles.headerRole, { color: c.mutedForeground }]} numberOfLines={1}>
-            Group chat
+            {t('chat.groupChat')}
           </Text>
         </View>
         {/* Quick access to all attachments — same pill as the Trip chat */}
@@ -394,7 +396,7 @@ export default function GroupChatScreen() {
         <TextInput
           value={text}
           onChangeText={setText}
-          placeholder={editing ? 'Редагуйте повідомлення…' : 'Type a message…'}
+          placeholder={editing ? t('chat.editPlaceholder') : t('chat.messagePlaceholder')}
           placeholderTextColor={c.mutedForeground}
           style={[styles.input, { color: c.foreground, backgroundColor: c.muted }]}
           multiline
@@ -527,6 +529,7 @@ function DocsFolderModal({
   uploading: boolean;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
   const insets = useSafeAreaInsets();
@@ -558,7 +561,7 @@ function DocsFolderModal({
           <Pressable onPress={onClose} hitSlop={8} style={{ padding: 4 }}>
             <Ionicons name="close" size={24} color={c.foreground} />
           </Pressable>
-          <Text style={[styles.docsTitle, { color: c.foreground }]}>Group documents</Text>
+          <Text style={[styles.docsTitle, { color: c.foreground }]}>{t('chat.groupDocsTitle')}</Text>
           <Pressable
             onPress={onUpload}
             disabled={uploading}
@@ -573,19 +576,24 @@ function DocsFolderModal({
             ) : (
               <Ionicons name="cloud-upload-outline" size={16} color="#fff" />
             )}
-            <Text style={styles.uploadText}>Upload</Text>
+            <Text style={styles.uploadText}>{t('common.upload')}</Text>
           </Pressable>
         </View>
 
         {/* Tabs */}
         <View style={[styles.docsTabs, { borderBottomColor: c.border }]}>
-          {(['ALL', 'PHOTO', 'DOCUMENT'] as DocTab[]).map((t) => {
-            const active = t === tab;
-            const label = t === 'ALL' ? 'All' : t === 'PHOTO' ? 'Photos' : 'Documents';
+          {(['ALL', 'PHOTO', 'DOCUMENT'] as DocTab[]).map((tabKey) => {
+            const active = tabKey === tab;
+            const label =
+              tabKey === 'ALL'
+                ? t('documents.tabs.all')
+                : tabKey === 'PHOTO'
+                  ? t('documents.tabs.photos')
+                  : t('documents.tabs.documents');
             return (
               <Pressable
-                key={t}
-                onPress={() => setTab(t)}
+                key={tabKey}
+                onPress={() => setTab(tabKey)}
                 style={[
                   styles.docsTab,
                   active && { borderBottomColor: c.primary, borderBottomWidth: 2 },
@@ -600,7 +608,7 @@ function DocsFolderModal({
                     },
                   ]}
                 >
-                  {label} ({counts[t]})
+                  {label} ({counts[tabKey]})
                 </Text>
               </Pressable>
             );
@@ -609,7 +617,7 @@ function DocsFolderModal({
 
         {filtered.length === 0 ? (
           <View style={styles.center}>
-            <Text style={{ color: c.mutedForeground }}>Nothing here yet.</Text>
+            <Text style={{ color: c.mutedForeground }}>{t('documents.nothingHere')}</Text>
           </View>
         ) : (
           <FlatList
@@ -695,6 +703,7 @@ function Banner({
   target: ReplyTarget;
   onCancel: () => void;
 }) {
+  const { t } = useTranslation();
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
   return (
@@ -713,15 +722,17 @@ function Banner({
           />
           <Text style={[styles.bannerTitle, { color: c.primary }]}>
             {kind === 'edit'
-              ? 'Редагування повідомлення'
-              : `Reply to ${target.senderName ?? 'Unknown'}`}
+              ? t('chat.editingMessage')
+              : t('chat.replyTo', {
+                  name: target.senderName ?? t('chat.unknownSender'),
+                })}
           </Text>
         </View>
         <Text style={[styles.bannerPreview, { color: c.mutedForeground }]} numberOfLines={1}>
           {target.isDeleted
             ? target.targetType === 'doc'
-              ? 'Файл видалено'
-              : 'Повідомлення видалено'
+              ? t('common.fileDeleted')
+              : t('common.messageDeleted')
             : target.content}
         </Text>
       </View>
@@ -747,6 +758,7 @@ function GroupBubble({
   onLongPress: () => void;
   onReplyJump: (targetId: string) => void;
 }) {
+  const { t } = useTranslation();
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
   const isDeleted = !!msg.deletedAt;
@@ -766,7 +778,7 @@ function GroupBubble({
     );
   }
 
-  const senderName = fullName(msg.sender) || msg.sender?.role || 'Driver';
+  const senderName = fullName(msg.sender) || msg.sender?.role || t('nav.driverFallback');
 
   return (
     <View style={[styles.outerCol, isOwn && styles.outerColOwn]}>
@@ -823,7 +835,7 @@ function GroupBubble({
             },
           ]}
         >
-          {isDeleted ? 'Повідомлення видалено' : msg.content}
+          {isDeleted ? t('common.messageDeleted') : msg.content}
         </Text>
       </Pressable>
       <View style={[styles.meta, isOwn && styles.metaOwn]}>
@@ -831,7 +843,7 @@ function GroupBubble({
           <Text
             style={[styles.metaText, { color: c.mutedForeground, fontStyle: 'italic' }]}
           >
-            (ред.)
+            {t('chat.editedShort')}
           </Text>
         )}
         <Text style={[styles.metaText, { color: c.mutedForeground }]}>{time}</Text>
@@ -855,6 +867,7 @@ function DocBubble({
   onOpen: () => void;
   onLongPress: () => void;
 }) {
+  const { t } = useTranslation();
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
   const isDeleted = !!doc.deletedAt;
@@ -863,14 +876,14 @@ function DocBubble({
     hour: '2-digit',
     minute: '2-digit',
   });
-  const senderName = fullName(doc.uploader) || doc.uploader?.role || 'Driver';
+  const senderName = fullName(doc.uploader) || doc.uploader?.role || t('nav.driverFallback');
 
   if (isDeleted) {
     return (
       <View style={[styles.outerCol, isOwn && styles.outerColOwn]}>
         <View style={[styles.bubble, styles.bubbleDeleted]}>
           <Text style={[styles.bubbleText, { color: c.mutedForeground, fontStyle: 'italic', fontSize: 12 }]}>
-            Файл видалено
+            {t('common.fileDeleted')}
           </Text>
         </View>
       </View>

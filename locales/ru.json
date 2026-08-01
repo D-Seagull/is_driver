@@ -12,7 +12,24 @@
     "loading": "Загрузка…",
     "messageDeleted": "Сообщение удалено",
     "fileDeleted": "Файл удалён",
+    "file": "Файл",
     "error": "Ошибка"
+  },
+  "chatDir": {
+    "searchPlaceholder": "Поиск по имени, телефону или авто…",
+    "otherContacts": "Другие контакты",
+    "noConversations": "Разговоров пока нет.",
+    "teamlead": "Тимлид"
+  },
+  "groups": {
+    "empty": {
+      "title": "Групп пока нет",
+      "subtitle": "Группа водителей вашей компании появится здесь."
+    },
+    "memberCount_one": "{{count}} водитель",
+    "memberCount_few": "{{count}} водителя",
+    "memberCount_many": "{{count}} водителей",
+    "placeholderSubtitle": "Группы только для водителей. Можно добавлять других водителей как участников."
   },
   "settings": {
     "title": "Настройки",
@@ -123,7 +140,11 @@
     "deleted": "Удалено",
     "editedShort": "(ред.)",
     "messagePlaceholder": "Сообщение…",
-    "emptyChat": "Сообщений пока нет. Начните разговор."
+    "editPlaceholder": "Редактируйте сообщение…",
+    "emptyChat": "Сообщений пока нет. Начните разговор.",
+    "groupFallback": "Группа",
+    "groupChat": "Групповой чат",
+    "groupDocsTitle": "Документы группы"
   },
   "trip": {
     "noActiveTrip": {

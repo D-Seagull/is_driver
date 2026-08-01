@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useIsFocused } from '@react-navigation/native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { fullName, initials } from "@/lib/format";
 import {
   ActivityIndicator,
@@ -27,6 +28,7 @@ type Tab = 'chat' | 'groups';
 const DIR_PAGE = 20;
 
 export default function ChatScreen() {
+  const { t } = useTranslation();
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
   // Allow deep-linking / back-navigation to land on a specific tab (e.g.
@@ -65,7 +67,7 @@ export default function ChatScreen() {
       >
         <View style={styles.tabsRow}>
           <TabButton
-            label="Chat"
+            label={t('nav.items.chat')}
             active={tab === 'chat'}
             onPress={() => setTab('chat')}
             activeColor={c.primary}
@@ -74,7 +76,7 @@ export default function ChatScreen() {
             badge={dmUnread}
           />
           <TabButton
-            label="Groups"
+            label={t('nav.groups')}
             active={tab === 'groups'}
             onPress={() => setTab('groups')}
             activeColor={c.primary}
@@ -95,6 +97,7 @@ export default function ChatScreen() {
 
 // ─── Chat tab — list of DM conversations ──────────────────────────────────
 function ChatTab() {
+  const { t } = useTranslation();
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
   const me = useUser();
@@ -105,8 +108,8 @@ function ChatTab() {
   const [visibleDir, setVisibleDir] = useState(DIR_PAGE);
 
   // Reset pagination whenever the search changes so results start from the top.
-  const onQueryChange = (t: string) => {
-    setQuery(t);
+  const onQueryChange = (value: string) => {
+    setQuery(value);
     setVisibleDir(DIR_PAGE);
   };
 
@@ -178,7 +181,7 @@ function ChatTab() {
   const rows: ChatRow[] = [];
   filteredConvs.forEach((cv) => rows.push({ type: 'conv', conv: cv }));
   if (shownDir.length > 0) {
-    rows.push({ type: 'header', key: 'contacts', title: 'Other contacts' });
+    rows.push({ type: 'header', key: 'contacts', title: t('chatDir.otherContacts') });
     shownDir.forEach((u) => rows.push({ type: 'dir', user: u }));
   }
 
@@ -190,7 +193,7 @@ function ChatTab() {
           <TextInput
             value={query}
             onChangeText={onQueryChange}
-            placeholder="Search name, phone or truck…"
+            placeholder={t('chatDir.searchPlaceholder')}
             placeholderTextColor={c.mutedForeground}
             style={[styles.searchInput, { color: c.foreground }]}
             autoCapitalize="none"
@@ -207,7 +210,7 @@ function ChatTab() {
       {rows.length === 0 ? (
         <View style={styles.center}>
           <Text style={{ color: c.mutedForeground }}>
-            {q ? 'No matches.' : 'No conversations yet.'}
+            {q ? t('common.noMatches') : t('chatDir.noConversations')}
           </Text>
         </View>
       ) : (
@@ -252,14 +255,15 @@ type ChatRow =
 // A contact you don't have a conversation with yet — tap to start one.
 // Manager-tier rows show the role as a label; drivers show truck / phone.
 function DirectoryRow({ user }: { user: CompanyUser }) {
+  const { t } = useTranslation();
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
   const peerInitials = initials(user);
   const isManagerTier = user.role !== 'DRIVER';
-  const roleLabel = user.role === 'TEAMLEAD' ? 'Teamlead' : 'Manager';
+  const roleLabel = user.role === 'TEAMLEAD' ? t('chatDir.teamlead') : t('nav.manager');
   const subtitle = isManagerTier
     ? roleLabel
-    : user.currentTruck?.plate || user.phone || 'Driver';
+    : user.currentTruck?.plate || user.phone || t('nav.driverFallback');
 
   return (
     <Pressable
@@ -281,7 +285,7 @@ function DirectoryRow({ user }: { user: CompanyUser }) {
       </View>
       <View style={styles.rowText}>
         <Text style={[styles.name, { color: c.foreground }]} numberOfLines={1}>
-          {fullName(user) || (isManagerTier ? 'Manager' : 'Driver')}
+          {fullName(user) || (isManagerTier ? t('nav.manager') : t('nav.driverFallback'))}
         </Text>
         <Text style={[styles.preview, { color: c.mutedForeground }]} numberOfLines={1}>
           {subtitle}
@@ -293,6 +297,7 @@ function DirectoryRow({ user }: { user: CompanyUser }) {
 }
 
 function ConversationRow({ conv }: { conv: Conversation }) {
+  const { t } = useTranslation();
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
   const hasUnread = conv.unreadCount > 0;
@@ -350,8 +355,8 @@ function ConversationRow({ conv }: { conv: Conversation }) {
           numberOfLines={1}
         >
           {conv.lastMessage.deletedAt
-            ? 'Повідомлення видалено'
-            : conv.lastMessage.content || '📎 File'}
+            ? t('common.messageDeleted')
+            : conv.lastMessage.content || t('nav.fileAttachment')}
         </Text>
       </View>
     </Pressable>
@@ -360,6 +365,7 @@ function ConversationRow({ conv }: { conv: Conversation }) {
 
 // ─── Groups tab — list of driver groups ───────────────────────────────────
 function GroupsTab() {
+  const { t } = useTranslation();
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
   const { data: groups, isLoading } = useDriverGroups();
@@ -376,8 +382,8 @@ function GroupsTab() {
     return (
       <ScreenPlaceholder
         icon="people-outline"
-        title="No groups yet"
-        subtitle="Your company's driver group will appear here."
+        title={t('groups.empty.title')}
+        subtitle={t('groups.empty.subtitle')}
       />
     );
   }
@@ -395,6 +401,7 @@ function GroupsTab() {
 }
 
 function GroupRow({ group }: { group: DriverGroup }) {
+  const { t } = useTranslation();
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
   const hasUnread = group.unreadCount > 0;
@@ -432,7 +439,7 @@ function GroupRow({ group }: { group: DriverGroup }) {
           {group.name}
         </Text>
         <Text style={[styles.preview, { color: c.mutedForeground }]} numberOfLines={1}>
-          {group.memberCount} {group.memberCount === 1 ? 'driver' : 'drivers'}
+          {t('groups.memberCount', { count: group.memberCount })}
         </Text>
       </View>
       {hasUnread ? (

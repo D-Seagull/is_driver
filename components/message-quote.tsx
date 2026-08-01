@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Colors, Radius, Spacing } from '@/constants/theme';
@@ -35,10 +36,11 @@ export function MessageQuote({
   onPress,
   variant = 'default',
 }: Props) {
+  const { t } = useTranslation();
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
   const isDoc = kind === 'doc';
-  const tombstone = isDoc ? 'Файл видалено' : 'Повідомлення видалено';
+  const tombstone = isDoc ? t('common.fileDeleted') : t('common.messageDeleted');
 
   const accent = variant === 'onPrimary' ? c.primaryForeground : c.primary;
   const muted =
@@ -51,7 +53,7 @@ export function MessageQuote({
   const previewText = isDeleted
     ? tombstone
     : isDoc
-    ? fileName ?? 'Файл'
+    ? fileName ?? t('common.file')
     : content;
 
   return (
@@ -68,7 +70,7 @@ export function MessageQuote({
       ]}
     >
       <Text style={[styles.sender, { color: accent }]} numberOfLines={1}>
-        {senderName ?? 'Unknown'}
+        {senderName ?? t('chat.unknownSender')}
       </Text>
       <View style={styles.previewRow}>
         {isDoc && !isDeleted && (

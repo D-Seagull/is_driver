@@ -12,7 +12,24 @@
     "loading": "Ładowanie…",
     "messageDeleted": "Wiadomość usunięta",
     "fileDeleted": "Plik usunięty",
+    "file": "Plik",
     "error": "Błąd"
+  },
+  "chatDir": {
+    "searchPlaceholder": "Szukaj po imieniu, telefonie lub pojeździe…",
+    "otherContacts": "Inne kontakty",
+    "noConversations": "Brak rozmów.",
+    "teamlead": "Kierownik zespołu"
+  },
+  "groups": {
+    "empty": {
+      "title": "Brak grup",
+      "subtitle": "Grupa kierowców Twojej firmy pojawi się tutaj."
+    },
+    "memberCount_one": "{{count}} kierowca",
+    "memberCount_few": "{{count}} kierowcy",
+    "memberCount_many": "{{count}} kierowców",
+    "placeholderSubtitle": "Grupy tylko dla kierowców. Możesz dodawać innych kierowców jako członków."
   },
   "settings": {
     "title": "Ustawienia",
@@ -123,7 +140,11 @@
     "deleted": "Usunięto",
     "editedShort": "(edyt.)",
     "messagePlaceholder": "Wiadomość…",
-    "emptyChat": "Brak wiadomości. Rozpocznij rozmowę."
+    "editPlaceholder": "Edytuj wiadomość…",
+    "emptyChat": "Brak wiadomości. Rozpocznij rozmowę.",
+    "groupFallback": "Grupa",
+    "groupChat": "Czat grupowy",
+    "groupDocsTitle": "Dokumenty grupy"
   },
   "trip": {
     "noActiveTrip": {

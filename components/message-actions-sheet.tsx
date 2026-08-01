@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import {
   Modal,
   Pressable,
@@ -34,6 +35,7 @@ interface Props {
  * that the caller doesn't pass simply aren't rendered.
  */
 export function MessageActionsSheet({ visible, onClose, actions }: Props) {
+  const { t } = useTranslation();
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
   const insets = useSafeAreaInsets();
@@ -68,7 +70,7 @@ export function MessageActionsSheet({ visible, onClose, actions }: Props) {
           {actions.onReply && (
             <ActionRow
               icon="arrow-undo-outline"
-              label="Reply"
+              label={t('common.reply')}
               color={c.foreground}
               onPress={handle(actions.onReply)}
             />
@@ -76,7 +78,7 @@ export function MessageActionsSheet({ visible, onClose, actions }: Props) {
           {actions.onCopy && (
             <ActionRow
               icon="copy-outline"
-              label="Copy"
+              label={t('common.copy')}
               color={c.foreground}
               onPress={handle(actions.onCopy)}
             />
@@ -84,7 +86,7 @@ export function MessageActionsSheet({ visible, onClose, actions }: Props) {
           {actions.onEdit && (
             <ActionRow
               icon="create-outline"
-              label="Edit"
+              label={t('common.edit')}
               color={c.foreground}
               onPress={handle(actions.onEdit)}
             />
@@ -99,7 +101,7 @@ export function MessageActionsSheet({ visible, onClose, actions }: Props) {
               />
               <ActionRow
                 icon="trash-outline"
-                label="Delete"
+                label={t('common.delete')}
                 color="#ef4444"
                 onPress={handle(actions.onDelete)}
               />

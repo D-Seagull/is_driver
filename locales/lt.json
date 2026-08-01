@@ -12,7 +12,24 @@
     "loading": "Įkeliama…",
     "messageDeleted": "Žinutė ištrinta",
     "fileDeleted": "Failas ištrintas",
+    "file": "Failas",
     "error": "Klaida"
+  },
+  "chatDir": {
+    "searchPlaceholder": "Ieškoti pagal vardą, telefoną ar vilkiką…",
+    "otherContacts": "Kiti kontaktai",
+    "noConversations": "Kol kas nėra pokalbių.",
+    "teamlead": "Komandos vadovas"
+  },
+  "groups": {
+    "empty": {
+      "title": "Kol kas nėra grupių",
+      "subtitle": "Jūsų įmonės vairuotojų grupė atsiras čia."
+    },
+    "memberCount_one": "{{count}} vairuotojas",
+    "memberCount_few": "{{count}} vairuotojai",
+    "memberCount_other": "{{count}} vairuotojų",
+    "placeholderSubtitle": "Grupės tik vairuotojams. Galite pridėti kitų vairuotojų kaip narių."
   },
   "settings": {
     "title": "Nustatymai",
@@ -123,7 +140,11 @@
     "deleted": "Ištrinta",
     "editedShort": "(red.)",
     "messagePlaceholder": "Žinutė…",
-    "emptyChat": "Žinučių dar nėra. Pradėkite pokalbį."
+    "editPlaceholder": "Redaguokite žinutę…",
+    "emptyChat": "Žinučių dar nėra. Pradėkite pokalbį.",
+    "groupFallback": "Grupė",
+    "groupChat": "Grupės pokalbis",
+    "groupDocsTitle": "Grupės dokumentai"
   },
   "trip": {
     "noActiveTrip": {

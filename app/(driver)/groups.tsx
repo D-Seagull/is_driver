@@ -1,11 +1,14 @@
+import { useTranslation } from 'react-i18next';
+
 import { ScreenPlaceholder } from '@/components/screen-placeholder';
 
 export default function GroupsScreen() {
+  const { t } = useTranslation();
   return (
     <ScreenPlaceholder
       icon="people-outline"
-      title="Groups"
-      subtitle="Driver-only groups. You can add other drivers as members."
+      title={t('nav.groups')}
+      subtitle={t('groups.placeholderSubtitle')}
     />
   );
 }
