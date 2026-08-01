@@ -101,7 +101,7 @@ function NoteCard({
       ]}
     >
       <View style={{ flex: 1, gap: 4 }}>
-        <Text style={[styles.noteContent, { color: c.foreground }]}>
+        <Text style={[styles.noteContent, { color: c.destructive ?? '#dc2626' }]}>
           {note.content}
         </Text>
         <Text style={[styles.noteMeta, { color: c.mutedForeground }]}>

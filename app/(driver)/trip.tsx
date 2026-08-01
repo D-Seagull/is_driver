@@ -960,6 +960,17 @@ function SystemNotice({ text }: { text: string }) {
 
 // ─── Message bubble ───────────────────────────────────────────────────────────
 
+// Broadcasts are sent as "subject\n\nbody" (manager's "Розсилка" dialog). Show
+// the subject line in bold so it reads as a heading in the driver's chat.
+function splitBroadcastSubject(content: string): {
+  subject: string | null;
+  body: string;
+} {
+  const sep = content.indexOf("\n\n");
+  if (sep <= 0) return { subject: null, body: content };
+  return { subject: content.slice(0, sep), body: content.slice(sep + 2) };
+}
+
 function MessageBubble({
   message,
   isMe,
@@ -1068,7 +1079,16 @@ function MessageBubble({
                 { color: isMe ? "#fff" : c.foreground },
               ]}
             >
-              {message.content}
+              {(() => {
+                const { subject, body } = splitBroadcastSubject(message.content);
+                if (subject === null) return message.content;
+                return (
+                  <>
+                    <Text style={{ fontWeight: "700" }}>{subject}</Text>
+                    {"\n\n" + body}
+                  </>
+                );
+              })()}
             </Text>
           </Pressable>
           {!isMe && sidekick}
