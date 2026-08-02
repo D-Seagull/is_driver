@@ -1,7 +1,7 @@
-import { Ionicons } from '@expo/vector-icons';
-import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { Ionicons } from "@expo/vector-icons";
+import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Pressable,
@@ -9,29 +9,27 @@ import {
   Text,
   TextInput,
   View,
-} from 'react-native';
+} from "react-native";
 
-import { Colors, Radius, Spacing } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { MOCK_AUTH } from '@/lib/config';
-import { useAuthStore } from '@/store/auth';
+import { Colors, Radius, Spacing } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { MOCK_AUTH } from "@/lib/config";
+import { useAuthStore } from "@/store/auth";
 
 export default function OtpScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { phone = '' } = useLocalSearchParams<{ phone?: string }>();
-  const c = Colors[useColorScheme() ?? 'light'];
+  const { phone = "" } = useLocalSearchParams<{ phone?: string }>();
+  const c = Colors[useColorScheme() ?? "light"];
   const verifyOtp = useAuthStore((s) => s.verifyOtp);
-
+  const [code, setCode] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   // If we land here without a phone (e.g. dev-mode route restore), bounce
   // back to the phone screen so the user can request a code first.
   if (!phone) {
     return <Redirect href="/(auth)/phone" />;
   }
-
-  const [code, setCode] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const canSubmit = code.length === 6 && !submitting;
 
@@ -43,10 +41,10 @@ export default function OtpScreen() {
       // Decide initial screen based on whether the driver has a truck assigned.
       // No truck → drop straight into the manager chat. With truck → Trip chat.
       const user = useAuthStore.getState().user;
-      const target = user?.currentTruck ? '/(driver)/trip' : '/(driver)/chat';
+      const target = user?.currentTruck ? "/(driver)/trip" : "/(driver)/chat";
       router.replace(target);
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('auth.errors.invalidCode'));
+      setError(e instanceof Error ? e.message : t("auth.errors.invalidCode"));
     } finally {
       setSubmitting(false);
     }
@@ -55,19 +53,23 @@ export default function OtpScreen() {
   return (
     <View style={[styles.wrap, { backgroundColor: c.background }]}>
       <View style={[styles.iconWrap, { backgroundColor: c.muted }]}>
-        <Ionicons name="shield-checkmark-outline" size={36} color={c.mutedForeground} />
+        <Ionicons
+          name="shield-checkmark-outline"
+          size={36}
+          color={c.mutedForeground}
+        />
       </View>
       <Text style={[styles.title, { color: c.foreground }]}>
-        {t('auth.otp.title')}
+        {t("auth.otp.title")}
       </Text>
       <Text style={[styles.sub, { color: c.mutedForeground }]}>
-        {t('auth.otp.subtitle', {
-          phone: phone || t('auth.otp.subtitleFallback'),
+        {t("auth.otp.subtitle", {
+          phone: phone || t("auth.otp.subtitleFallback"),
         })}
       </Text>
       <TextInput
         value={code}
-        onChangeText={(v) => setCode(v.replace(/\D/g, '').slice(0, 6))}
+        onChangeText={(v) => setCode(v.replace(/\D/g, "").slice(0, 6))}
         placeholder="••••••"
         placeholderTextColor={c.mutedForeground}
         keyboardType="number-pad"
@@ -84,7 +86,7 @@ export default function OtpScreen() {
       />
       {MOCK_AUTH && (
         <Text style={[styles.hint, { color: c.mutedForeground }]}>
-          {t('auth.otp.mockHint')}
+          {t("auth.otp.mockHint")}
         </Text>
       )}
       {error && (
@@ -106,18 +108,21 @@ export default function OtpScreen() {
           <ActivityIndicator color={c.primaryForeground} />
         ) : (
           <Text style={[styles.btnText, { color: c.primaryForeground }]}>
-            {t('auth.otp.verify')}
+            {t("auth.otp.verify")}
           </Text>
         )}
       </Pressable>
 
       <Pressable
-        onPress={() => router.replace('/(auth)/phone')}
+        onPress={() => router.replace("/(auth)/phone")}
         disabled={submitting}
-        style={({ pressed }) => [styles.linkBtn, { opacity: pressed ? 0.6 : 1 }]}
+        style={({ pressed }) => [
+          styles.linkBtn,
+          { opacity: pressed ? 0.6 : 1 },
+        ]}
       >
         <Text style={[styles.linkText, { color: c.mutedForeground }]}>
-          {t('auth.otp.changePhone')}
+          {t("auth.otp.changePhone")}
         </Text>
       </Pressable>
     </View>
@@ -135,11 +140,11 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: Spacing.sm,
   },
-  title: { fontSize: 26, fontWeight: '700' },
+  title: { fontSize: 26, fontWeight: "700" },
   sub: { fontSize: 14, marginBottom: Spacing.md },
   input: {
     borderWidth: 1,
@@ -147,16 +152,16 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     fontSize: 22,
     letterSpacing: 8,
-    textAlign: 'center',
+    textAlign: "center",
   },
-  hint: { fontSize: 12, textAlign: 'center', marginTop: -Spacing.xs },
+  hint: { fontSize: 12, textAlign: "center", marginTop: -Spacing.xs },
   error: { fontSize: 13 },
   btn: {
     paddingVertical: Spacing.md,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: Spacing.sm,
   },
-  btnText: { fontSize: 16, fontWeight: '700' },
-  linkBtn: { alignItems: 'center', paddingVertical: Spacing.sm },
-  linkText: { fontSize: 13, fontWeight: '500' },
+  btnText: { fontSize: 16, fontWeight: "700" },
+  linkBtn: { alignItems: "center", paddingVertical: Spacing.sm },
+  linkText: { fontSize: 13, fontWeight: "500" },
 });
