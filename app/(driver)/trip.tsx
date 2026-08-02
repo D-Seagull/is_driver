@@ -1453,7 +1453,9 @@ function TripInfoCard({
     <View
       style={[
         styles.card,
-        { backgroundColor: c.card, borderBottomColor: c.border },
+        // Soft muted fill so the trip/address panel reads as separate from
+        // the chat below without a hard divider.
+        { backgroundColor: c.muted, borderBottomColor: c.border },
       ]}
     >
       {/* Header row — tap to collapse */}
@@ -1474,11 +1476,13 @@ function TripInfoCard({
             </Text>
           ) : null}
         </View>
-        <Ionicons
-          name={collapsed ? "chevron-down" : "chevron-up"}
-          size={16}
-          color={c.mutedForeground}
-        />
+        <View style={[styles.collapseBtn, { backgroundColor: c.primary + "1A", borderColor: c.primary + "40" }]}>
+          <Ionicons
+            name={collapsed ? "chevron-down" : "chevron-up"}
+            size={22}
+            color={c.primary}
+          />
+        </View>
       </Pressable>
 
       {!collapsed && (
@@ -1847,6 +1851,15 @@ const styles = StyleSheet.create({
     padding: 4,
     marginLeft: 2,
     borderRadius: 6,
+  },
+  collapseBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 8,
   },
   metaText: { fontSize: 13, fontFamily: "monospace" },
   metaLabel: { fontSize: 13, fontWeight: "600" },

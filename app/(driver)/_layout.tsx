@@ -109,6 +109,20 @@ export default function DriverLayout() {
               drawerLabel: t(`nav.items.${it.name}`),
               drawerIcon: ({ color, size }) => it.renderIcon(color, size),
             }}
+            listeners={
+              it.name === "trip"
+                ? ({ navigation }) => ({
+                    // The "Trip" tab must always land on the driver's ACTIVE
+                    // trip — drop any tripId left over from opening a specific
+                    // trip via the Trips list / "next trip" strip.
+                    drawerItemPress: (e) => {
+                      e.preventDefault();
+                      navigation.navigate("trip", { tripId: undefined });
+                      navigation.closeDrawer();
+                    },
+                  })
+                : undefined
+            }
           />
         ))}
         {/* Manager card — opened by tapping the manager row in the sidebar
@@ -280,7 +294,13 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
                         { borderColor: c.sidebarBorder, backgroundColor: pressed ? c.sidebarAccent : "transparent" },
                       ]}
                       onPress={() => {
-                        props.navigation.navigate(item.isActiveTrip ? "trip" : "trips");
+                        // Active trip → open the Trip tab on the ACTIVE trip
+                        // (clear any stale tripId). Others → the Trips list.
+                        if (item.isActiveTrip) {
+                          props.navigation.navigate("trip", { tripId: undefined });
+                        } else {
+                          props.navigation.navigate("trips");
+                        }
                         setBellOpen(false);
                       }}
                     >

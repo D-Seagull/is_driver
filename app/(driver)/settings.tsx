@@ -14,6 +14,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -45,6 +46,10 @@ export default function DriverSettingsScreen() {
   const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? 'light'];
   const insets = useSafeAreaInsets();
+  // Shorter phones (e.g. Xiaomi Mi 9 SE) can't fit the whole settings page —
+  // scale spacing/sizes down so it fits without a scroll on small screens.
+  const { height: screenH } = useWindowDimensions();
+  const compact = screenH < 880;
   const user = useUser();
   const setUser = useAuthStore((s) => s.setUser);
   const logout = useAuthStore((s) => s.logout);
@@ -167,7 +172,9 @@ export default function DriverSettingsScreen() {
           // Reserve the Android nav bar so the content area ends above it.
           // With the tighter spacing below, the page fits without scrolling.
           paddingBottom:
-            Platform.OS === 'android' ? Math.max(insets.bottom, 48) : 0,
+            Platform.OS === 'android'
+              ? Math.max(insets.bottom, compact ? 12 : 48)
+              : 0,
         },
       ]}
     >
@@ -176,20 +183,28 @@ export default function DriverSettingsScreen() {
         style={{ flex: 1 }}
         contentContainerStyle={{
           flexGrow: 1,
-          padding: Spacing.md,
-          paddingBottom: Spacing.md,
-          // Tighter on Android so everything clears the nav bar without a
-          // scroll; roomier on iOS where there's more space.
-          gap: Platform.OS === 'android' ? Spacing.sm : Spacing.lg,
+          padding: compact ? Spacing.sm : Spacing.md,
+          paddingBottom: compact ? Spacing.sm : Spacing.md,
+          // Tighter on Android / small screens so everything clears the nav
+          // bar without a scroll; roomier on iOS where there's more space.
+          gap: compact
+            ? Spacing.sm
+            : Platform.OS === 'android'
+              ? Spacing.sm
+              : Spacing.lg,
         }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
         {/* ── Avatar block ─────────────────────────────────────────── */}
-        <SectionCard colors={c} title={t('settings.avatar.title')}>
+        <SectionCard colors={c} compact={compact} title={t('settings.avatar.title')}>
           <View style={styles.avatarRow}>
             <View
-              style={[styles.avatarWrap, { backgroundColor: c.muted }]}
+              style={[
+                styles.avatarWrap,
+                compact && { width: 48, height: 48, borderRadius: 24 },
+                { backgroundColor: c.muted },
+              ]}
             >
               {user?.avatar ? (
                 <Image
@@ -280,7 +295,7 @@ export default function DriverSettingsScreen() {
         </SectionCard>
 
         {/* ── Status ───────────────────────────────────────────────── */}
-        <SectionCard colors={c} title={t('settings.status.title')}>
+        <SectionCard colors={c} compact={compact} title={t('settings.status.title')}>
           <Pressable
             onPress={() => setStatusPickerOpen(true)}
             style={({ pressed }) => [
@@ -310,7 +325,7 @@ export default function DriverSettingsScreen() {
         </SectionCard>
 
         {/* ── Name fields ──────────────────────────────────────────── */}
-        <SectionCard colors={c} title={t('settings.name.title')}>
+        <SectionCard colors={c} compact={compact} title={t('settings.name.title')}>
           <View style={{ gap: Spacing.md }}>
             <FieldLabel colors={c}>{t('settings.name.first')}</FieldLabel>
             <TextInput
@@ -348,7 +363,7 @@ export default function DriverSettingsScreen() {
         </SectionCard>
 
         {/* ── Language ─────────────────────────────────────────────── */}
-        <SectionCard colors={c} title={t('settings.language.title')}>
+        <SectionCard colors={c} compact={compact} title={t('settings.language.title')}>
           <Pressable
             onPress={() => setLangPickerOpen(true)}
             style={({ pressed }) => [
@@ -527,19 +542,22 @@ function SectionCard({
   title,
   children,
   colors: c,
+  compact = false,
 }: {
   title: string;
   children: React.ReactNode;
   colors: ThemeColors;
+  compact?: boolean;
 }) {
   return (
-    <View style={{ gap: Platform.OS === 'android' ? Spacing.xs : Spacing.sm }}>
+    <View style={{ gap: compact || Platform.OS === 'android' ? Spacing.xs : Spacing.sm }}>
       <Text style={[styles.sectionTitle, { color: c.mutedForeground }]}>
         {title.toUpperCase()}
       </Text>
       <View
         style={[
           styles.sectionBody,
+          compact && { padding: Spacing.sm },
           { backgroundColor: c.card, borderColor: c.border },
         ]}
       >
