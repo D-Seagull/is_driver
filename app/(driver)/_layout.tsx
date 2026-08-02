@@ -241,9 +241,15 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
         <View style={[styles.brand, { borderBottomColor: c.sidebarBorder }]}>
           <View style={styles.brandRow}>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.brandText, { color: c.sidebarForeground }]}>
-                IS Fleet
-              </Text>
+              <Image
+                source={
+                  scheme === "dark"
+                    ? require("../../assets/images/is_logo__white.png")
+                    : require("../../assets/images/IS_logo.png")
+                }
+                style={styles.brandLogo}
+                resizeMode="contain"
+              />
               <Text style={[styles.brandSub, { color: c.mutedForeground }]}>
                 {t("nav.brandSubtitle")}
               </Text>
@@ -633,6 +639,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   brandText: { fontSize: 18, fontWeight: "700" },
+  brandLogo: { height: 38, aspectRatio: 612 / 408, alignSelf: "flex-start" },
   brandSub: { fontSize: 12, marginTop: 2 },
   themeBtn: {
     width: 36,
