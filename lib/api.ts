@@ -5,7 +5,10 @@ import { API_URL } from './config';
 export const api = axios.create({
   baseURL: API_URL,
   headers: { 'Content-Type': 'application/json' },
-  timeout: 15_000,
+  // 60s: the prod backend runs on Render free tier which sleeps after 15 min
+  // idle — the first request wakes it and can take 30-60s. A short timeout
+  // makes that first call (usually login) fail with "no connection".
+  timeout: 60_000,
 });
 
 /**

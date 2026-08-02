@@ -13,11 +13,19 @@
     "preview": {
       "distribution": "internal",
       "android": { "buildType": "apk" },
-      "ios": { "simulator": false }
+      "ios": { "simulator": false },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://is-fleet-backend.onrender.com",
+        "EXPO_PUBLIC_MOCK_AUTH": "false"
+      }
     },
     "production": {
       "autoIncrement": true,
-      "android": { "buildType": "app-bundle" }
+      "android": { "buildType": "app-bundle" },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://is-fleet-backend.onrender.com",
+        "EXPO_PUBLIC_MOCK_AUTH": "false"
+      }
     }
   },
   "submit": {
