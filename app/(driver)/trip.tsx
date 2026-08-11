@@ -11,7 +11,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as Linking from "expo-linking";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -183,6 +183,36 @@ function TripWithChat({
     : undefined;
   const insets = useSafeAreaInsets();
   const isFocused = useIsFocused();
+
+  // The "next trip" strip is a transient heads-up, not a permanent fixture:
+  // it fades in when a newly-assigned upcoming order first appears (or when
+  // the driver opens the active trip with one already queued) and fades out
+  // after a few seconds. The order stays reachable from the Trips list.
+  const [showNextStrip, setShowNextStrip] = useState(false);
+  const nextStripOpacity = useRef(new Animated.Value(0)).current;
+  const shownNextIdRef = useRef<string | null>(null);
+  const nextTripId = nextTrip?.id ?? null;
+  useEffect(() => {
+    if (!nextTripId || !isFocused) return;
+    if (shownNextIdRef.current === nextTripId) return; // already flashed this one
+    shownNextIdRef.current = nextTripId;
+    setShowNextStrip(true);
+    nextStripOpacity.setValue(0);
+    Animated.timing(nextStripOpacity, {
+      toValue: 1,
+      duration: 220,
+      useNativeDriver: true,
+    }).start();
+    const hide = setTimeout(() => {
+      Animated.timing(nextStripOpacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(({ finished }) => finished && setShowNextStrip(false));
+    }, 4000);
+    return () => clearTimeout(hide);
+  }, [nextTripId, isFocused, nextStripOpacity]);
+
   const [text, setText] = useState("");
   const [replyingTo, setReplyingTo] = useState<TripReplyTarget | null>(null);
   const [editing, setEditing] = useState<{ id: string; original: string } | null>(null);
@@ -208,6 +238,9 @@ function TripWithChat({
     messages,
     isLoading: chatLoading,
     connected,
+    loadOlder,
+    loadingOlder,
+    hasMore,
     sendMessage,
     editMessage,
     deleteMessage,
@@ -247,31 +280,29 @@ function TripWithChat({
     return items;
   }, [messages, tripDocs]);
 
+  // Keep the latest timeline in a ref so scrollToMessage can stay referentially
+  // stable (empty deps) — otherwise it changes every render and busts memo on
+  // every MessageBubble that receives it as onReplyJump.
+  const timelineRef = useRef(timeline);
+  timelineRef.current = timeline;
+
   // Jump to a replied-to message/document + briefly highlight it.
   const [highlightId, setHighlightId] = useState<string | null>(null);
-  const scrollToMessage = (targetId?: string | null) => {
+  const scrollToMessage = useCallback((targetId?: string | null) => {
     if (!targetId) return;
-    const index = timeline.findIndex((it) => it.data.id === targetId);
+    const index = timelineRef.current.findIndex((it) => it.data.id === targetId);
     if (index < 0) return; // original is older than the loaded page
     listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
     setHighlightId(targetId);
     setTimeout(() => setHighlightId((h) => (h === targetId ? null : h)), 1500);
-  };
+  }, []);
 
-  // Track keyboard so the input doesn't keep its safe-area paddingBottom
-  // while the keyboard is up (KAV already lifts the input above the keyboard;
-  // the home-indicator inset is only relevant when the keyboard is closed).
-  // Also: when the keyboard opens, snap the message list to the bottom so
-  // the last message stays visible above the input instead of getting hidden
-  // behind it.
-  const [kbOpen, setKbOpen] = useState(false);
+  // When the keyboard opens, snap the message list to the bottom so the last
+  // message stays visible above the input instead of getting hidden behind it.
   useEffect(() => {
     const showEvt =
       Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
-    const hideEvt =
-      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
     const showSub = Keyboard.addListener(showEvt, () => {
-      setKbOpen(true);
       if (nearBottomRef.current) {
         // Two passes — iOS lays out KAV padding asynchronously; without the
         // second tick the scroll lands above the new bottom.
@@ -284,10 +315,8 @@ function TripWithChat({
         );
       }
     });
-    const hideSub = Keyboard.addListener(hideEvt, () => setKbOpen(false));
     return () => {
       showSub.remove();
-      hideSub.remove();
     };
   }, []);
 
@@ -298,9 +327,15 @@ function TripWithChat({
   // • Android: the FlatList layout pass often completes AFTER this effect fires
   //   on initial load, so we skip if not yet laid out — onLayout will call
   //   the initial scroll instead once the list is ready.
+  // Tracks the newest timeline item so a length change from *prepended* older
+  // history (loadOlder) isn't mistaken for a freshly-arrived message.
+  const lastNewestIdRef = useRef<string | null>(null);
   useEffect(() => {
     if (timeline.length === 0) return;
     if (!listLaidOut.current) return; // onLayout will handle the first scroll
+    const newestId = timeline[timeline.length - 1]?.data.id ?? null;
+    const isAppend = newestId !== lastNewestIdRef.current;
+    lastNewestIdRef.current = newestId;
     if (nearBottomRef.current) {
       // User is at/near the bottom — auto-scroll to new content.
       const animated = initialScrollDone.current; // false → instant on first load
@@ -311,9 +346,10 @@ function TripWithChat({
         delay,
       );
       return () => clearTimeout(id);
-    } else if (initialScrollDone.current) {
+    } else if (initialScrollDone.current && isAppend) {
       // User has scrolled up to read history — show "↓ N new" pill instead
-      // of yanking them back down (Viber/Telegram pattern).
+      // of yanking them back down (Viber/Telegram pattern). Only for genuinely
+      // new (appended) messages — prepended history must not bump the count.
       setNewMsgCount((n) => n + 1);
     }
   }, [timeline.length]);
@@ -415,44 +451,105 @@ function TripWithChat({
     ]);
   };
 
-  const handleOpenDoc = async (doc: DriverDocument) => {
-    try {
-      await WebBrowser.openBrowserAsync(doc.signedUrl);
-    } catch (e) {
-      Alert.alert(t("documents.cannotOpen"), (e as Error).message);
-    }
-  };
+  const handleOpenDoc = useCallback(
+    async (doc: DriverDocument) => {
+      try {
+        await WebBrowser.openBrowserAsync(doc.signedUrl);
+      } catch (e) {
+        Alert.alert(t("documents.cannotOpen"), (e as Error).message);
+      }
+    },
+    [t],
+  );
+
+  // Stable long-press handlers so memoized bubbles don't re-render every time
+  // the parent re-renders (typing indicator, keyboard, new message, …).
+  const handleMsgLongPress = useCallback(
+    (m: ChatMessage) => setMsgSheetFor(m),
+    [],
+  );
+  const handleDocLongPress = useCallback(
+    (d: DriverDocument) => setDocSheetFor(d),
+    [],
+  );
+
+  // Row renderer — memoized so FlatList only re-runs it when one of these
+  // deps actually changes. Combined with memo() on the bubbles below, an
+  // unrelated parent re-render no longer touches any row.
+  const renderTimelineItem = useCallback(
+    ({ item }: { item: TimelineItem }) => {
+      if (item.kind === "msg") {
+        // System events (driver/manager changed) — Telegram-style centered
+        // grey label, no avatar/bubble.
+        if (item.data.isSystem) {
+          return <SystemNotice text={item.data.content} />;
+        }
+        const isMe = item.data.senderId === user?.id;
+        return (
+          <MessageBubble
+            message={item.data}
+            isMe={isMe}
+            currentUserId={user?.id}
+            highlighted={item.data.id === highlightId}
+            onLongPress={handleMsgLongPress}
+            onReplyJump={scrollToMessage}
+          />
+        );
+      }
+      const isMe = item.data.uploadedBy === user?.id;
+      return (
+        <DocBubble
+          doc={item.data}
+          isMe={isMe}
+          highlighted={item.data.id === highlightId}
+          onOpen={handleOpenDoc}
+          onLongPress={handleDocLongPress}
+        />
+      );
+    },
+    [
+      user?.id,
+      highlightId,
+      handleMsgLongPress,
+      handleDocLongPress,
+      handleOpenDoc,
+      scrollToMessage,
+    ],
+  );
 
   return (
     <View style={{ flex: 1 }}>
       {/* Trip info — collapses to make room for chat */}
       <TripInfoCard trip={trip} onRefresh={onRefresh} refreshing={refreshing} />
 
-      {/* Pre-assigned upcoming trip — clearly separate from the active one */}
-      {nextTrip && (
-        <Pressable
-          onPress={() =>
-            router.push({
-              pathname: "/(driver)/trip",
-              params: { tripId: nextTrip.id },
-            })
-          }
-          style={({ pressed }) => [
-            styles.nextStrip,
-            { backgroundColor: c.card, borderLeftColor: c.mutedForeground, opacity: pressed ? 0.7 : 1 },
-          ]}
-        >
-          <Ionicons name="arrow-forward" size={16} color={c.mutedForeground} />
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.nextStripTitle, { color: c.foreground }]} numberOfLines={1}>
-              {t("trip.nextTripLabel", { title: nextTrip.title })}
-            </Text>
-            <Text style={[styles.nextStripHint, { color: c.mutedForeground }]} numberOfLines={1}>
-              {t("trip.nextTripHint")}
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={16} color={c.mutedForeground} />
-        </Pressable>
+      {/* Pre-assigned upcoming trip — transient heads-up that auto-fades a
+          few seconds after it appears (order stays in the Trips list). */}
+      {showNextStrip && nextTrip && (
+        <Animated.View style={{ opacity: nextStripOpacity }}>
+          <Pressable
+            onPress={() =>
+              router.push({
+                pathname: "/(driver)/trip",
+                params: { tripId: nextTrip.id },
+              })
+            }
+            style={({ pressed }) => [
+              styles.nextStrip,
+              { backgroundColor: c.card, borderLeftColor: c.mutedForeground, opacity: pressed ? 0.7 : 1 },
+            ]}
+          >
+            <Ionicons name="arrow-forward" size={16} color={c.mutedForeground} />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.nextStripTitle, { color: c.foreground }]} numberOfLines={1}>
+                {t("trip.nextTripLabel", { title: nextTrip.title })}
+              </Text>
+              <Text style={[styles.nextStripHint, { color: c.mutedForeground }]} numberOfLines={1}>
+                {t("trip.nextTripHint")}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={c.mutedForeground} />
+          </Pressable>
+        </Animated.View>
       )}
 
       {/* Chat area */}
@@ -535,7 +632,21 @@ function TripWithChat({
                 setNewMsgCount(0);
                 markReadNow();
               }
+              // Scrolled near the top — pull the previous page of history.
+              // maintainVisibleContentPosition below keeps the viewport anchored
+              // so the prepended messages don't yank the list.
+              if (contentOffset.y < 60 && hasMore && !loadingOlder) {
+                loadOlder();
+              }
             }}
+            maintainVisibleContentPosition={{ minIndexForVisible: 1 }}
+            ListHeaderComponent={
+              loadingOlder ? (
+                <View style={{ paddingVertical: Spacing.md }}>
+                  <ActivityIndicator size="small" color={c.mutedForeground} />
+                </View>
+              ) : null
+            }
             // Called once the FlatList has been measured and is ready to
             // scroll.  On Android this fires AFTER the data useEffect, so
             // we do the initial scroll here if it hasn't happened yet.
@@ -577,36 +688,8 @@ function TripWithChat({
             automaticallyAdjustContentInsets={false}
             contentInsetAdjustmentBehavior="never"
             onScrollToIndexFailed={() => {}}
-            renderItem={({ item }) => {
-              if (item.kind === "msg") {
-                // System events (driver/manager changed) — Telegram-style
-                // centered grey label, no avatar/bubble.
-                if (item.data.isSystem) {
-                  return <SystemNotice text={item.data.content} />;
-                }
-                const isMe = item.data.senderId === user?.id;
-                return (
-                  <MessageBubble
-                    message={item.data}
-                    isMe={isMe}
-                    currentUserId={user?.id}
-                    highlighted={item.data.id === highlightId}
-                    onLongPress={() => setMsgSheetFor(item.data)}
-                    onReplyJump={scrollToMessage}
-                  />
-                );
-              }
-              const isMe = item.data.uploadedBy === user?.id;
-              return (
-                <DocBubble
-                  doc={item.data}
-                  isMe={isMe}
-                  highlighted={item.data.id === highlightId}
-                  onOpen={() => handleOpenDoc(item.data)}
-                  onLongPress={() => setDocSheetFor(item.data)}
-                />
-              );
-            }}
+            extraData={highlightId}
+            renderItem={renderTimelineItem}
           />
         )}
         {/* "↓ N new" pill — absolute overlay at the bottom of chatWrap (just
@@ -646,8 +729,10 @@ function TripWithChat({
       )}
 
       {/* Input bar — moved OUT of chatWrap so the FlatList's iOS scroll-content
-          rect can never extend over the TextInput's hit area.
-          paddingBottom: safe area when keyboard closed, small when keyboard open. */}
+          rect can never extend over the TextInput's hit area. paddingBottom
+          always clears the safe area / Android nav bar so the input stays
+          pinned to the very bottom on every device (the KAV lifts it above
+          the keyboard when open). */}
       {!isActiveDriver ? (
         <View
           style={[
@@ -655,9 +740,7 @@ function TripWithChat({
             {
               backgroundColor: c.card,
               borderTopColor: c.border,
-              paddingBottom: kbOpen
-                ? Spacing.sm
-                : Math.max(insets.bottom, Spacing.sm),
+              paddingBottom: Math.max(insets.bottom, Spacing.sm),
               justifyContent: "center",
             },
           ]}
@@ -717,9 +800,7 @@ function TripWithChat({
               {
                 backgroundColor: c.card,
                 borderTopColor: c.border,
-                paddingBottom: kbOpen
-                  ? Spacing.sm
-                  : Math.max(insets.bottom, Spacing.sm),
+                paddingBottom: Math.max(insets.bottom, Spacing.sm),
               },
             ]}
           >
@@ -941,7 +1022,7 @@ function TypingDots({ color }: { color: string }) {
 
 // ─── System notice (driver/manager changed) ───────────────────────────────
 
-function SystemNotice({ text }: { text: string }) {
+const SystemNotice = memo(function SystemNotice({ text }: { text: string }) {
   const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? "light"];
   return (
@@ -956,7 +1037,7 @@ function SystemNotice({ text }: { text: string }) {
       </Text>
     </View>
   );
-}
+});
 
 // ─── Message bubble ───────────────────────────────────────────────────────────
 
@@ -971,7 +1052,7 @@ function splitBroadcastSubject(content: string): {
   return { subject: content.slice(0, sep), body: content.slice(sep + 2) };
 }
 
-function MessageBubble({
+const MessageBubble = memo(function MessageBubble({
   message,
   isMe,
   currentUserId,
@@ -983,7 +1064,7 @@ function MessageBubble({
   isMe: boolean;
   currentUserId?: string;
   highlighted?: boolean;
-  onLongPress?: () => void;
+  onLongPress?: (m: ChatMessage) => void;
   onReplyJump: (targetId: string) => void;
 }) {
   const { t } = useTranslation();
@@ -1034,7 +1115,7 @@ function MessageBubble({
         <View style={styles.bubbleInlineRow}>
           {isMe && sidekick}
           <Pressable
-            onLongPress={onLongPress}
+            onLongPress={onLongPress ? () => onLongPress(message) : undefined}
             delayLongPress={350}
             style={[
               styles.bubble,
@@ -1116,7 +1197,7 @@ function MessageBubble({
       </View>
     </View>
   );
-}
+});
 
 // ─── Trip docs modal (folder button → tabs) ─────────────────────────────────
 
@@ -1310,7 +1391,7 @@ function TripDocsModal({
 
 // ─── Doc bubble (inline file in chat timeline) ──────────────────────────────
 
-function DocBubble({
+const DocBubble = memo(function DocBubble({
   doc,
   isMe,
   highlighted,
@@ -1320,8 +1401,8 @@ function DocBubble({
   doc: DriverDocument;
   isMe: boolean;
   highlighted?: boolean;
-  onOpen: () => void;
-  onLongPress?: () => void;
+  onOpen: (d: DriverDocument) => void;
+  onLongPress?: (d: DriverDocument) => void;
 }) {
   const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? "light"];
@@ -1359,8 +1440,8 @@ function DocBubble({
           </Text>
         )}
         <Pressable
-          onPress={onOpen}
-          onLongPress={onLongPress}
+          onPress={() => onOpen(doc)}
+          onLongPress={onLongPress ? () => onLongPress(doc) : undefined}
           delayLongPress={350}
           style={
             highlighted
@@ -1430,7 +1511,7 @@ function DocBubble({
       </View>
     </View>
   );
-}
+});
 
 // ─── Trip info card (collapsible) ────────────────────────────────────────────
 

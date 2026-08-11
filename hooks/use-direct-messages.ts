@@ -1,9 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { api } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
 import { useAuthStore } from '@/store/auth';
+
+// History page size — matches the backend default `take` for direct messages.
+const DM_PAGE_SIZE = 50;
 
 // ─── Reply previews (shared shape between message and document quotes) ────
 
@@ -109,6 +112,66 @@ export function useDirectMessages(otherUserId: string) {
     },
     enabled: !!otherUserId,
   });
+}
+
+/**
+ * Older-history pagination for a DM conversation. Reads the current message
+ * cache, fetches the page just before the oldest one we hold, and merges it in
+ * (the screen's timeline re-sorts by date, so order of insertion doesn't
+ * matter). `hasMore` flips off once a short page comes back.
+ *
+ * Kept separate from `useDirectMessages` (which owns the latest page + socket
+ * merges) so the initial load and the live cache stay untouched.
+ */
+export function useLoadOlderDirectMessages(otherUserId: string) {
+  const qc = useQueryClient();
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const loadingRef = useRef(false);
+
+  // Fresh pagination state whenever the conversation changes.
+  useEffect(() => {
+    setHasMore(true);
+    setLoadingOlder(false);
+    loadingRef.current = false;
+  }, [otherUserId]);
+
+  const loadOlder = useCallback(async () => {
+    if (!otherUserId || loadingRef.current || !hasMore) return;
+    const current =
+      qc.getQueryData<DirectMessage[]>(dmKeys.messages(otherUserId)) ?? [];
+    if (current.length === 0) return;
+    const oldest = current.reduce((a, b) =>
+      new Date(a.createdAt).getTime() <= new Date(b.createdAt).getTime() ? a : b,
+    );
+    loadingRef.current = true;
+    setLoadingOlder(true);
+    try {
+      const res = await api.get<DirectMessage[]>(
+        `/direct-messages/${otherUserId}`,
+        { params: { before: oldest.createdAt, take: DM_PAGE_SIZE } },
+      );
+      const older = res.data ?? [];
+      if (older.length > 0) {
+        qc.setQueryData<DirectMessage[]>(
+          dmKeys.messages(otherUserId),
+          (prev = []) => {
+            const seen = new Set(prev.map((m) => m.id));
+            const fresh = older.filter((m) => !seen.has(m.id));
+            return fresh.length ? [...fresh, ...prev] : prev;
+          },
+        );
+      }
+      if (older.length < DM_PAGE_SIZE) setHasMore(false);
+    } catch (e) {
+      console.warn('[dm] loadOlder failed', e);
+    } finally {
+      loadingRef.current = false;
+      setLoadingOlder(false);
+    }
+  }, [otherUserId, hasMore, qc]);
+
+  return { loadOlder, loadingOlder, hasMore };
 }
 
 export function useChatUser(userId: string) {

@@ -43,6 +43,7 @@ import {
   useDeleteDirectMessage,
   useDirectMessages,
   useEditDirectMessage,
+  useLoadOlderDirectMessages,
   type DirectMessage,
 } from '@/hooks/use-direct-messages';
 import { useReactionsSocketSync } from '@/hooks/use-message-reactions';
@@ -101,6 +102,7 @@ export default function DmScreen() {
   // ─── Data ──────────────────────────────────────────────────────────
   const { data: peer } = useChatUser(peerId);
   const { data: messages = [], isLoading } = useDirectMessages(peerId);
+  const { loadOlder, loadingOlder, hasMore } = useLoadOlderDirectMessages(peerId);
   const { data: documents = [] } = useConversationDocuments(peerId);
   const deleteMsg = useDeleteDirectMessage();
   const editMsg = useEditDirectMessage(peerId);
@@ -354,6 +356,20 @@ export default function DmScreen() {
           inverted
           contentContainerStyle={{ paddingVertical: Spacing.sm }}
           onScrollToIndexFailed={() => {}}
+          // Inverted list → reaching the "end" is the visual top: pull the
+          // previous page of history. The footer (rendered at the top of an
+          // inverted list) shows the loading spinner.
+          onEndReachedThreshold={0.3}
+          onEndReached={() => {
+            if (hasMore && !loadingOlder) loadOlder();
+          }}
+          ListFooterComponent={
+            loadingOlder ? (
+              <View style={{ paddingVertical: Spacing.md }}>
+                <ActivityIndicator size="small" color={c.mutedForeground} />
+              </View>
+            ) : null
+          }
           renderItem={({ item }) =>
             item.kind === 'msg' ? (
               <MessageBubble

@@ -40,6 +40,7 @@ import {
   useDeleteGroupMessage,
   useEditGroupMessage,
   useGroupMessages,
+  useLoadOlderGroupMessages,
   useMarkGroupRead,
   type GroupMessage,
 } from '@/hooks/use-groups';
@@ -89,6 +90,7 @@ export default function GroupChatScreen() {
 
   // ─── Data ──────────────────────────────────────────────────────────
   const { data: messages = [], isLoading } = useGroupMessages(groupId);
+  const { loadOlder, loadingOlder, hasMore } = useLoadOlderGroupMessages(groupId);
   const { data: documents = [] } = useGroupDocuments(groupId);
   const deleteMsg = useDeleteGroupMessage();
   const editMsg = useEditGroupMessage(groupId);
@@ -321,6 +323,18 @@ export default function GroupChatScreen() {
           inverted
           contentContainerStyle={{ paddingVertical: Spacing.sm }}
           onScrollToIndexFailed={() => {}}
+          // Inverted list → the "end" is the visual top: pull older history.
+          onEndReachedThreshold={0.3}
+          onEndReached={() => {
+            if (hasMore && !loadingOlder) loadOlder();
+          }}
+          ListFooterComponent={
+            loadingOlder ? (
+              <View style={{ paddingVertical: Spacing.md }}>
+                <ActivityIndicator size="small" color={c.mutedForeground} />
+              </View>
+            ) : null
+          }
           renderItem={({ item }) =>
             item.kind === 'msg' ? (
               <GroupBubble

@@ -1,6 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { api } from '@/lib/api';
+
+// History page size — matches the backend default `take` for group messages.
+const GROUP_PAGE_SIZE = 50;
 
 import type {
   DocReplyPreviewLite,
@@ -131,6 +135,61 @@ export function useGroupMessages(groupId: string) {
     },
     enabled: !!groupId,
   });
+}
+
+/**
+ * Older-history pagination for a group chat — mirror of
+ * `useLoadOlderDirectMessages`. Reads the cache, fetches the page before the
+ * oldest held message, and merges it in (the screen re-sorts by date).
+ * `hasMore` flips off once a short page comes back.
+ */
+export function useLoadOlderGroupMessages(groupId: string) {
+  const qc = useQueryClient();
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const loadingRef = useRef(false);
+
+  useEffect(() => {
+    setHasMore(true);
+    setLoadingOlder(false);
+    loadingRef.current = false;
+  }, [groupId]);
+
+  const loadOlder = useCallback(async () => {
+    if (!groupId || loadingRef.current || !hasMore) return;
+    const current =
+      qc.getQueryData<GroupMessage[]>(groupKeys.messages(groupId)) ?? [];
+    if (current.length === 0) return;
+    const oldest = current.reduce((a, b) =>
+      new Date(a.createdAt).getTime() <= new Date(b.createdAt).getTime() ? a : b,
+    );
+    loadingRef.current = true;
+    setLoadingOlder(true);
+    try {
+      const res = await api.get<GroupMessage[]>(`/group-messages/${groupId}`, {
+        params: { before: oldest.createdAt, take: GROUP_PAGE_SIZE },
+      });
+      const older = res.data ?? [];
+      if (older.length > 0) {
+        qc.setQueryData<GroupMessage[]>(
+          groupKeys.messages(groupId),
+          (prev = []) => {
+            const seen = new Set(prev.map((m) => m.id));
+            const fresh = older.filter((m) => !seen.has(m.id));
+            return fresh.length ? [...fresh, ...prev] : prev;
+          },
+        );
+      }
+      if (older.length < GROUP_PAGE_SIZE) setHasMore(false);
+    } catch (e) {
+      console.warn('[group] loadOlder failed', e);
+    } finally {
+      loadingRef.current = false;
+      setLoadingOlder(false);
+    }
+  }, [groupId, hasMore, qc]);
+
+  return { loadOlder, loadingOlder, hasMore };
 }
 
 // Reference preserved so the import is used downstream even when only msg

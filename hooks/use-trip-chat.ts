@@ -1,5 +1,8 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+// History page size — matches the backend default `take` for trip messages.
+const PAGE_SIZE = 50;
 
 import { documentKeys } from '@/hooks/use-documents';
 import { deleteDocument, DriverDocument } from '@/lib/documents-api';
@@ -67,6 +70,17 @@ export function useTripChat(
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
+  // Older-history pagination. `hasMore` flips off once a page comes back
+  // shorter than PAGE_SIZE (we've reached the start of the conversation).
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const loadingOlderRef = useRef(false);
+  // Latest messages snapshot for loadOlder's cursor, without re-creating the
+  // callback on every new message.
+  const messagesRef = useRef<ChatMessage[]>([]);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
   // Map<userId, displayName> — who's currently typing in this trip.
   const [typers, setTypers] = useState<Map<string, string>>(new Map());
   const typerTimeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
@@ -96,23 +110,30 @@ export function useTripChat(
     focusedRef.current = isFocused;
   }, [isFocused]);
 
-  // Filter: own + manager messages only
-  const visible = messages.filter(
-    (m) => m.senderId === myId || m.sender.role !== 'DRIVER',
+  // Filter: own + manager messages only. Memoized so the returned array keeps
+  // a stable reference between renders — otherwise the consumer's `timeline`
+  // useMemo re-runs every render and defeats memo() on the message rows.
+  const visible = useMemo(
+    () =>
+      messages.filter(
+        (m) => m.senderId === myId || m.sender.role !== 'DRIVER',
+      ),
+    [messages, myId],
   );
 
   useEffect(() => {
     if (!tripId) return;
     let cancelled = false;
 
-    // Reset seen-IDs when we switch trips
+    // Reset seen-IDs + pagination when we switch trips
     seenIds.current.clear();
+    setHasMore(true);
 
     // ── Load history ────────────────────────────────────────────────────────
     setIsLoading(true);
     setError(null);
     const tFetchStart = Date.now();
-    fetchTripMessages(tripId)
+    fetchTripMessages(tripId, { take: PAGE_SIZE })
       .then((h: ChatMessage[]) => {
         const dt = Date.now() - tFetchStart;
         console.log(`[chat] fetchTripMessages ${tripId} → ${dt}ms (${h.length} msgs)`);
@@ -120,6 +141,8 @@ export function useTripChat(
           // Pre-populate seen set so real-time events don't duplicate history
           h.forEach((m) => seenIds.current.add(m.id));
           setMessages(h);
+          // Fewer than a full page → we're already at the conversation start.
+          setHasMore(h.length >= PAGE_SIZE);
         }
       })
       .catch((e) => { if (!cancelled) setError(e?.message ?? 'Failed to load messages'); })
@@ -437,11 +460,44 @@ export function useTripChat(
     }
   };
 
+  // ── Load older history (scroll-to-top pagination) ────────────────────────
+  // Fetches the page of messages just before the oldest one we hold and
+  // prepends it. Guarded by a ref so overlapping scroll events can't fire
+  // two concurrent fetches.
+  const loadOlder = useCallback(async () => {
+    if (!tripId || loadingOlderRef.current || !hasMore) return;
+    const oldest = messagesRef.current[0];
+    if (!oldest) return;
+    loadingOlderRef.current = true;
+    setLoadingOlder(true);
+    try {
+      const older: ChatMessage[] = await fetchTripMessages(tripId, {
+        before: oldest.createdAt,
+        take: PAGE_SIZE,
+      });
+      const fresh = older.filter((m) => !seenIds.current.has(m.id));
+      fresh.forEach((m) => seenIds.current.add(m.id));
+      if (fresh.length > 0) setMessages((prev) => [...fresh, ...prev]);
+      if (older.length < PAGE_SIZE) setHasMore(false);
+    } catch (e) {
+      console.warn('[chat] loadOlder failed', e);
+    } finally {
+      loadingOlderRef.current = false;
+      setLoadingOlder(false);
+    }
+  }, [tripId, hasMore]);
+
   return {
     messages: visible,
     isLoading,
     error,
     connected,
+    /** Fetch + prepend the previous page of history (scroll-to-top). */
+    loadOlder,
+    /** True while a loadOlder() page is in flight. */
+    loadingOlder,
+    /** False once the very first message has been loaded. */
+    hasMore,
     sendMessage,
     editMessage,
     deleteMessage,

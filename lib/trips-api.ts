@@ -16,8 +16,16 @@ export async function fetchTrip(id: string): Promise<Trip> {
   return data;
 }
 
-export async function fetchTripMessages(id: string) {
-  const { data } = await api.get(`/trips/${id}/messages`);
+export async function fetchTripMessages(
+  id: string,
+  opts?: { before?: string; take?: number },
+) {
+  const { data } = await api.get(`/trips/${id}/messages`, {
+    params: {
+      ...(opts?.before ? { before: opts.before } : {}),
+      ...(opts?.take ? { take: opts.take } : {}),
+    },
+  });
   return data;
 }
 
