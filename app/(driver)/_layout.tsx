@@ -1,9 +1,7 @@
-import React from "react";
-import { useTranslation } from "react-i18next";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { fullName, initials } from "@/lib/format";
-import { StatusDot } from "@/components/status-dot";
 import { PresenceStatusSheet } from "@/components/presence-status-sheet";
+import { StatusDot } from "@/components/status-dot";
+import { fullName, initials } from "@/lib/format";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import {
   DrawerContentComponentProps,
   DrawerContentScrollView,
@@ -11,6 +9,8 @@ import {
 } from "@react-navigation/drawer";
 import { Redirect, router } from "expo-router";
 import { Drawer } from "expo-router/drawer";
+import React from "react";
+import { useTranslation } from "react-i18next";
 import {
   Image,
   Pressable,
@@ -21,21 +21,25 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Colors, Radius, Spacing, ThemeColors } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useThemeMode } from "@/hooks/use-theme";
-import { useDriverTruck, useTruckChangedSync } from "@/hooks/use-truck";
-import { useTripsSync } from "@/hooks/use-trips";
-import { useChatSound } from "@/hooks/use-chat-sound";
-import { useDriverUnread, useDriverUnreadSync } from "@/hooks/use-driver-unread";
-import { useConversations, useDmUnreadSync } from "@/hooks/use-direct-messages";
-import { usePushNotifications } from "@/hooks/use-push-notifications";
-import { useTimezoneSync } from "@/hooks/use-timezone-sync";
-import { useAppStatePresence } from "@/hooks/use-app-state-presence";
-import { useUserStatusSync } from "@/hooks/use-user-status-sync";
-import { usePresenceSync } from "@/hooks/use-presence";
-import { PushNoticeOverlay } from "@/components/push-notice-overlay";
+import { NextTripOverlay } from "@/components/next-trip-overlay";
 import { NotificationBell } from "@/components/notification-bell";
+import { PushNoticeOverlay } from "@/components/push-notice-overlay";
+import { Colors, Radius, Spacing, ThemeColors } from "@/constants/theme";
+import { useAppStatePresence } from "@/hooks/use-app-state-presence";
+import { useChatSound } from "@/hooks/use-chat-sound";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useConversations, useDmUnreadSync } from "@/hooks/use-direct-messages";
+import {
+  useDriverUnread,
+  useDriverUnreadSync,
+} from "@/hooks/use-driver-unread";
+import { usePresenceSync } from "@/hooks/use-presence";
+import { usePushNotifications } from "@/hooks/use-push-notifications";
+import { useThemeMode } from "@/hooks/use-theme";
+import { useTimezoneSync } from "@/hooks/use-timezone-sync";
+import { useTripsSync } from "@/hooks/use-trips";
+import { useDriverTruck, useTruckChangedSync } from "@/hooks/use-truck";
+import { useUserStatusSync } from "@/hooks/use-user-status-sync";
 import { systemMessageText } from "@/lib/system-message";
 import { useAuthStore, useUser } from "@/store/auth";
 
@@ -174,6 +178,9 @@ export default function DriverLayout() {
       </Drawer>
       {/* Foreground push notifications render here (Modal portals over UI). */}
       <PushNoticeOverlay />
+      {/* Hand-off popup when the current trip is delivered and a next order
+          is queued — announces it with OK → ACCEPTED + opens it. */}
+      <NextTripOverlay />
     </>
   );
 }
@@ -186,7 +193,8 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
   const currentRoute = props.state.routeNames[props.state.index];
   const { data: truck } = useDriverTruck();
   const { data: unread, refetch: refetchUnread } = useDriverUnread();
-  const { data: conversations, refetch: refetchConversations } = useConversations();
+  const { data: conversations, refetch: refetchConversations } =
+    useConversations();
   useDriverUnreadSync();
   useDmUnreadSync();
   useTruckChangedSync();
@@ -250,9 +258,6 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
                 style={styles.brandLogo}
                 resizeMode="contain"
               />
-              <Text style={[styles.brandSub, { color: c.mutedForeground }]}>
-                {t("nav.brandSubtitle")}
-              </Text>
             </View>
             {/* Bell button */}
             <Pressable
@@ -261,7 +266,8 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
               style={({ pressed }) => [
                 styles.bellBtn,
                 {
-                  backgroundColor: pressed || bellOpen ? c.sidebarAccent : "transparent",
+                  backgroundColor:
+                    pressed || bellOpen ? c.sidebarAccent : "transparent",
                   borderColor: c.sidebarBorder,
                   borderRadius: Radius.md,
                 },
@@ -285,9 +291,16 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
 
           {/* ── Bell preview panel ── */}
           {bellOpen && (
-            <View style={[styles.bellPreview, { backgroundColor: c.card, borderColor: c.sidebarBorder }]}>
+            <View
+              style={[
+                styles.bellPreview,
+                { backgroundColor: c.card, borderColor: c.sidebarBorder },
+              ]}
+            >
               {unreadItems.length === 0 && dmItems.length === 0 ? (
-                <Text style={[styles.bellEmptyText, { color: c.mutedForeground }]}>
+                <Text
+                  style={[styles.bellEmptyText, { color: c.mutedForeground }]}
+                >
                   {t("nav.noUnread")}
                 </Text>
               ) : (
@@ -297,13 +310,20 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
                       key={item.tripId}
                       style={({ pressed }) => [
                         styles.bellItem,
-                        { borderColor: c.sidebarBorder, backgroundColor: pressed ? c.sidebarAccent : "transparent" },
+                        {
+                          borderColor: c.sidebarBorder,
+                          backgroundColor: pressed
+                            ? c.sidebarAccent
+                            : "transparent",
+                        },
                       ]}
                       onPress={() => {
                         // Active trip → open the Trip tab on the ACTIVE trip
                         // (clear any stale tripId). Others → the Trips list.
                         if (item.isActiveTrip) {
-                          props.navigation.navigate("trip", { tripId: undefined });
+                          props.navigation.navigate("trip", {
+                            tripId: undefined,
+                          });
                         } else {
                           props.navigation.navigate("trips");
                         }
@@ -311,16 +331,32 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
                       }}
                     >
                       <View style={styles.bellItemRow}>
-                        <Text style={[styles.bellItemTitle, { color: c.sidebarForeground }]} numberOfLines={1}>
+                        <Text
+                          style={[
+                            styles.bellItemTitle,
+                            { color: c.sidebarForeground },
+                          ]}
+                          numberOfLines={1}
+                        >
                           {item.tripTitle}
                         </Text>
                         <View style={styles.bellItemBadge}>
-                          <Text style={styles.bellItemBadgeText}>{item.unread}</Text>
+                          <Text style={styles.bellItemBadgeText}>
+                            {item.unread}
+                          </Text>
                         </View>
                       </View>
                       {item.latestMessage && (
-                        <Text style={[styles.bellItemMsg, { color: c.mutedForeground }]} numberOfLines={1}>
-                          <Text style={{ fontWeight: "600" }}>{item.latestMessage.senderName}: </Text>
+                        <Text
+                          style={[
+                            styles.bellItemMsg,
+                            { color: c.mutedForeground },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          <Text style={{ fontWeight: "600" }}>
+                            {item.latestMessage.senderName}:{" "}
+                          </Text>
                           {systemMessageText(item.latestMessage.content, t)}
                         </Text>
                       )}
@@ -331,7 +367,12 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
                       key={`dm-${conv.user.id}`}
                       style={({ pressed }) => [
                         styles.bellItem,
-                        { borderColor: c.sidebarBorder, backgroundColor: pressed ? c.sidebarAccent : "transparent" },
+                        {
+                          borderColor: c.sidebarBorder,
+                          backgroundColor: pressed
+                            ? c.sidebarAccent
+                            : "transparent",
+                        },
                       ]}
                       onPress={() => {
                         router.push(`/(driver)/dm/${conv.user.id}` as never);
@@ -339,17 +380,32 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
                       }}
                     >
                       <View style={styles.bellItemRow}>
-                        <Text style={[styles.bellItemTitle, { color: c.sidebarForeground }]} numberOfLines={1}>
+                        <Text
+                          style={[
+                            styles.bellItemTitle,
+                            { color: c.sidebarForeground },
+                          ]}
+                          numberOfLines={1}
+                        >
                           {fullName(conv.user) || t("nav.chatFallback")}
                         </Text>
                         <View style={styles.bellItemBadge}>
-                          <Text style={styles.bellItemBadgeText}>{conv.unreadCount}</Text>
+                          <Text style={styles.bellItemBadgeText}>
+                            {conv.unreadCount}
+                          </Text>
                         </View>
                       </View>
-                      <Text style={[styles.bellItemMsg, { color: c.mutedForeground }]} numberOfLines={1}>
+                      <Text
+                        style={[
+                          styles.bellItemMsg,
+                          { color: c.mutedForeground },
+                        ]}
+                        numberOfLines={1}
+                      >
                         {conv.lastMessage?.deletedAt
                           ? t("common.messageDeleted")
-                          : conv.lastMessage?.content || t("nav.fileAttachment")}
+                          : conv.lastMessage?.content ||
+                            t("nav.fileAttachment")}
                       </Text>
                     </Pressable>
                   ))}
@@ -364,9 +420,13 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
           const focused = currentRoute === it.name;
           const tint = focused ? c.sidebarPrimary : c.sidebarForeground;
           const badge =
-            it.name === "trip" ? activeTripUnread :
-            it.name === "trips" ? pastTripsUnread :
-            it.name === "chat" ? dmUnreadTotal : 0;
+            it.name === "trip"
+              ? activeTripUnread
+              : it.name === "trips"
+                ? pastTripsUnread
+                : it.name === "chat"
+                  ? dmUnreadTotal
+                  : 0;
           return (
             <Pressable
               key={it.name}
@@ -380,14 +440,12 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
                   backgroundColor: focused
                     ? c.sidebarAccent
                     : pressed
-                    ? c.sidebarAccent + "80"
-                    : "transparent",
+                      ? c.sidebarAccent + "80"
+                      : "transparent",
                 },
               ]}
             >
-              <View style={styles.itemIconSlot}>
-                {it.renderIcon(tint, 22)}
-              </View>
+              <View style={styles.itemIconSlot}>{it.renderIcon(tint, 22)}</View>
               <Text
                 style={[
                   styles.navLabel,
@@ -456,12 +514,17 @@ function DriverFooter({ colors: c }: { colors: ThemeColors }) {
             { backgroundColor: pressed ? c.sidebarAccent : "transparent" },
           ]}
         >
-          <View style={{ position: 'relative' }}>
+          <View style={{ position: "relative" }}>
             <View style={[styles.avatarLg, { backgroundColor: c.muted }]}>
               {user?.avatar ? (
-                <Image source={{ uri: user.avatar }} style={styles.avatarLgImg} />
+                <Image
+                  source={{ uri: user.avatar }}
+                  style={styles.avatarLgImg}
+                />
               ) : (
-                <Text style={[styles.avatarLgText, { color: c.mutedForeground }]}>
+                <Text
+                  style={[styles.avatarLgText, { color: c.mutedForeground }]}
+                >
                   {peerInitials}
                 </Text>
               )}
@@ -499,7 +562,11 @@ function DriverFooter({ colors: c }: { colors: ThemeColors }) {
             },
           ]}
         >
-          <Ionicons name="settings-outline" size={20} color={c.mutedForeground} />
+          <Ionicons
+            name="settings-outline"
+            size={20}
+            color={c.mutedForeground}
+          />
         </Pressable>
       </View>
       <PresenceStatusSheet
@@ -546,7 +613,7 @@ function ManagerRow({
     name: string;
     phone: string;
     avatar: string | null;
-    status: 'ONLINE' | 'BUSY' | 'AWAY' | 'SLEEP' | 'VACATION' | null;
+    status: "ONLINE" | "BUSY" | "AWAY" | "SLEEP" | "VACATION" | null;
     statusUntil: string | null;
   };
   colors: ThemeColors;
@@ -563,7 +630,7 @@ function ManagerRow({
         },
       ]}
     >
-      <View style={{ position: 'relative' }}>
+      <View style={{ position: "relative" }}>
         <View style={[styles.avatarSm, { backgroundColor: c.muted }]}>
           {person.avatar ? (
             <Image source={{ uri: person.avatar }} style={styles.avatarImg} />
@@ -639,7 +706,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   brandText: { fontSize: 18, fontWeight: "700" },
-  brandLogo: { height: 38, aspectRatio: 612 / 408, alignSelf: "flex-start" },
+  brandLogo: { height: 50, aspectRatio: 612 / 408, alignSelf: "flex-start" },
   brandSub: { fontSize: 12, marginTop: 2 },
   themeBtn: {
     width: 36,
@@ -687,16 +754,24 @@ const styles = StyleSheet.create({
   itemBadgeText: { color: "#fff", fontSize: 11, fontWeight: "700" },
   // Bell button
   bellBtn: {
-    width: 36, height: 36,
-    alignItems: "center", justifyContent: "center",
+    width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: StyleSheet.hairlineWidth,
     position: "relative",
   },
   bellBadge: {
-    position: "absolute", top: 2, right: 2,
-    minWidth: 14, height: 14, borderRadius: 7,
+    position: "absolute",
+    top: 2,
+    right: 2,
+    minWidth: 14,
+    height: 14,
+    borderRadius: 7,
     backgroundColor: "#f87171",
-    alignItems: "center", justifyContent: "center", paddingHorizontal: 2,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 2,
   },
   bellBadgeText: { color: "#fff", fontSize: 8, fontWeight: "700" },
   // Bell preview panel
@@ -706,7 +781,11 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
     overflow: "hidden",
   },
-  bellEmptyText: { fontSize: 13, textAlign: "center", paddingVertical: Spacing.md },
+  bellEmptyText: {
+    fontSize: 13,
+    textAlign: "center",
+    paddingVertical: Spacing.md,
+  },
   bellItem: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
@@ -716,9 +795,13 @@ const styles = StyleSheet.create({
   bellItemRow: { flexDirection: "row", alignItems: "center", gap: Spacing.sm },
   bellItemTitle: { flex: 1, fontSize: 13, fontWeight: "600" },
   bellItemBadge: {
-    minWidth: 18, height: 18, borderRadius: 9,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
     backgroundColor: "#f87171",
-    alignItems: "center", justifyContent: "center", paddingHorizontal: 4,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
   },
   bellItemBadgeText: { color: "#fff", fontSize: 10, fontWeight: "700" },
   bellItemMsg: { fontSize: 12 },

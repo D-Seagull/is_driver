@@ -158,6 +158,10 @@
     "chatLabel": "Чат рейсу",
     "nextTripLabel": "Наступний: {{title}}",
     "nextTripHint": "Стане активним після завершення поточного",
+    "nextAssigned": {
+      "title": "Вам призначено наступне замовлення",
+      "loadingAt": "Завантаження: {{address}}"
+    },
     "online": "онлайн",
     "connecting": "під'єднання…",
     "newCount_one": "{{count}} нове",
@@ -278,7 +282,6 @@
     },
     "manager": "Менеджер",
     "groups": "Групи",
-    "brandSubtitle": "Водій",
     "noUnread": "Немає непрочитаних",
     "chatFallback": "Чат",
     "driverFallback": "Водій",

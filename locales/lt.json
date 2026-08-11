@@ -158,6 +158,10 @@
     "chatLabel": "Reiso pokalbis",
     "nextTripLabel": "Kitas: {{title}}",
     "nextTripHint": "Taps aktyvus, kai bus baigtas dabartinis",
+    "nextAssigned": {
+      "title": "Jums priskirtas kitas užsakymas",
+      "loadingAt": "Pakrovimas: {{address}}"
+    },
     "online": "prisijungęs",
     "connecting": "jungiamasi…",
     "newCount_one": "{{count}} nauja",
@@ -278,7 +282,6 @@
     },
     "manager": "Vadovas",
     "groups": "Grupės",
-    "brandSubtitle": "Vairuotojas",
     "noUnread": "Nėra neperskaitytų",
     "chatFallback": "Pokalbiai",
     "driverFallback": "Vairuotojas",

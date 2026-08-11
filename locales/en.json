@@ -157,6 +157,10 @@
     "chatLabel": "Trip chat",
     "nextTripLabel": "Next: {{title}}",
     "nextTripHint": "Becomes active once the current one is finished",
+    "nextAssigned": {
+      "title": "You've been assigned the next order",
+      "loadingAt": "Loading: {{address}}"
+    },
     "online": "online",
     "connecting": "connecting…",
     "newCount_one": "{{count}} new",
@@ -275,7 +279,6 @@
     },
     "manager": "Manager",
     "groups": "Groups",
-    "brandSubtitle": "Driver",
     "noUnread": "No unread messages",
     "chatFallback": "Chat",
     "driverFallback": "Driver",

@@ -21,6 +21,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { tripKeys } from '@/hooks/use-trips';
 import { truckKeys } from '@/hooks/use-truck';
 import { updateDriverTripStatus } from '@/lib/trips-api';
+import { Trip } from '@/lib/types';
 import { playAlarmSound } from '@/lib/sounds';
 
 interface Notice {
@@ -107,6 +108,20 @@ export function PushNoticeOverlay() {
       // Alarm chime — only for ALARM type so we don't make noise on other
       // pushes (trip assignment, truck reassign).
       if (payload?.type === 'ALARM') playAlarmSound();
+
+      // A freshly created NEW_TRIP shouldn't pop while the driver is mid-trip —
+      // OK would prematurely ACCEPT the next order. Defer the announcement to
+      // the delivery hand-off (NextTripOverlay); the list already refreshed
+      // above, so the new order still shows up in the Trips list / "next" strip.
+      if (payload?.type === 'NEW_TRIP') {
+        const active = qc.getQueryData<Trip | null>(tripKeys.active());
+        if (
+          active &&
+          ['ACCEPTED', 'ON_WAY', 'ON_SITE', 'LOADED'].includes(active.status)
+        ) {
+          return;
+        }
+      }
 
       setNotice({
         title: title ?? t('push.noticeTitle'),

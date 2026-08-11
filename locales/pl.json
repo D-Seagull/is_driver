@@ -158,6 +158,10 @@
     "chatLabel": "Czat trasy",
     "nextTripLabel": "Następny: {{title}}",
     "nextTripHint": "Stanie się aktywna po zakończeniu bieżącej",
+    "nextAssigned": {
+      "title": "Przydzielono Ci następne zlecenie",
+      "loadingAt": "Załadunek: {{address}}"
+    },
     "online": "online",
     "connecting": "łączenie…",
     "newCount_one": "{{count}} nowa",
@@ -278,7 +282,6 @@
     },
     "manager": "Menedżer",
     "groups": "Grupy",
-    "brandSubtitle": "Kierowca",
     "noUnread": "Brak nieprzeczytanych",
     "chatFallback": "Czat",
     "driverFallback": "Kierowca",
