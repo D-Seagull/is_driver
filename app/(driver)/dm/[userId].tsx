@@ -14,9 +14,7 @@ import {
   BackHandler,
   FlatList,
   Image,
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -24,6 +22,9 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+// Stable KeyboardAvoidingView for new arch + edge-to-edge (RN's built-in one
+// lets the input jump). Requires <KeyboardProvider> in app/_layout.tsx.
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 import { MessageActionsSheet, type MessageActions } from '@/components/message-actions-sheet';
 import { MessageQuote } from '@/components/message-quote';
@@ -295,8 +296,8 @@ export default function DmScreen() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      behavior="padding"
+      keyboardVerticalOffset={0}
       style={[styles.root, { backgroundColor: c.background }]}
     >
       {/* Header */}
