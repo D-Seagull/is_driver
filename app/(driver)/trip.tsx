@@ -109,7 +109,6 @@ export default function TripScreen() {
   // If there's no truck at all — leave it null and the header hides the block
   // entirely (no lone dash next to a phantom truck icon).
   const truckPlate = trip?.truck?.plate ?? user?.currentTruck?.plate ?? null;
-  const driverName = fullName(trip?.driver) || fullName(user) || t("nav.driverFallback");
   const status: TripStatus = trip?.status ?? "ASSIGNED";
 
   return (
@@ -125,7 +124,6 @@ export default function TripScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <TripHeader
         truck={truckPlate ?? ""}
-        driver={driverName}
         status={status}
         onChangeStatus={handleStatusChange}
         canEditStatus={!!trip}
@@ -1753,13 +1751,11 @@ function StopsBlock({
 
 function TripHeader({
   truck,
-  driver,
   status,
   onChangeStatus,
   canEditStatus,
 }: {
   truck: string;
-  driver: string;
   status: TripStatus;
   onChangeStatus: (s: TripStatus) => void;
   canEditStatus: boolean;
@@ -1808,6 +1804,8 @@ function TripHeader({
           <NotificationBell colors={c} />
         </View>
 
+        <View style={{ flex: 1 }} />
+
         {canEditStatus ? (
           <StatusPicker value={status} onChange={onChangeStatus} />
         ) : (
@@ -1815,13 +1813,6 @@ function TripHeader({
             <StatusPicker value={status} onChange={() => {}} />
           </View>
         )}
-
-        <Text
-          style={[styles.driver, { color: c.mutedForeground }]}
-          numberOfLines={1}
-        >
-          {driver}
-        </Text>
       </View>
     </View>
   );
@@ -1839,7 +1830,6 @@ const styles = StyleSheet.create({
   menuBtn: { padding: 4 },
   truckBlock: { flexDirection: "row", alignItems: "center", gap: Spacing.xs },
   truck: { fontSize: 16, fontWeight: "700" },
-  driver: { flex: 1, textAlign: "right", fontSize: 14, fontWeight: "500" },
   bellWrap: {
     position: "relative",
     width: 22,
