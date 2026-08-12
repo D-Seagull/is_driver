@@ -114,6 +114,7 @@ export async function updateMe(payload: UpdateMePayload): Promise<AuthUser> {
 export interface AuthResult {
   user: AuthUser;
   token: string;
+  refreshToken: string;
 }
 
 const FAKE_DELAY = 600;
@@ -152,6 +153,7 @@ export async function verifyOtp(phone: string, code: string): Promise<AuthResult
     }
     return {
       token: `mock.jwt.${Date.now()}`,
+      refreshToken: `mock.refresh.${Date.now()}`,
       user: {
         id: 'mock-driver-id',
         role: 'DRIVER',
@@ -172,17 +174,59 @@ export async function verifyOtp(phone: string, code: string): Promise<AuthResult
   }
   try {
     console.log('[auth-api] verifyOtp →', { phone, code });
-    // Backend returns { access_token, user }. We expose the token as `token`
-    // throughout the app for symmetry with the auth store / api interceptor.
-    const { data } = await api.post<{ access_token: string; user: AuthUser }>(
-      '/auth/driver/verify-otp',
-      { phone, code },
-    );
+    // Backend returns { access_token, refresh_token, user }. We expose the
+    // access token as `token` throughout the app for symmetry with the auth
+    // store / api interceptor; `refreshToken` is kept for silent re-auth.
+    const { data } = await api.post<{
+      access_token: string;
+      refresh_token: string;
+      user: AuthUser;
+    }>('/auth/driver/verify-otp', { phone, code });
     console.log('[auth-api] verifyOtp ✓', { userId: data.user?.id });
-    return { token: data.access_token, user: data.user };
+    return {
+      token: data.access_token,
+      refreshToken: data.refresh_token,
+      user: data.user,
+    };
   } catch (err) {
     console.warn('[auth-api] verifyOtp ✗', err);
     throw err;
+  }
+}
+
+/**
+ * Exchange a refresh token for a fresh access+refresh pair (rotation). Called
+ * by the auth store when a request 401s. The backend revokes the old refresh
+ * row and issues a new one, so each refresh token is single-use.
+ */
+export async function refreshTokens(refreshToken: string): Promise<AuthResult> {
+  if (MOCK_AUTH) {
+    await wait(FAKE_DELAY);
+    return {
+      token: `mock.jwt.${Date.now()}`,
+      refreshToken: `mock.refresh.${Date.now()}`,
+      user: await fetchMe(),
+    };
+  }
+  const { data } = await api.post<{
+    access_token: string;
+    refresh_token: string;
+    user: AuthUser;
+  }>('/auth/refresh', { refreshToken });
+  return {
+    token: data.access_token,
+    refreshToken: data.refresh_token,
+    user: data.user,
+  };
+}
+
+/** Best-effort server-side revocation of the refresh token on logout. */
+export async function revokeRefreshToken(refreshToken: string): Promise<void> {
+  if (MOCK_AUTH || !refreshToken) return;
+  try {
+    await api.post('/auth/logout', { refreshToken });
+  } catch {
+    /* logout is best-effort — the local session is cleared regardless */
   }
 }
 
