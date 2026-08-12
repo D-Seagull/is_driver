@@ -21,7 +21,6 @@ import {
   FlatList,
   Image,
   Keyboard,
-  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -33,6 +32,10 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+// Stable KeyboardAvoidingView for the new architecture + edge-to-edge, where
+// RN's built-in one (behavior="height") lets the input jump. Requires the
+// <KeyboardProvider> mounted in app/_layout.tsx.
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import EmojiPicker from "rn-emoji-keyboard";
 
 import { MessageReactionsCluster } from "@/components/message-reactions";
@@ -110,13 +113,14 @@ export default function TripScreen() {
   const status: TripStatus = trip?.status ?? "ASSIGNED";
 
   return (
-    // KAV at root so offset is always 0 (nothing above it).
-    // iOS 'padding' — adds paddingBottom = keyboard height, content compresses.
-    // Android 'height' — reduces KAV height; needed because edgeToEdgeEnabled
-    //   disables the OS-level adjustResize, so we must do it ourselves.
+    // keyboard-controller's KeyboardAvoidingView (behavior="padding") lifts the
+    // input above the keyboard reliably on both platforms — including Android
+    // under edge-to-edge / new architecture, where RN's built-in "height"
+    // behavior squeezes the layout and makes the input jump.
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: c.background }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior="padding"
+      keyboardVerticalOffset={0}
     >
       <Stack.Screen options={{ headerShown: false }} />
       <TripHeader
