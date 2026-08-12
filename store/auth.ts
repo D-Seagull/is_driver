@@ -1,10 +1,81 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
+import {
+  createJSONStorage,
+  persist,
+  type StateStorage,
+} from 'zustand/middleware';
 
 import { configureApiAuth } from '@/lib/api';
 import { AuthUser, fetchMe, requestOtp, verifyOtp } from '@/lib/auth-api';
 import { disconnectSocket, getSocket } from '@/lib/socket';
+
+const STORE_KEY = 'auth-storage';
+// SecureStore key holding ONLY the JWT (kept small — SecureStore caps values
+// at ~2KB, and the user profile blob with its signed avatar URL would blow
+// past that). Keys allow [A-Za-z0-9._-].
+const TOKEN_KEY = 'auth_token';
+
+const isWeb = Platform.OS === 'web';
+
+/**
+ * Hybrid persisted storage: the sensitive JWT lives in the OS keychain /
+ * keystore (expo-secure-store), while the non-sensitive user profile stays in
+ * AsyncStorage. SecureStore isn't available on web, so there we fall back to
+ * AsyncStorage-only (the whole blob, token included).
+ *
+ * Migration: existing installs have the token embedded in the AsyncStorage
+ * blob. `getItem` falls back to that legacy token when SecureStore is still
+ * empty, so nobody gets logged out; the next `setItem` moves it into
+ * SecureStore and nulls it out of the AsyncStorage copy.
+ */
+const secureAuthStorage: StateStorage = {
+  getItem: async (name) => {
+    const rest = await AsyncStorage.getItem(name);
+    if (isWeb) return rest;
+    let token: string | null = null;
+    try {
+      token = await SecureStore.getItemAsync(TOKEN_KEY);
+    } catch {
+      token = null;
+    }
+    if (!rest) {
+      return token
+        ? JSON.stringify({ state: { user: null, token }, version: 0 })
+        : null;
+    }
+    const parsed = JSON.parse(rest);
+    // Prefer SecureStore; fall back to the legacy in-blob token (migration).
+    const effectiveToken = token ?? parsed?.state?.token ?? null;
+    parsed.state = { ...parsed.state, token: effectiveToken };
+    return JSON.stringify(parsed);
+  },
+  setItem: async (name, value) => {
+    if (isWeb) {
+      await AsyncStorage.setItem(name, value);
+      return;
+    }
+    const parsed = JSON.parse(value);
+    const token: string | null = parsed?.state?.token ?? null;
+    const stripped = { ...parsed, state: { ...parsed.state, token: null } };
+    await Promise.all([
+      token
+        ? SecureStore.setItemAsync(TOKEN_KEY, token)
+        : SecureStore.deleteItemAsync(TOKEN_KEY).catch(() => {}),
+      AsyncStorage.setItem(name, JSON.stringify(stripped)),
+    ]);
+  },
+  removeItem: async (name) => {
+    await Promise.all([
+      isWeb
+        ? Promise.resolve()
+        : SecureStore.deleteItemAsync(TOKEN_KEY).catch(() => {}),
+      AsyncStorage.removeItem(name),
+    ]);
+  },
+};
 
 interface AuthState {
   user: AuthUser | null;
@@ -74,8 +145,8 @@ export const useAuthStore = create<AuthState>()(
       },
     }),
     {
-      name: 'auth-storage',
-      storage: createJSONStorage(() => AsyncStorage),
+      name: STORE_KEY,
+      storage: createJSONStorage(() => secureAuthStorage),
       partialize: (state) => ({ user: state.user, token: state.token }),
       onRehydrateStorage: () => (state) => {
         // Mark hydrated once persisted state is read; the app then triggers
