@@ -356,6 +356,9 @@ export default function DmScreen() {
           inverted
           contentContainerStyle={{ paddingVertical: Spacing.sm }}
           onScrollToIndexFailed={() => {}}
+          // Tap on a message gap dismisses the keyboard; a scroll drag too.
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           // Inverted list → reaching the "end" is the visual top: pull the
           // previous page of history. The footer (rendered at the top of an
           // inverted list) shows the loading spinner.

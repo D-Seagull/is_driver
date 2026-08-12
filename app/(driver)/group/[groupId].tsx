@@ -323,6 +323,9 @@ export default function GroupChatScreen() {
           inverted
           contentContainerStyle={{ paddingVertical: Spacing.sm }}
           onScrollToIndexFailed={() => {}}
+          // Tap on a message gap dismisses the keyboard; a scroll drag too.
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           // Inverted list → the "end" is the visual top: pull older history.
           onEndReachedThreshold={0.3}
           onEndReached={() => {
