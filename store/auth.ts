@@ -17,7 +17,11 @@ import {
   revokeRefreshToken,
   verifyOtp,
 } from '@/lib/auth-api';
-import { disconnectSocket, getSocket } from '@/lib/socket';
+import {
+  configureSocketAuth,
+  disconnectSocket,
+  getSocket,
+} from '@/lib/socket';
 
 const STORE_KEY = 'auth-storage';
 // SecureStore keys holding ONLY the tokens (kept small — SecureStore caps
@@ -225,6 +229,10 @@ configureApiAuth({
   refreshAccessToken: () => useAuthStore.getState().refresh(),
   onUnauthorized: () => useAuthStore.getState().logout(),
 });
+
+// Feed the socket the current access token on every (re)connect, so a token
+// rotated by a silent refresh is used on the next handshake.
+configureSocketAuth(() => useAuthStore.getState().token);
 
 // Selectors
 export const useUser = () => useAuthStore((s) => s.user);
