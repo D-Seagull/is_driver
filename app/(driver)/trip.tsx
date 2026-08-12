@@ -609,11 +609,13 @@ function TripWithChat({
             <ActivityIndicator size="small" color={c.primary} />
           </View>
         ) : timeline.length === 0 ? (
-          <View style={styles.emptyChat}>
+          // Pressable (not View) so tapping the empty chat area dismisses the
+          // keyboard — a plain View wouldn't, unlike the list below.
+          <Pressable style={styles.emptyChat} onPress={() => Keyboard.dismiss()}>
             <Text style={[styles.emptyChatText, { color: c.mutedForeground }]}>
               {t("chat.emptyChat")}
             </Text>
-          </View>
+          </Pressable>
         ) : (
           <FlatList
             ref={listRef}
@@ -689,6 +691,9 @@ function TripWithChat({
             // taps to the inputWrap below it. `handled` lets bubble taps still
             // dismiss the keyboard via parent handlers if needed.
             keyboardShouldPersistTaps="handled"
+            // Tap on a message gap dismisses (via persistTaps=handled); a scroll
+            // drag dismisses too.
+            keyboardDismissMode="on-drag"
             automaticallyAdjustContentInsets={false}
             contentInsetAdjustmentBehavior="never"
             onScrollToIndexFailed={() => {}}
