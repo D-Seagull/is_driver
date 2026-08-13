@@ -1210,7 +1210,7 @@ const MessageBubble = memo(function MessageBubble({
           <Text style={[styles.bubbleTime, { color: c.mutedForeground }]}>
             {time}
           </Text>
-          {isMe && (
+          {isMe && !isDeleted && (
             <Text
               style={[
                 styles.bubbleTick,

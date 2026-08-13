@@ -13,6 +13,7 @@ import {
   BackHandler,
   FlatList,
   Image,
+  Keyboard,
   Modal,
   Pressable,
   StyleSheet,
@@ -20,6 +21,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import EmojiPicker from 'rn-emoji-keyboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 // Stable KeyboardAvoidingView for new arch + edge-to-edge (RN's built-in one
 // lets the input jump). Requires <KeyboardProvider> in app/_layout.tsx.
@@ -115,6 +117,7 @@ export default function GroupChatScreen() {
 
   // ─── Composer state ────────────────────────────────────────────────
   const [text, setText] = useState('');
+  const [emojiOpen, setEmojiOpen] = useState(false);
   const [replyingTo, setReplyingTo] = useState<ReplyTarget | null>(null);
   const [editing, setEditing] = useState<EditingState | null>(null);
 
@@ -413,6 +416,19 @@ export default function GroupChatScreen() {
             )}
           </Pressable>
         )}
+        <Pressable
+          onPress={() => {
+            Keyboard.dismiss();
+            setEmojiOpen(true);
+          }}
+          hitSlop={6}
+          style={({ pressed }) => [
+            styles.attachBtn,
+            { opacity: pressed ? 0.6 : 1 },
+          ]}
+        >
+          <Ionicons name="happy-outline" size={24} color={c.mutedForeground} />
+        </Pressable>
         <TextInput
           value={text}
           onChangeText={setText}
@@ -439,6 +455,12 @@ export default function GroupChatScreen() {
           />
         </Pressable>
       </View>
+
+      <EmojiPicker
+        open={emojiOpen}
+        onClose={() => setEmojiOpen(false)}
+        onEmojiSelected={(e) => setText((prev) => prev + e.emoji)}
+      />
 
       {/* Long-press menu */}
       <MessageActionsSheet
