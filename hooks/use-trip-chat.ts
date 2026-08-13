@@ -168,8 +168,11 @@ export function useTripChat(
     const onConnect = () => {
       setConnected(true);
       joinRoom(); // re-join after every (re)connect
-      // On reconnect the user might be scrolled up — only ack if visible.
-      if (!nearBottomRef || nearBottomRef.current) markRead();
+      // The chat is open (markRead is focus-gated), so mark it read on connect
+      // regardless of scroll position. Gating this on nearBottom was flaky on
+      // iOS — the FlatList's scroll measurement can leave nearBottomRef=false
+      // at open time, so the counter never reset there (Android was fine).
+      markRead();
     };
 
     const onDisconnect = () => setConnected(false);
@@ -316,11 +319,11 @@ export function useTripChat(
     sock.on('userStopTyping', onUserStopTyping);
     sock.on('reaction_changed', onReactionChanged);
 
-    // If already connected — join immediately
+    // If already connected — join immediately and mark read (chat is open).
     if (sock.connected) {
       setConnected(true);
       joinRoom();
-      if (!nearBottomRef || nearBottomRef.current) markRead();
+      markRead();
     }
 
     return () => {
@@ -340,13 +343,15 @@ export function useTripChat(
     };
   }, [tripId, token, qc]);
 
-  // When focus returns (driver navigates back to the trip screen), catch up
-  // any messages that arrived while away — but only if they're visible
-  // (user is near the bottom). If scrolled up, markReadNow() fires on scroll.
+  // When the screen is focused (driver opened / returned to the trip chat),
+  // mark it read. This is the "I'm looking at this chat" signal, so it fires
+  // regardless of scroll position — unlike inbound-message acks, which stay
+  // gated on nearBottom. (Gating this on nearBottom left the counter stuck on
+  // iOS, where the initial scroll measurement can report not-near-bottom.)
   useEffect(() => {
     if (!isFocused || !tripId) return;
     const sock = getSocket(token ?? undefined);
-    if (sock.connected && (!nearBottomRef || nearBottomRef.current)) {
+    if (sock.connected) {
       sock.emit('markTripRead', { tripId });
     }
   }, [isFocused, tripId, token]);
