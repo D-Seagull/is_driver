@@ -203,26 +203,6 @@ export default function DocumentsScreen() {
         </Text>
 
         <NotificationBell colors={c} />
-
-        {activeTrip ? (
-          <Pressable
-            onPress={() => showUploadSheet(activeTrip.id)}
-            hitSlop={8}
-            style={({ pressed }) => [
-              styles.uploadBtn,
-              { backgroundColor: c.primary, opacity: pressed ? 0.85 : 1 },
-            ]}
-          >
-            {upload.isPending ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Ionicons name="cloud-upload-outline" size={16} color="#fff" />
-            )}
-            <Text style={styles.uploadText}>{t('common.upload')}</Text>
-          </Pressable>
-        ) : (
-          <View style={{ width: 0 }} />
-        )}
       </View>
 
       {!truckId ? (
