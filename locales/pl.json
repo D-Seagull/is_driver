@@ -239,7 +239,7 @@
       "title": "Nie przypisano ciężarówki",
       "subtitle": "Gdy menedżer przypisze ci ciężarówkę, pojawi się tutaj."
     },
-    "dispatcher": "Dyspozytor",
+    "dispatcher": "Menedżer",
     "unknownUser": "Nieznany",
     "notes": {
       "title": "Notatki ({{count}})",

@@ -237,7 +237,7 @@
       "title": "No truck assigned",
       "subtitle": "When a manager assigns a truck to you, it'll appear here."
     },
-    "dispatcher": "Dispatcher",
+    "dispatcher": "Manager",
     "unknownUser": "Unknown",
     "notes": {
       "title": "Notes ({{count}})",
