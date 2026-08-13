@@ -1141,48 +1141,68 @@ const MessageBubble = memo(function MessageBubble({
               highlighted && { borderWidth: 2, borderColor: c.primary },
             ]}
           >
-            {message.replyTo && (
-              <MessageQuote
-                senderName={fullName(message.replyTo.sender)}
-                content={message.replyTo.content}
-                isDeleted={!!message.replyTo.deletedAt}
-                onPress={() => onReplyJump(message.replyTo!.id)}
-                variant={isMe ? "onPrimary" : "default"}
-              />
+            {isDeleted ? (
+              // Soft-deleted → show a "message deleted" placeholder, like a
+              // normal chat, instead of hiding the row (which left a gap).
+              <Text
+                style={[
+                  styles.bubbleText,
+                  {
+                    color: isMe ? "rgba(255,255,255,0.75)" : c.mutedForeground,
+                    fontStyle: "italic",
+                  },
+                ]}
+              >
+                {t("common.messageDeleted")}
+              </Text>
+            ) : (
+              <>
+                {message.replyTo && (
+                  <MessageQuote
+                    senderName={fullName(message.replyTo.sender)}
+                    content={message.replyTo.content}
+                    isDeleted={!!message.replyTo.deletedAt}
+                    onPress={() => onReplyJump(message.replyTo!.id)}
+                    variant={isMe ? "onPrimary" : "default"}
+                  />
+                )}
+                {message.replyToDocument && (
+                  <MessageQuote
+                    kind="doc"
+                    senderName={fullName(message.replyToDocument.uploader)}
+                    fileName={message.replyToDocument.fileName}
+                    content=""
+                    isDeleted={!!message.replyToDocument.deletedAt}
+                    onPress={() => onReplyJump(message.replyToDocument!.id)}
+                    variant={isMe ? "onPrimary" : "default"}
+                  />
+                )}
+                <Text
+                  style={[
+                    styles.bubbleText,
+                    { color: isMe ? "#fff" : c.foreground },
+                  ]}
+                >
+                  {(() => {
+                    const { subject, body } = splitBroadcastSubject(
+                      message.content,
+                    );
+                    if (subject === null) return message.content;
+                    return (
+                      <>
+                        <Text style={{ fontWeight: "700" }}>{subject}</Text>
+                        {"\n\n" + body}
+                      </>
+                    );
+                  })()}
+                </Text>
+              </>
             )}
-            {message.replyToDocument && (
-              <MessageQuote
-                kind="doc"
-                senderName={fullName(message.replyToDocument.uploader)}
-                fileName={message.replyToDocument.fileName}
-                content=""
-                isDeleted={!!message.replyToDocument.deletedAt}
-                onPress={() => onReplyJump(message.replyToDocument!.id)}
-                variant={isMe ? "onPrimary" : "default"}
-              />
-            )}
-            <Text
-              style={[
-                styles.bubbleText,
-                { color: isMe ? "#fff" : c.foreground },
-              ]}
-            >
-              {(() => {
-                const { subject, body } = splitBroadcastSubject(message.content);
-                if (subject === null) return message.content;
-                return (
-                  <>
-                    <Text style={{ fontWeight: "700" }}>{subject}</Text>
-                    {"\n\n" + body}
-                  </>
-                );
-              })()}
-            </Text>
           </Pressable>
           {!isMe && sidekick}
         </View>
         <View style={styles.bubbleMetaRow}>
-          {message.editedAt && (
+          {message.editedAt && !isDeleted && (
             <Text style={[styles.bubbleTime, { color: c.mutedForeground, fontStyle: "italic" }]}>
               {t("chat.editedShort")}
             </Text>

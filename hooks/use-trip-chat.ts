@@ -243,8 +243,15 @@ export function useTripChat(
 
     const onMessageDeleted = (payload: { tripId: string; messageId: string }) => {
       if (payload.tripId !== tripId) return;
-      seenIds.current.delete(payload.messageId);
-      setMessages((prev) => prev.filter((m) => m.id !== payload.messageId));
+      // Soft-delete in place (keep the row) so the bubble renders a "message
+      // deleted" placeholder, matching the DM / group chats.
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === payload.messageId
+            ? { ...m, deletedAt: new Date().toISOString(), content: '' }
+            : m,
+        ),
+      );
     };
 
     // Reaction toggled on a trip message OR doc — patch the bubble's local
@@ -439,12 +446,19 @@ export function useTripChat(
     };
   }, [tripId, token]);
 
-  // Delete via HTTP — server then broadcasts `messageDeleted` to the room
-  // and the listener above drops it from local state. We also patch optimistically.
+  // Delete via HTTP — server then broadcasts `messageDeleted` to the room and
+  // the listener above soft-deletes it. We also patch optimistically: mark it
+  // deleted in place (keep the row) so it renders a "message deleted"
+  // placeholder like a normal chat, instead of vanishing and leaving a gap.
   const deleteMessage = async (messageId: string) => {
     if (!tripId) return;
-    setMessages((prev) => prev.filter((m) => m.id !== messageId));
-    seenIds.current.delete(messageId);
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === messageId
+          ? { ...m, deletedAt: new Date().toISOString(), content: '' }
+          : m,
+      ),
+    );
     try {
       await deleteTripMessage(messageId);
     } catch (e) {
