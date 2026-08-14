@@ -49,6 +49,7 @@ export interface Conversation {
     id: string;
     firstName: string; lastName: string | null;
     role: string;
+    avatar?: string | null;
     phone?: string | null;
     /** Plate of the truck this peer is assigned to (drivers only). */
     truckPlate?: string | null;
@@ -179,7 +180,13 @@ export function useChatUser(userId: string) {
     queryKey: ['chat-user', userId],
     queryFn: async () => {
       const res = await api.get(`/users/${userId}`);
-      return res.data as { id: string; firstName: string; lastName: string | null; role: string };
+      return res.data as {
+        id: string;
+        firstName: string;
+        lastName: string | null;
+        role: string;
+        avatar: string | null;
+      };
     },
     enabled: !!userId,
   });

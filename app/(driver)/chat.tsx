@@ -3,7 +3,7 @@ import { useIsFocused } from '@react-navigation/native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { fullName, initials } from "@/lib/format";
+import { fullName } from "@/lib/format";
 import {
   ActivityIndicator,
   FlatList,
@@ -14,6 +14,7 @@ import {
   View,
 } from 'react-native';
 
+import { ChatAvatar } from '@/components/chat-avatar';
 import { ScreenPlaceholder } from '@/components/screen-placeholder';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -258,7 +259,6 @@ function DirectoryRow({ user }: { user: CompanyUser }) {
   const { t } = useTranslation();
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
-  const peerInitials = initials(user);
   const isManagerTier = user.role !== 'DRIVER';
   const roleLabel = user.role === 'TEAMLEAD' ? t('chatDir.teamlead') : t('nav.manager');
   const subtitle = isManagerTier
@@ -273,10 +273,8 @@ function DirectoryRow({ user }: { user: CompanyUser }) {
         { backgroundColor: pressed ? c.muted : 'transparent' },
       ]}
     >
-      <View style={[styles.avatar, { backgroundColor: c.muted }]}>
-        <Text style={[styles.avatarText, { color: c.primary }]}>
-          {peerInitials}
-        </Text>
+      <View style={styles.avatarWrap}>
+        <ChatAvatar user={user} size={44} />
         {isManagerTier && (
           <View style={[styles.managerBadge, { backgroundColor: c.primary }]}>
             <Ionicons name="headset-outline" size={9} color={c.primaryForeground} />
@@ -301,7 +299,6 @@ function ConversationRow({ conv }: { conv: Conversation }) {
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
   const hasUnread = conv.unreadCount > 0;
-  const peerInitials = initials(conv.user);
   const isManagerTier = conv.user.role !== 'DRIVER';
 
   return (
@@ -318,10 +315,8 @@ function ConversationRow({ conv }: { conv: Conversation }) {
         },
       ]}
     >
-      <View style={[styles.avatar, { backgroundColor: c.muted }]}>
-        <Text style={[styles.avatarText, { color: c.primary }]}>
-          {peerInitials}
-        </Text>
+      <View style={styles.avatarWrap}>
+        <ChatAvatar user={conv.user} size={44} />
         {isManagerTier && (
           <View style={[styles.managerBadge, { backgroundColor: c.primary }]}>
             <Ionicons name="headset-outline" size={9} color={c.primaryForeground} />
@@ -593,7 +588,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: { fontSize: 14, fontWeight: '700' },
+  // Fixed-size box that hosts the ChatAvatar plus its overlaid role badge
+  // (the badge sits just outside the circle, so this wrapper must not clip).
+  avatarWrap: { width: 44, height: 44 },
   managerBadge: {
     position: 'absolute',
     right: -2,

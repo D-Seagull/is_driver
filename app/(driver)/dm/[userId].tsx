@@ -7,7 +7,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { fullName, initials } from "@/lib/format";
+import { fullName } from "@/lib/format";
 import {
   ActivityIndicator,
   Alert,
@@ -28,6 +28,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 // lets the input jump). Requires <KeyboardProvider> in app/_layout.tsx.
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
+import { ChatAvatar } from '@/components/chat-avatar';
 import { MessageActionsSheet, type MessageActions } from '@/components/message-actions-sheet';
 import { MessageQuote } from '@/components/message-quote';
 import { MessageReactionsCluster } from '@/components/message-reactions';
@@ -295,7 +296,6 @@ export default function DmScreen() {
 
   // ─── Header ────────────────────────────────────────────────────────
   const peerName = fullName(peer) || t('nav.chatFallback');
-  const peerInitials = initials(peer);
 
   return (
     <KeyboardAvoidingView
@@ -321,11 +321,7 @@ export default function DmScreen() {
         >
           <Ionicons name="chevron-back" size={26} color={c.foreground} />
         </Pressable>
-        <View style={[styles.headerAvatar, { backgroundColor: c.muted }]}>
-          <Text style={[styles.headerAvatarText, { color: c.primary }]}>
-            {peerInitials}
-          </Text>
-        </View>
+        <ChatAvatar user={peer} size={36} />
         <View style={styles.headerText}>
           <Text style={[styles.headerName, { color: c.foreground }]} numberOfLines={1}>
             {peerName}
@@ -1050,14 +1046,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   backBtn: { padding: 4 },
-  headerAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerAvatarText: { fontWeight: '700', fontSize: 13 },
   headerText: { flex: 1, minWidth: 0 },
   headerName: { fontSize: 15, fontWeight: '600' },
   headerRole: { fontSize: 12, marginTop: 1, textTransform: 'capitalize' },
