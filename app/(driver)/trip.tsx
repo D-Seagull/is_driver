@@ -1767,15 +1767,15 @@ function StopsBlock({
                 flexDirection: "row",
                 alignItems: "center",
                 gap: 4,
-                marginTop: 4,
+                marginTop: 3,
               }}
             >
               <Ionicons
                 name="time-outline"
-                size={13}
+                size={12}
                 color={c.mutedForeground}
               />
-              <Text style={{ fontSize: 12, color: c.mutedForeground }}>
+              <Text style={{ fontSize: 11, color: c.mutedForeground }}>
                 {formatStopWindow(s)}
               </Text>
             </View>
