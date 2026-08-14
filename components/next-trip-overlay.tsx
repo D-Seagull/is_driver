@@ -8,6 +8,7 @@ import { Colors, Radius, Spacing } from '@/constants/theme';
 import { TripStatus } from '@/constants/trip-status';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { tripKeys, useMyTrips } from '@/hooks/use-trips';
+import { formatStopWindow } from '@/lib/format';
 import { updateDriverTripStatus } from '@/lib/trips-api';
 import { Trip } from '@/lib/types';
 
@@ -82,14 +83,15 @@ export function NextTripOverlay() {
     router.push({ pathname: '/(driver)/trip', params: { tripId: target.id } });
   };
 
-  const loadingAddress = next?.stops
-    ?.find((s) => s.type === 'LOADING')
-    ?.address?.trim();
+  const loadingStop = next?.stops?.find((s) => s.type === 'LOADING');
+  const loadingAddress = loadingStop?.address?.trim();
+  const loadingWindow = loadingStop ? formatStopWindow(loadingStop) : '';
   const bodyLines = [
     next?.orderNumber ? `#${next.orderNumber} · ${next.title}` : next?.title,
     loadingAddress
-      ? t('trip.nextAssigned.loadingAt', { address: loadingAddress })
-      : null,
+      ? t('trip.nextAssigned.loadingAt', { address: loadingAddress }) +
+        (loadingWindow ? ` · ${loadingWindow}` : '')
+      : loadingWindow || null,
     next?.truck?.plate ?? null,
   ].filter(Boolean) as string[];
 

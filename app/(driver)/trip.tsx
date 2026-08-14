@@ -1,5 +1,5 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { fullName } from "@/lib/format";
+import { fullName, formatStopWindow } from "@/lib/format";
 import {
   DrawerActions,
   useIsFocused,
@@ -1761,6 +1761,25 @@ function StopsBlock({
               ) : null}
             </View>
           )}
+          {formatStopWindow(s) ? (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 4,
+                marginTop: 4,
+              }}
+            >
+              <Ionicons
+                name="time-outline"
+                size={13}
+                color={c.mutedForeground}
+              />
+              <Text style={{ fontSize: 12, color: c.mutedForeground }}>
+                {formatStopWindow(s)}
+              </Text>
+            </View>
+          ) : null}
         </View>
       ))}
     </View>

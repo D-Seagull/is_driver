@@ -17,6 +17,26 @@ export function fullName(
 }
 
 /**
+ * Formats a stop's scheduled window for display, e.g. "14.08 · 08:00–10:00".
+ * Returns "" when there's no meaningful time (both ends unset or 00:00), so
+ * stops without a planned window render nothing. Mirrors the web helper.
+ */
+export function formatStopWindow(stop: {
+  windowDate?: string | null;
+  windowStart?: string | null;
+  windowEnd?: string | null;
+}): string {
+  const start = stop.windowStart && stop.windowStart !== '00:00' ? stop.windowStart : '';
+  const endRaw = stop.windowEnd && stop.windowEnd !== '00:00' ? stop.windowEnd : '';
+  const end = endRaw && endRaw !== start ? endRaw : '';
+  if (!start && !end) return '';
+  const time = [start, end].filter(Boolean).join('–');
+  const [, m, d] = (stop.windowDate ?? '').split('-');
+  const date = m && d ? `${d}.${m}` : '';
+  return date ? `${date} · ${time}` : time;
+}
+
+/**
  * Two-letter avatar fallback: first letter of firstName + first letter of
  * lastName. Falls back to a single letter when there is no lastName, then
  * to the email's first character, then to "?".

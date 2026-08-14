@@ -37,6 +37,9 @@ export interface TripStop {
   address: string | null;
   ref: string | null;
   coords: string | null;
+  windowDate: string | null; // "YYYY-MM-DD"
+  windowStart: string | null; // "HH:mm"
+  windowEnd: string | null; // "HH:mm"
 }
 
 export interface TripDocument {
