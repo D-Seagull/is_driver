@@ -10,7 +10,12 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.dseadull.isdriver"
+      "bundleIdentifier": "com.dseadull.isdriver",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Додатку потрібен доступ до камери, щоб знімати фото документів і надсилати їх у чат.",
+        "NSPhotoLibraryUsageDescription": "Додатку потрібен доступ до фотографій, щоб прикріплювати зображення в чат і документи та встановлювати аватар.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.dseadull.isdriver",
