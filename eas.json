@@ -15,7 +15,7 @@
       "android": { "buildType": "apk" },
       "ios": { "simulator": false },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://is-fleet-backend.onrender.com",
+        "EXPO_PUBLIC_API_URL": "https://api.isfleet.eu",
         "EXPO_PUBLIC_MOCK_AUTH": "false"
       }
     },
@@ -23,7 +23,7 @@
       "autoIncrement": true,
       "android": { "buildType": "app-bundle" },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://is-fleet-backend.onrender.com",
+        "EXPO_PUBLIC_API_URL": "https://api.isfleet.eu",
         "EXPO_PUBLIC_MOCK_AUTH": "false"
       }
     }
