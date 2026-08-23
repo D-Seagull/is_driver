@@ -172,7 +172,8 @@
     "attachSheet": { "title": "Прикріпити" },
     "stops": {
       "loading": "Завантаження",
-      "unloading": "Розвантаження"
+      "unloading": "Розвантаження",
+      "waypoint": "Додаткова зупинка"
     }
   },
   "tripStatus": {

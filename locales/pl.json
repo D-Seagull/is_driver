@@ -172,7 +172,8 @@
     "attachSheet": { "title": "Załącz" },
     "stops": {
       "loading": "Załadunek",
-      "unloading": "Rozładunek"
+      "unloading": "Rozładunek",
+      "waypoint": "Dodatkowy przystanek"
     }
   },
   "tripStatus": {

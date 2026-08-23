@@ -170,7 +170,8 @@
     "attachSheet": { "title": "Attach" },
     "stops": {
       "loading": "Loading",
-      "unloading": "Unloading"
+      "unloading": "Unloading",
+      "waypoint": "Additional stop"
     }
   },
   "tripStatus": {

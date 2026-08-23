@@ -172,7 +172,8 @@
     "attachSheet": { "title": "Prisegti" },
     "stops": {
       "loading": "Pakrovimas",
-      "unloading": "Iškrovimas"
+      "unloading": "Iškrovimas",
+      "waypoint": "Papildomas sustojimas"
     }
   },
   "tripStatus": {

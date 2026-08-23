@@ -58,7 +58,7 @@ import {
 import { DriverDocument, UploadFileLocal } from "@/lib/documents-api";
 import { formatDate, formatTime } from "@/lib/format-date";
 import { systemMessageText } from "@/lib/system-message";
-import { Trip } from "@/lib/types";
+import { Trip, StopType } from "@/lib/types";
 import { useUser } from "@/store/auth";
 
 // Reply target for the composer banner — a message or a document quote.
@@ -1554,8 +1554,6 @@ function TripInfoCard({
   const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? "light"];
   const [collapsed, setCollapsed] = useState(false);
-  const loading = trip.stops.filter((s) => s.type === "LOADING");
-  const unloading = trip.stops.filter((s) => s.type === "UNLOADING");
 
   return (
     <View
@@ -1595,12 +1593,7 @@ function TripInfoCard({
 
       {!collapsed && (
         <>
-          {loading.length > 0 && (
-            <StopsBlock label={t("trip.stops.loading")} color="#10B981" stops={loading} />
-          )}
-          {unloading.length > 0 && (
-            <StopsBlock label={t("trip.stops.unloading")} color="#f87171" stops={unloading} />
-          )}
+          {trip.stops.length > 0 && <StopsBlock stops={trip.stops} />}
           {trip.notes ? (
             <View style={[styles.notes, { borderTopColor: c.border }]}>
               <Text style={[styles.notesText, { color: "#dc2626" }]}>
@@ -1632,26 +1625,29 @@ function openInMaps(coords: string) {
   Linking.openURL(url).catch(() => {});
 }
 
-function StopsBlock({
-  label,
-  color,
-  stops,
-}: {
-  label: string;
-  color: string;
-  stops: Trip["stops"];
-}) {
+const STOP_COLOR: Record<StopType, string> = {
+  LOADING: "#10B981",
+  UNLOADING: "#f87171",
+  WAYPOINT: "#f59e0b",
+};
+
+function StopsBlock({ stops }: { stops: Trip["stops"] }) {
   const c = Colors[useColorScheme() ?? "light"];
+  const { t } = useTranslation();
+  const stopLabel = (s: Trip["stops"][number]) => {
+    if (s.type === "WAYPOINT") return s.name || t("trip.stops.waypoint", "Проміжна точка");
+    return s.type === "LOADING" ? t("trip.stops.loading") : t("trip.stops.unloading");
+  };
   return (
     <View style={styles.stopsBlock}>
-      <View style={styles.stopsHeader}>
-        <Ionicons name="location-outline" size={13} color={color} />
-        <Text style={[styles.stopsLabel, { color }]}>
-          {label} ({stops.length})
-        </Text>
-      </View>
       {stops.map((s, i) => (
         <View key={s.id} style={styles.stopCard}>
+          <View style={styles.stopsHeader}>
+            <Ionicons name="location-outline" size={13} color={STOP_COLOR[s.type]} />
+            <Text style={[styles.stopsLabel, { color: STOP_COLOR[s.type] }]}>
+              {i + 1}. {stopLabel(s)}
+            </Text>
+          </View>
           <View style={styles.stopRow}>
             <Text style={[styles.stopIndex, { color: c.mutedForeground }]}>
               {i + 1}.
