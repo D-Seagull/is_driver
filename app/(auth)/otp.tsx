@@ -44,7 +44,13 @@ export default function OtpScreen() {
       const target = user?.currentTruck ? "/(driver)/trip" : "/(driver)/chat";
       router.replace(target);
     } catch (e) {
-      setError(e instanceof Error ? e.message : t("auth.errors.invalidCode"));
+      const msg =
+        e instanceof Error && e.message === "DRIVER_ONLY"
+          ? t("auth.errors.driverOnly")
+          : e instanceof Error
+            ? e.message
+            : t("auth.errors.invalidCode");
+      setError(msg);
     } finally {
       setSubmitting(false);
     }

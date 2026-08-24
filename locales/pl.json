@@ -85,7 +85,8 @@
       "server": "Błąd serwera ({{status}})",
       "cannotReach": "Brak połączenia z serwerem. Sprawdź, czy backend działa, a EXPO_PUBLIC_API_URL jest poprawny.",
       "sendFailed": "Nie udało się wysłać kodu.",
-      "invalidCode": "Nieprawidłowy kod."
+      "invalidCode": "Nieprawidłowy kod.",
+      "driverOnly": "Ta aplikacja jest tylko dla kierowców. Zaloguj się na konto kierowcy."
     }
   },
   "alarm": {

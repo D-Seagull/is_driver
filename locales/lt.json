@@ -85,7 +85,8 @@
       "server": "Serverio klaida ({{status}})",
       "cannotReach": "Nepavyksta pasiekti serverio. Patikrinkite, ar veikia backend'as ir ar EXPO_PUBLIC_API_URL teisingas.",
       "sendFailed": "Nepavyko išsiųsti kodo.",
-      "invalidCode": "Neteisingas kodas."
+      "invalidCode": "Neteisingas kodas.",
+      "driverOnly": "Ši programa skirta tik vairuotojams. Prisijunkite vairuotojo paskyra."
     }
   },
   "alarm": {

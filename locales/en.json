@@ -84,7 +84,8 @@
       "server": "Server error ({{status}})",
       "cannotReach": "Cannot reach server. Check that the backend is running and EXPO_PUBLIC_API_URL is correct.",
       "sendFailed": "Failed to send code.",
-      "invalidCode": "Invalid code."
+      "invalidCode": "Invalid code.",
+      "driverOnly": "This app is for drivers only. Please sign in with a driver account."
     }
   },
   "alarm": {

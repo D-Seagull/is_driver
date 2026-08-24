@@ -152,11 +152,18 @@ export const useAuthStore = create<AuthState>()(
         // Set token first so the api interceptor injects Authorization on the
         // follow-up /auth/me call below.
         set({ user, token, refreshToken, isLoading: false });
+        let finalUser: AuthUser = user;
         try {
-          const enriched = await fetchMe();
-          set({ user: enriched });
+          finalUser = await fetchMe();
+          set({ user: finalUser });
         } catch {
           // Non-fatal — basic user from verify is enough to proceed.
+        }
+        // Лише водії можуть заходити в застосунок водія. Якщо це не водій —
+        // вийти й показати помилку на екрані коду.
+        if (finalUser.role !== 'DRIVER') {
+          get().logout();
+          throw new Error('DRIVER_ONLY');
         }
         // Open socket connection now that we have a token
         getSocket(get().token ?? undefined);
@@ -173,6 +180,12 @@ export const useAuthStore = create<AuthState>()(
           // refreshes and retries this call — so a success here may already be
           // running on a freshly rotated token.
           const user = await fetchMe();
+          // Лише водії можуть користуватись застосунком водія. Персистована сесія
+          // менеджера/адміна (напр. з тестів) має вилетіти на логін.
+          if (user.role !== 'DRIVER') {
+            set({ user: null, token: null, refreshToken: null, isLoading: false });
+            return;
+          }
           set({ user, isLoading: false });
         } catch {
           set({ user: null, token: null, refreshToken: null, isLoading: false });
@@ -184,6 +197,11 @@ export const useAuthStore = create<AuthState>()(
         if (!rt) return null;
         try {
           const { user, token, refreshToken } = await refreshTokens(rt);
+          // Роль могла змінитись на бекенді — не водій більше не має доступу.
+          if (user.role !== 'DRIVER') {
+            set({ user: null, token: null, refreshToken: null });
+            return null;
+          }
           set({ user, token, refreshToken });
           return token;
         } catch {
