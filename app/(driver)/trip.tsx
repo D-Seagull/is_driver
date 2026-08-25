@@ -1553,7 +1553,7 @@ function TripInfoCard({
 }) {
   const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? "light"];
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
 
   return (
     <View
