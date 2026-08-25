@@ -10,11 +10,30 @@ import { getSocket } from '@/lib/socket';
  */
 export function useAppStatePresence() {
   useEffect(() => {
+    // Коли пішли у фон — щоб на поверненні знати, чи фон був довгим.
+    let backgroundedAt = 0;
+
     const emit = (state: AppStateStatus) => {
       const sock = getSocket();
-      if (!sock.connected) return;
-      if (state === 'active') sock.emit('appActive');
-      else sock.emit('appBackground');
+      if (state === 'active') {
+        // Після ДОВГОГО фону мобільний сокет часто «замерзає» (connected===true,
+        // але транспорт мертвий) і сам не оживає — форсуємо свіжий реконект, щоб
+        // presence-точки й live-події (tripUpdated, статуси) повернулись до життя.
+        const longBg = backgroundedAt > 0 && Date.now() - backgroundedAt > 20_000;
+        backgroundedAt = 0;
+        if (!sock.connected) {
+          sock.connect();
+        } else if (longBg) {
+          sock.disconnect();
+          sock.connect();
+        } else {
+          sock.emit('appActive');
+          sock.emit('requestPresence');
+        }
+      } else {
+        backgroundedAt = Date.now();
+        if (sock.connected) sock.emit('appBackground');
+      }
     };
 
     // Emit current state immediately so the server knows we're foreground
