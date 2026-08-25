@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { StatusDot } from '@/components/status-dot';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
@@ -27,6 +28,7 @@ import { useUser } from '@/store/auth';
 import { useDriverTruck } from '@/hooks/use-truck';
 import { fullName } from '@/lib/format';
 import { formatDate } from '@/lib/format-date';
+import { type DriverUserStatus } from '@/lib/auth-api';
 import type { ManagerRating } from '@/lib/manager-api';
 
 /**
@@ -108,17 +110,28 @@ export default function ManagerScreen() {
         ]}
       >
         <View style={styles.headerRow}>
-          {profile.avatar ? (
-            <Image source={{ uri: profile.avatar }} style={styles.avatar} />
-          ) : (
-            <View style={[styles.avatarFallback, { backgroundColor: c.muted }]}>
-              <Ionicons
-                name="person"
-                size={32}
-                color={c.mutedForeground}
-              />
-            </View>
-          )}
+          <View>
+            {profile.avatar ? (
+              <Image source={{ uri: profile.avatar }} style={styles.avatar} />
+            ) : (
+              <View style={[styles.avatarFallback, { backgroundColor: c.muted }]}>
+                <Ionicons
+                  name="person"
+                  size={32}
+                  color={c.mutedForeground}
+                />
+              </View>
+            )}
+            {managerId ? (
+              <View style={{ position: 'absolute', right: -1, bottom: -1 }}>
+                <StatusDot
+                  user={{ id: managerId, status: profile.status as DriverUserStatus | null, statusUntil: profile.statusUntil }}
+                  size={14}
+                  ring={c.card}
+                />
+              </View>
+            ) : null}
+          </View>
           <View style={{ flex: 1, gap: 4 }}>
             <Text style={[styles.name, { color: c.foreground }]}>
               {displayName}

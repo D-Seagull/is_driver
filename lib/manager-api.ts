@@ -8,6 +8,8 @@ export interface ManagerProfile {
   avatar: string | null;
   role: string;
   isActive: boolean;
+  status?: string | null;
+  statusUntil?: string | null;
   managerAverageRating: number | null;
   managerRatingCount: number;
 }

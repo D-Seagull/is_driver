@@ -15,12 +15,14 @@ import {
 } from 'react-native';
 
 import { ChatAvatar } from '@/components/chat-avatar';
+import { StatusDot } from '@/components/status-dot';
 import { ScreenPlaceholder } from '@/components/screen-placeholder';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useCompanyUsers, type CompanyUser } from '@/hooks/use-company-users';
 import { useConversations, type Conversation } from '@/hooks/use-direct-messages';
 import { useDriverGroups, type DriverGroup } from '@/hooks/use-groups';
+import { type DriverUserStatus } from '@/lib/auth-api';
 import { useUser } from '@/store/auth';
 
 type Tab = 'chat' | 'groups';
@@ -280,6 +282,9 @@ function DirectoryRow({ user }: { user: CompanyUser }) {
             <Ionicons name="headset-outline" size={9} color={c.primaryForeground} />
           </View>
         )}
+        <View style={styles.presenceDot}>
+          <StatusDot user={{ id: user.id, status: user.status as DriverUserStatus | null, statusUntil: user.statusUntil }} size={11} ring={c.background} />
+        </View>
       </View>
       <View style={styles.rowText}>
         <Text style={[styles.name, { color: c.foreground }]} numberOfLines={1}>
@@ -322,6 +327,9 @@ function ConversationRow({ conv }: { conv: Conversation }) {
             <Ionicons name="headset-outline" size={9} color={c.primaryForeground} />
           </View>
         )}
+        <View style={styles.presenceDot}>
+          <StatusDot user={{ id: conv.user.id, status: conv.user.status as DriverUserStatus | null, statusUntil: conv.user.statusUntil }} size={11} ring={c.background} />
+        </View>
       </View>
       <View style={styles.rowText}>
         <View style={styles.rowTopLine}>
@@ -594,13 +602,14 @@ const styles = StyleSheet.create({
   managerBadge: {
     position: 'absolute',
     right: -2,
-    bottom: -2,
+    top: -2,
     width: 16,
     height: 16,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  presenceDot: { position: 'absolute', right: -2, bottom: -2 },
   rowText: { flex: 1, minWidth: 0 },
   rowTopLine: {
     flexDirection: 'row',

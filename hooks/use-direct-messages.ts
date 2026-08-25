@@ -51,6 +51,8 @@ export interface Conversation {
     role: string;
     avatar?: string | null;
     phone?: string | null;
+    status?: string | null;
+    statusUntil?: string | null;
     /** Plate of the truck this peer is assigned to (drivers only). */
     truckPlate?: string | null;
   };
