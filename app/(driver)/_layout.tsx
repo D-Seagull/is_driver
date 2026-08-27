@@ -26,7 +26,7 @@ import { NotificationBell } from "@/components/notification-bell";
 import { PushNoticeOverlay } from "@/components/push-notice-overlay";
 import { Colors, Radius, Spacing, ThemeColors } from "@/constants/theme";
 import { useAppStatePresence } from "@/hooks/use-app-state-presence";
-import { useChatSound } from "@/hooks/use-chat-sound";
+import { useChatAlerts } from "@/hooks/use-chat-alerts";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useConversations, useDmUnreadSync } from "@/hooks/use-direct-messages";
 import {
@@ -199,7 +199,7 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
   useDmUnreadSync();
   useTruckChangedSync();
   useTripsSync();
-  useChatSound();
+  useChatAlerts();
 
   // The socket syncs keep counts live, but also hard-refresh both unread
   // sources every time the drawer opens — so the bell always reflects the

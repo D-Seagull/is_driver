@@ -39,7 +39,9 @@
       "change": "Змінити",
       "remove": "Прибрати"
     },
-    "status": { "title": "Статус" },
+    "status": {
+      "title": "Статус"
+    },
     "name": {
       "title": "Імʼя та прізвище",
       "first": "Імʼя",
@@ -65,6 +67,11 @@
       "photoPermBody": "Дозволь доступ до галереї щоб обрати фото профілю.",
       "uploadAvatar": "Не вдалось завантажити фото.",
       "deleteAvatar": "Не вдалось видалити фото."
+    },
+    "notifications": {
+      "title": "Сповіщення",
+      "sound": "Звук",
+      "vibration": "Вібрація"
     }
   },
   "auth": {
@@ -170,7 +177,9 @@
     "newCount_many": "{{count}} нових",
     "readOnlyNotice": "Ви більше не учасник цього чату — перегляд тільки для читання.",
     "docsTitle": "Документи рейсу",
-    "attachSheet": { "title": "Прикріпити" },
+    "attachSheet": {
+      "title": "Прикріпити"
+    },
     "stops": {
       "loading": "Завантаження",
       "unloading": "Розвантаження",

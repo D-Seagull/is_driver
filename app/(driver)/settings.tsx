@@ -12,6 +12,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   useWindowDimensions,
@@ -31,6 +32,7 @@ import {
 import { fullName, initials } from '@/lib/format';
 import { StatusDot } from '@/components/status-dot';
 import { PresenceStatusSheet } from '@/components/presence-status-sheet';
+import { useAlertPrefs } from '@/store/alert-prefs';
 import { useAuthStore, useUser } from '@/store/auth';
 
 // The five languages the app ships UI translations for.
@@ -68,6 +70,12 @@ export default function DriverSettingsScreen() {
   const [statusPickerOpen, setStatusPickerOpen] = useState(false);
 
   const currentStatus = (user?.status as DriverUserStatus | undefined) ?? 'ONLINE';
+
+  // Notification feedback toggles — persisted per device, applied instantly.
+  const sound = useAlertPrefs((s) => s.sound);
+  const vibration = useAlertPrefs((s) => s.vibration);
+  const setSound = useAlertPrefs((s) => s.setSound);
+  const setVibration = useAlertPrefs((s) => s.setVibration);
 
   // Sync when the underlying user changes (e.g. after avatar upload).
   useEffect(() => {
@@ -389,6 +397,26 @@ export default function DriverSettingsScreen() {
               color={c.mutedForeground}
             />
           </Pressable>
+        </SectionCard>
+
+        {/* ── Notifications (sound / vibration) ────────────────────── */}
+        <SectionCard colors={c} compact={compact} title={t('settings.notifications.title')}>
+          <View style={{ gap: Spacing.sm }}>
+            <View style={[styles.row, { backgroundColor: c.card, borderColor: c.border }]}>
+              <Ionicons name="volume-medium-outline" size={18} color={c.foreground} />
+              <Text style={[styles.rowText, { color: c.foreground }]}>
+                {t('settings.notifications.sound')}
+              </Text>
+              <Switch value={sound} onValueChange={setSound} trackColor={{ true: c.primary }} />
+            </View>
+            <View style={[styles.row, { backgroundColor: c.card, borderColor: c.border }]}>
+              <Ionicons name="phone-portrait-outline" size={18} color={c.foreground} />
+              <Text style={[styles.rowText, { color: c.foreground }]}>
+                {t('settings.notifications.vibration')}
+              </Text>
+              <Switch value={vibration} onValueChange={setVibration} trackColor={{ true: c.primary }} />
+            </View>
+          </View>
         </SectionCard>
 
         {/* ── Save button + saved hint ─────────────────────────────── */}

@@ -8,7 +8,7 @@ import { documentKeys } from '@/hooks/use-documents';
 import { deleteDocument, DriverDocument } from '@/lib/documents-api';
 import { deleteTripMessage, editTripMessage, fetchTripMessages } from '@/lib/trips-api';
 import { getSocket } from '@/lib/socket';
-import { playMessageSound } from '@/lib/sounds';
+import { notifyIncomingMessage } from '@/lib/message-alert';
 import { useAuthStore } from '@/store/auth';
 
 import { fullName } from "@/lib/format";
@@ -199,8 +199,9 @@ export function useTripChat(
       // when they scroll back down or tap the pill.
       if (msg.senderId !== meId) {
         if (!nearBottomRef || nearBottomRef.current) markRead();
-        // Chime for incoming non-system messages.
-        if (!msg.isSystem) playMessageSound();
+        // Chime + vibration for incoming non-system messages (each honours its
+        // own Settings toggle).
+        if (!msg.isSystem) notifyIncomingMessage();
       }
     };
 

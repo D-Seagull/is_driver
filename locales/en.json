@@ -38,7 +38,9 @@
       "change": "Change",
       "remove": "Remove"
     },
-    "status": { "title": "Status" },
+    "status": {
+      "title": "Status"
+    },
     "name": {
       "title": "Name",
       "first": "First name",
@@ -64,6 +66,11 @@
       "photoPermBody": "Allow gallery access to pick a profile photo.",
       "uploadAvatar": "Couldn't upload photo.",
       "deleteAvatar": "Couldn't delete photo."
+    },
+    "notifications": {
+      "title": "Notifications",
+      "sound": "Sound",
+      "vibration": "Vibration"
     }
   },
   "auth": {
@@ -168,7 +175,9 @@
     "newCount_other": "{{count}} new",
     "readOnlyNotice": "You're no longer a member of this chat — read-only.",
     "docsTitle": "Trip documents",
-    "attachSheet": { "title": "Attach" },
+    "attachSheet": {
+      "title": "Attach"
+    },
     "stops": {
       "loading": "Loading",
       "unloading": "Unloading",
