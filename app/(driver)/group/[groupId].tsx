@@ -28,6 +28,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 import { MessageActionsSheet, type MessageActions } from '@/components/message-actions-sheet';
+import { UserCardSheet } from '@/components/user-card-sheet';
 import { MessageQuote } from '@/components/message-quote';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -153,6 +154,7 @@ export default function GroupChatScreen() {
 
   // ─── Jump to a replied-to message/document ─────────────────────────
   const [highlightId, setHighlightId] = useState<string | null>(null);
+  const [cardUserId, setCardUserId] = useState<string | null>(null);
   const scrollToMessage = (targetId?: string | null) => {
     if (!targetId) return;
     const index = data.findIndex((it) => it.data.id === targetId);
@@ -351,6 +353,7 @@ export default function GroupChatScreen() {
                 highlighted={item.data.id === highlightId}
                 onLongPress={() => setSheetFor(item.data)}
                 onReplyJump={scrollToMessage}
+                onOpenUser={setCardUserId}
               />
             ) : (
               <DocBubble
@@ -460,6 +463,10 @@ export default function GroupChatScreen() {
         open={emojiOpen}
         onClose={() => setEmojiOpen(false)}
         onEmojiSelected={(e) => setText((prev) => prev + e.emoji)}
+      />
+
+      {/* Tap a sender's name → mini profile card */}
+      <UserCardSheet userId={cardUserId} onClose={() => setCardUserId(null)}
       />
 
       {/* Long-press menu */}
@@ -793,12 +800,14 @@ function GroupBubble({
   highlighted,
   onLongPress,
   onReplyJump,
+  onOpenUser,
 }: {
   msg: GroupMessage;
   isOwn: boolean;
   highlighted?: boolean;
   onLongPress: () => void;
   onReplyJump: (targetId: string) => void;
+  onOpenUser: (userId: string) => void;
 }) {
   const { t } = useTranslation();
   const scheme = useColorScheme() ?? 'light';
@@ -821,11 +830,14 @@ function GroupBubble({
 
   return (
     <View style={[styles.outerCol, isOwn && styles.outerColOwn]}>
-      {/* Sender name above other people's messages so the group is readable */}
+      {/* Sender name above other people's messages so the group is readable.
+          Tap it to peek at the sender's mini profile. */}
       {!isOwn && !isDeleted && (
-        <Text style={[styles.senderName, { color: c.primary }]} numberOfLines={1}>
-          {senderName}
-        </Text>
+        <Pressable onPress={() => msg.sender?.id && onOpenUser(msg.sender.id)} hitSlop={4}>
+          <Text style={[styles.senderName, { color: c.primary }]} numberOfLines={1}>
+            {senderName}
+          </Text>
+        </Pressable>
       )}
       <Pressable
         onLongPress={onLongPress}
