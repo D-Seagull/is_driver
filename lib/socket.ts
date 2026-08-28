@@ -6,8 +6,9 @@ let socket: Socket | null = null;
 
 // Injected from the auth store (avoids a socket ↔ store circular import — the
 // same pattern as configureApiAuth). Returns the current in-memory access token.
-let getAuthToken: () => string | null = () => null;
-export function configureSocketAuth(fn: () => string | null) {
+type TokenProvider = () => string | null | Promise<string | null>;
+let getAuthToken: TokenProvider = () => null;
+export function configureSocketAuth(fn: TokenProvider) {
   getAuthToken = fn;
 }
 
@@ -19,7 +20,14 @@ export function getSocket(token?: string): Socket {
       // Function form → fresh token on every (re)connect (a silent refresh may
       // have rotated it since login). Falls back to the token passed at
       // creation for the very first connect. Gateway reads handshake.auth.token.
-      auth: (cb) => cb({ token: getAuthToken() ?? token ?? '' }),
+      // Async so we can silently refresh an expired token before the handshake
+      // (function form → runs on every reconnect). Falls back to the creation
+      // token if the provider throws.
+      auth: (cb) => {
+        Promise.resolve(getAuthToken())
+          .then((tok) => cb({ token: tok ?? token ?? '' }))
+          .catch(() => cb({ token: token ?? '' }));
+      },
       // polling first → upgrades to WebSocket automatically.
       // This avoids Android WebSocket handshake failures.
       transports: ['polling', 'websocket'],
