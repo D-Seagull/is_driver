@@ -40,6 +40,7 @@ import EmojiPicker from "rn-emoji-keyboard";
 
 import { MessageReactionsCluster } from "@/components/message-reactions";
 import { MessageActionsSheet, type MessageActions } from "@/components/message-actions-sheet";
+import { UserCardSheet } from "@/components/user-card-sheet";
 import { MessageQuote } from "@/components/message-quote";
 import { ScreenPlaceholder } from "@/components/screen-placeholder";
 import { StatusPicker } from "@/components/status-picker";
@@ -290,6 +291,7 @@ function TripWithChat({
 
   // Jump to a replied-to message/document + briefly highlight it.
   const [highlightId, setHighlightId] = useState<string | null>(null);
+  const [cardUserId, setCardUserId] = useState<string | null>(null);
   const scrollToMessage = useCallback((targetId?: string | null) => {
     if (!targetId) return;
     const index = timelineRef.current.findIndex((it) => it.data.id === targetId);
@@ -495,6 +497,7 @@ function TripWithChat({
             highlighted={item.data.id === highlightId}
             onLongPress={handleMsgLongPress}
             onReplyJump={scrollToMessage}
+            onOpenUser={setCardUserId}
           />
         );
       }
@@ -885,6 +888,9 @@ function TripWithChat({
         onEmojiSelected={(e) => setText((prev) => prev + e.emoji)}
       />
 
+      {/* Tap a sender's name → mini profile card */}
+      <UserCardSheet userId={cardUserId} onClose={() => setCardUserId(null)} />
+
       {/* Long-press menu for a message — reply / copy / edit / delete */}
       <MessageActionsSheet
         visible={!!msgSheetFor}
@@ -1066,6 +1072,7 @@ const MessageBubble = memo(function MessageBubble({
   highlighted,
   onLongPress,
   onReplyJump,
+  onOpenUser,
 }: {
   message: ChatMessage;
   isMe: boolean;
@@ -1073,6 +1080,7 @@ const MessageBubble = memo(function MessageBubble({
   highlighted?: boolean;
   onLongPress?: (m: ChatMessage) => void;
   onReplyJump: (targetId: string) => void;
+  onOpenUser?: (userId: string) => void;
 }) {
   const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? "light"];
@@ -1114,10 +1122,15 @@ const MessageBubble = memo(function MessageBubble({
       )}
       <View style={styles.bubbleCol}>
         {!isMe && (
-          <Text style={[styles.bubbleSender, { color: c.mutedForeground }]}>
-            {fullName(message.sender) ||
-              (isManager ? t("nav.manager") : t("nav.driverFallback"))}
-          </Text>
+          <Pressable
+            onPress={() => message.sender?.id && onOpenUser?.(message.sender.id)}
+            hitSlop={4}
+          >
+            <Text style={[styles.bubbleSender, { color: c.mutedForeground }]}>
+              {fullName(message.sender) ||
+                (isManager ? t("nav.manager") : t("nav.driverFallback"))}
+            </Text>
+          </Pressable>
         )}
         <View style={styles.bubbleInlineRow}>
           {isMe && sidekick}

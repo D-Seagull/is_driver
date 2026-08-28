@@ -10,6 +10,9 @@ export interface ManagerProfile {
   isActive: boolean;
   status?: string | null;
   statusUntil?: string | null;
+  /** Present in the GET /users/:id payload — used by the chat mini card. */
+  language?: string | null;
+  teamlead?: { id: string; firstName: string; lastName: string | null } | null;
   managerAverageRating: number | null;
   managerRatingCount: number;
 }
