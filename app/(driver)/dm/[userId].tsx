@@ -52,11 +52,10 @@ import {
   type DirectMessage,
 } from '@/hooks/use-direct-messages';
 import { useReactionsSocketSync } from '@/hooks/use-message-reactions';
+import { EDIT_WINDOW_MS } from '@/lib/constants';
 import { formatDate, formatTime } from '@/lib/format-date';
 import { getSocket } from '@/lib/socket';
 import { useUser } from '@/store/auth';
-
-const EDIT_WINDOW_MS = 15 * 60 * 1000;
 
 type ReplyTarget = {
   id: string;
@@ -392,6 +391,7 @@ export default function DmScreen() {
               <DocBubble
                 doc={item.data}
                 isOwn={item.data.uploadedBy === myId}
+                myId={myId}
                 highlighted={item.data.id === highlightId}
                 onOpen={() => openDoc(item.data)}
                 onLongPress={() => setDocSheetFor(item.data)}
@@ -811,12 +811,14 @@ function MessageBubble({
 function DocBubble({
   doc,
   isOwn,
+  myId,
   highlighted,
   onOpen,
   onLongPress,
 }: {
   doc: ConversationDocumentFull;
   isOwn: boolean;
+  myId: string;
   highlighted?: boolean;
   onOpen: () => void;
   onLongPress: () => void;
@@ -827,6 +829,14 @@ function DocBubble({
   const isDeleted = !!doc.deletedAt;
   const isPhoto = doc.fileType === 'PHOTO';
   const time = formatTime(doc.createdAt, { hour: '2-digit', minute: '2-digit' });
+  const sidekick = isDeleted ? null : (
+    <MessageReactionsCluster
+      type="DM_DOC"
+      targetId={doc.id}
+      reactions={doc.reactions ?? []}
+      currentUserId={myId}
+    />
+  );
 
   if (isDeleted) {
     return (
@@ -842,6 +852,8 @@ function DocBubble({
 
   return (
     <View style={[styles.outerCol, isOwn && styles.outerColOwn]}>
+      <View style={[styles.bubbleRow, styles.bubbleRowDoc]}>
+      {isOwn && sidekick}
       <Pressable
         onPress={onOpen}
         onLongPress={onLongPress}
@@ -875,6 +887,8 @@ function DocBubble({
           </Text>
         ) : null}
       </Pressable>
+      {!isOwn && sidekick}
+      </View>
       <View style={[styles.meta, isOwn && styles.metaOwn]}>
         <Text style={[styles.metaText, { color: c.mutedForeground }]}>{time}</Text>
       </View>
@@ -1152,6 +1166,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
+  // Attachments vary in height; pin the reaction to the bubble's bottom edge
+  // so the gap reads the same for tall photos and short file cards.
+  bubbleRowDoc: { alignItems: 'flex-end' },
   barWrap: { marginTop: 3 },
   barWrapOwn: { alignItems: 'flex-end' },
 

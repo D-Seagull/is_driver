@@ -33,6 +33,7 @@ import {
   useDriverUnread,
   useDriverUnreadSync,
 } from "@/hooks/use-driver-unread";
+import { useDriverGroups, useGroupUnreadSync } from "@/hooks/use-groups";
 import { usePresenceSync } from "@/hooks/use-presence";
 import { usePushNotifications } from "@/hooks/use-push-notifications";
 import { useThemeMode } from "@/hooks/use-theme";
@@ -195,8 +196,10 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
   const { data: unread, refetch: refetchUnread } = useDriverUnread();
   const { data: conversations, refetch: refetchConversations } =
     useConversations();
+  const { data: driverGroups, refetch: refetchGroupUnread } = useDriverGroups();
   useDriverUnreadSync();
   useDmUnreadSync();
+  useGroupUnreadSync();
   useTruckChangedSync();
   useTripsSync();
   useChatAlerts();
@@ -209,8 +212,9 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
     if (drawerStatus === "open") {
       void refetchUnread();
       void refetchConversations();
+      void refetchGroupUnread();
     }
-  }, [drawerStatus, refetchUnread, refetchConversations]);
+  }, [drawerStatus, refetchUnread, refetchConversations, refetchGroupUnread]);
   usePushNotifications();
   useTimezoneSync();
   useAppStatePresence();
@@ -232,7 +236,12 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
   // peer). Feeds both the bell and the Chat nav-item badge.
   const dmItems = (conversations ?? []).filter((c) => c.unreadCount > 0);
   const dmUnreadTotal = dmItems.reduce((s, c) => s + c.unreadCount, 0);
-  const totalUnread = tripUnreadTotal + dmUnreadTotal;
+
+  // Group unread — driver groups carry per-group unreadCount (docs included).
+  const groupItems = (driverGroups ?? []).filter((g) => g.unreadCount > 0);
+  const groupUnreadTotal = groupItems.reduce((s, g) => s + g.unreadCount, 0);
+
+  const totalUnread = tripUnreadTotal + dmUnreadTotal + groupUnreadTotal;
 
   const [bellOpen, setBellOpen] = React.useState(false);
 
@@ -297,7 +306,9 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
                 { backgroundColor: c.card, borderColor: c.sidebarBorder },
               ]}
             >
-              {unreadItems.length === 0 && dmItems.length === 0 ? (
+              {unreadItems.length === 0 &&
+              dmItems.length === 0 &&
+              groupItems.length === 0 ? (
                 <Text
                   style={[styles.bellEmptyText, { color: c.mutedForeground }]}
                 >
@@ -409,6 +420,41 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
                       </Text>
                     </Pressable>
                   ))}
+                  {groupItems.map((g) => (
+                    <Pressable
+                      key={`group-${g.id}`}
+                      style={({ pressed }) => [
+                        styles.bellItem,
+                        {
+                          borderColor: c.sidebarBorder,
+                          backgroundColor: pressed
+                            ? c.sidebarAccent
+                            : "transparent",
+                        },
+                      ]}
+                      onPress={() => {
+                        router.push(`/(driver)/group/${g.id}` as never);
+                        setBellOpen(false);
+                      }}
+                    >
+                      <View style={styles.bellItemRow}>
+                        <Text
+                          style={[
+                            styles.bellItemTitle,
+                            { color: c.sidebarForeground },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {g.name}
+                        </Text>
+                        <View style={styles.bellItemBadge}>
+                          <Text style={styles.bellItemBadgeText}>
+                            {g.unreadCount}
+                          </Text>
+                        </View>
+                      </View>
+                    </Pressable>
+                  ))}
                 </ScrollView>
               )}
             </View>
@@ -425,7 +471,7 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
               : it.name === "trips"
                 ? pastTripsUnread
                 : it.name === "chat"
-                  ? dmUnreadTotal
+                  ? dmUnreadTotal + groupUnreadTotal
                   : 0;
           return (
             <Pressable

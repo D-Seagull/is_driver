@@ -309,7 +309,7 @@ export default function TruckScreen() {
             <NoteCard
               key={note.id}
               note={note}
-              canDelete={note.userId === user?.id}
+              canDelete={!!user}
               onDelete={() => handleDeleteNote(note.id)}
             />
           ))}

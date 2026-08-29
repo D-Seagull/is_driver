@@ -56,10 +56,14 @@ export function useDriverUnreadSync() {
     // still listen for it there).
     socket.on('tripUnreadChanged', invalidate);
     socket.on('tripMessagesRead', invalidate);
+    // Catch up after any (re)connect — events missed while the app was
+    // backgrounded / the socket was down would otherwise only show on reload.
+    socket.on('connect', invalidate);
 
     return () => {
       socket.off('tripUnreadChanged', invalidate);
       socket.off('tripMessagesRead', invalidate);
+      socket.off('connect', invalidate);
     };
   }, [queryClient, token]);
 }

@@ -23,6 +23,7 @@ import { useCompanyUsers, type CompanyUser } from '@/hooks/use-company-users';
 import { useConversations, type Conversation } from '@/hooks/use-direct-messages';
 import { useDriverGroups, type DriverGroup } from '@/hooks/use-groups';
 import { type DriverUserStatus } from '@/lib/auth-api';
+import { roleBadgeIcon } from '@/lib/roles';
 import { useUser } from '@/store/auth';
 
 type Tab = 'chat' | 'groups';
@@ -279,7 +280,7 @@ function DirectoryRow({ user }: { user: CompanyUser }) {
         <ChatAvatar user={user} size={44} />
         {isManagerTier && (
           <View style={[styles.managerBadge, { backgroundColor: c.primary }]}>
-            <Ionicons name="headset-outline" size={9} color={c.primaryForeground} />
+            <Ionicons name={roleBadgeIcon(user.role)} size={9} color={c.primaryForeground} />
           </View>
         )}
         <View style={styles.presenceDot}>
@@ -324,7 +325,7 @@ function ConversationRow({ conv }: { conv: Conversation }) {
         <ChatAvatar user={conv.user} size={44} />
         {isManagerTier && (
           <View style={[styles.managerBadge, { backgroundColor: c.primary }]}>
-            <Ionicons name="headset-outline" size={9} color={c.primaryForeground} />
+            <Ionicons name={roleBadgeIcon(conv.user.role)} size={9} color={c.primaryForeground} />
           </View>
         )}
         <View style={styles.presenceDot}>

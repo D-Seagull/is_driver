@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 
-import { getSocket } from '@/lib/socket';
+import { ensureSocketAlive, getSocket } from '@/lib/socket';
 
 /**
  * Tracks foreground/background and tells the server, so it knows when to
@@ -42,6 +42,30 @@ export function useAppStatePresence() {
 
     const sub = AppState.addEventListener('change', emit);
 
+    // Foreground watchdog — a socket can freeze WITHOUT any app-state change
+    // (left open on a desk, brief network drop). While foregrounded, poll the
+    // socket's liveness and force a reconnect if the packet stream went quiet,
+    // so realtime never silently dies until a manual reload.
+    let watchdog: ReturnType<typeof setInterval> | null = null;
+    const startWatchdog = () => {
+      if (watchdog) return;
+      watchdog = setInterval(() => {
+        if (AppState.currentState === 'active') ensureSocketAlive();
+      }, 15_000);
+    };
+    const stopWatchdog = () => {
+      if (watchdog) {
+        clearInterval(watchdog);
+        watchdog = null;
+      }
+    };
+    const onAppStateWatch = (state: AppStateStatus) => {
+      if (state === 'active') startWatchdog();
+      else stopWatchdog();
+    };
+    if (AppState.currentState === 'active') startWatchdog();
+    const watchSub = AppState.addEventListener('change', onAppStateWatch);
+
     // Also flip to active whenever the socket (re)connects — the server's
     // per-socket flag resets to true on connect, but if we reconnected while
     // backgrounded we want to be honest.
@@ -51,6 +75,8 @@ export function useAppStatePresence() {
 
     return () => {
       sub.remove();
+      watchSub.remove();
+      stopWatchdog();
       sock.off('connect', onConnect);
     };
   }, []);

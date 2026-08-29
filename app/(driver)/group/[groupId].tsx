@@ -48,12 +48,13 @@ import {
   useMarkGroupRead,
   type GroupMessage,
 } from '@/hooks/use-groups';
+import { MessageReactionsCluster } from '@/components/message-reactions';
+import { useReactionsSocketSync } from '@/hooks/use-message-reactions';
+import { EDIT_WINDOW_MS } from '@/lib/constants';
 import { fullName } from '@/lib/format';
 import { formatDate, formatTime } from '@/lib/format-date';
 import { getSocket } from '@/lib/socket';
 import { useUser } from '@/store/auth';
-
-const EDIT_WINDOW_MS = 15 * 60 * 1000;
 
 type ReplyTarget = {
   id: string;
@@ -106,6 +107,7 @@ export default function GroupChatScreen() {
   useJoinGroupRoom(groupId);
   useChatEvents({ groupId, myUserId: myId });
   useGroupDocsSocketSync(groupId);
+  useReactionsSocketSync({ groupId });
 
   // Mark the whole group read on open and whenever a new message lands —
   // but only while the screen is focused. The drawer keeps it mounted after
@@ -350,6 +352,7 @@ export default function GroupChatScreen() {
               <GroupBubble
                 msg={item.data}
                 isOwn={item.data.senderId === myId}
+                myId={myId}
                 highlighted={item.data.id === highlightId}
                 onLongPress={() => setSheetFor(item.data)}
                 onReplyJump={scrollToMessage}
@@ -359,6 +362,7 @@ export default function GroupChatScreen() {
               <DocBubble
                 doc={item.data}
                 isOwn={item.data.uploadedBy === myId}
+                myId={myId}
                 highlighted={item.data.id === highlightId}
                 onOpen={() => openDoc(item.data)}
                 onLongPress={() => setDocSheetFor(item.data)}
@@ -797,6 +801,7 @@ function Banner({
 function GroupBubble({
   msg,
   isOwn,
+  myId,
   highlighted,
   onLongPress,
   onReplyJump,
@@ -804,6 +809,7 @@ function GroupBubble({
 }: {
   msg: GroupMessage;
   isOwn: boolean;
+  myId: string;
   highlighted?: boolean;
   onLongPress: () => void;
   onReplyJump: (targetId: string) => void;
@@ -814,6 +820,14 @@ function GroupBubble({
   const c = Colors[scheme];
   const isDeleted = !!msg.deletedAt;
   const time = formatTime(msg.createdAt, { hour: '2-digit', minute: '2-digit' });
+  const sidekick = isDeleted || msg.isSystem ? null : (
+    <MessageReactionsCluster
+      type="GROUP"
+      targetId={msg.id}
+      reactions={msg.reactions ?? []}
+      currentUserId={myId}
+    />
+  );
 
   // System notices ("added X") render as centred, muted text — no bubble.
   if (msg.isSystem) {
@@ -839,6 +853,8 @@ function GroupBubble({
           </Text>
         </Pressable>
       )}
+      <View style={styles.reactRow}>
+      {isOwn && sidekick}
       <Pressable
         onLongPress={onLongPress}
         delayLongPress={400}
@@ -889,6 +905,8 @@ function GroupBubble({
           {isDeleted ? t('common.messageDeleted') : msg.content}
         </Text>
       </Pressable>
+      {!isOwn && sidekick}
+      </View>
       <View style={[styles.meta, isOwn && styles.metaOwn]}>
         {msg.editedAt && !isDeleted && (
           <Text
@@ -908,12 +926,14 @@ function GroupBubble({
 function DocBubble({
   doc,
   isOwn,
+  myId,
   highlighted,
   onOpen,
   onLongPress,
 }: {
   doc: GroupDocumentFull;
   isOwn: boolean;
+  myId: string;
   highlighted?: boolean;
   onOpen: () => void;
   onLongPress: () => void;
@@ -925,6 +945,14 @@ function DocBubble({
   const isPhoto = doc.fileType === 'PHOTO';
   const time = formatTime(doc.createdAt, { hour: '2-digit', minute: '2-digit' });
   const senderName = fullName(doc.uploader) || doc.uploader?.role || t('nav.driverFallback');
+  const sidekick = isDeleted ? null : (
+    <MessageReactionsCluster
+      type="GROUP_DOC"
+      targetId={doc.id}
+      reactions={doc.reactions ?? []}
+      currentUserId={myId}
+    />
+  );
 
   if (isDeleted) {
     return (
@@ -945,6 +973,8 @@ function DocBubble({
           {senderName}
         </Text>
       )}
+      <View style={[styles.reactRow, styles.reactRowDoc]}>
+      {isOwn && sidekick}
       <Pressable
         onPress={onOpen}
         onLongPress={onLongPress}
@@ -986,6 +1016,8 @@ function DocBubble({
           </Text>
         ) : null}
       </Pressable>
+      {!isOwn && sidekick}
+      </View>
       <View style={[styles.meta, isOwn && styles.metaOwn]}>
         <Text style={[styles.metaText, { color: c.mutedForeground }]}>{time}</Text>
       </View>
@@ -1082,6 +1114,10 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   outerColOwn: { alignSelf: 'flex-end' },
+  reactRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  // Attachments vary in height; pin the reaction to the bottom edge so the gap
+  // reads the same for tall photos and short file cards.
+  reactRowDoc: { alignItems: 'flex-end' },
   senderName: { fontSize: 11, fontWeight: '700', marginBottom: 2, marginLeft: 4 },
 
   bubble: {

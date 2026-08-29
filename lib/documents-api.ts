@@ -1,4 +1,5 @@
 import { api } from './api';
+import type { MessageReactionRow } from '@/hooks/use-message-reactions';
 
 export interface DriverDocument {
   id: string;
@@ -10,6 +11,7 @@ export interface DriverDocument {
   isRead: boolean;
   createdAt: string;
   signedUrl: string;
+  reactions?: MessageReactionRow[];
   uploader?: { id: string; firstName: string; lastName: string | null; role: string };
   trip?: {
     id: string;

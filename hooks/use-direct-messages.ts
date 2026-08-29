@@ -98,10 +98,14 @@ export function useDmUnreadSync() {
     socket.on('new_direct_message', invalidate);
     socket.on('new_direct_document', invalidate);
     socket.on('messages_read', invalidate);
+    // Catch up after any (re)connect — events missed while the app was
+    // backgrounded / the socket was down would otherwise only show on reload.
+    socket.on('connect', invalidate);
     return () => {
       socket.off('new_direct_message', invalidate);
       socket.off('new_direct_document', invalidate);
       socket.off('messages_read', invalidate);
+      socket.off('connect', invalidate);
     };
   }, [queryClient, token]);
 }

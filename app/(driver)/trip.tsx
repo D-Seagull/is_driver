@@ -1,5 +1,7 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { EDIT_WINDOW_MS } from "@/lib/constants";
 import { fullName, formatStopWindow } from "@/lib/format";
+import { roleBadgeIcon } from "@/lib/roles";
 import {
   DrawerActions,
   useIsFocused,
@@ -506,6 +508,7 @@ function TripWithChat({
         <DocBubble
           doc={item.data}
           isMe={isMe}
+          currentUserId={user?.id}
           highlighted={item.data.id === highlightId}
           onOpen={handleOpenDoc}
           onLongPress={handleDocLongPress}
@@ -917,7 +920,7 @@ function TripWithChat({
                   msgSheetFor.senderId === user?.id &&
                   !msgSheetFor.deletedAt &&
                   Date.now() - new Date(msgSheetFor.createdAt).getTime() <
-                    15 * 60 * 1000
+                    EDIT_WINDOW_MS
                     ? () => {
                         const m = msgSheetFor;
                         setEditing({ id: m.id, original: m.content });
@@ -1085,6 +1088,7 @@ const MessageBubble = memo(function MessageBubble({
   const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? "light"];
   const isManager = message.sender.role !== "DRIVER";
+  const roleIcon = roleBadgeIcon(message.sender.role);
   const isDeleted = !!message.deletedAt;
   const time = formatTime(message.createdAt, { hour: "2-digit", minute: "2-digit" });
 
@@ -1114,7 +1118,7 @@ const MessageBubble = memo(function MessageBubble({
           ]}
         >
           <Ionicons
-            name={isManager ? "headset-outline" : "person-outline"}
+            name={roleIcon}
             size={12}
             color={isManager ? "#fff" : c.mutedForeground}
           />
@@ -1434,12 +1438,14 @@ function TripDocsModal({
 const DocBubble = memo(function DocBubble({
   doc,
   isMe,
+  currentUserId,
   highlighted,
   onOpen,
   onLongPress,
 }: {
   doc: DriverDocument;
   isMe: boolean;
+  currentUserId?: string;
   highlighted?: boolean;
   onOpen: (d: DriverDocument) => void;
   onLongPress?: (d: DriverDocument) => void;
@@ -1449,7 +1455,16 @@ const DocBubble = memo(function DocBubble({
   const isPhoto = doc.fileType === "PHOTO";
   const time = formatTime(doc.createdAt, { hour: "2-digit", minute: "2-digit" });
   const isManager = doc.uploader?.role !== "DRIVER";
+  const roleIcon = roleBadgeIcon(doc.uploader?.role);
   const ext = doc.fileName.split(".").pop()?.toUpperCase() ?? "FILE";
+  const sidekick = (
+    <MessageReactionsCluster
+      type="TRIP_DOC"
+      targetId={doc.id}
+      reactions={doc.reactions ?? []}
+      currentUserId={currentUserId}
+    />
+  );
 
   return (
     <View
@@ -1466,7 +1481,7 @@ const DocBubble = memo(function DocBubble({
           ]}
         >
           <Ionicons
-            name={isManager ? "headset-outline" : "person-outline"}
+            name={roleIcon}
             size={12}
             color={isManager ? "#fff" : c.mutedForeground}
           />
@@ -1479,6 +1494,8 @@ const DocBubble = memo(function DocBubble({
               (isManager ? t("nav.manager") : t("nav.driverFallback"))}
           </Text>
         )}
+        <View style={[styles.bubbleInlineRow, styles.bubbleInlineRowDoc]}>
+        {isMe && sidekick}
         <Pressable
           onPress={() => onOpen(doc)}
           onLongPress={onLongPress ? () => onLongPress(doc) : undefined}
@@ -1533,6 +1550,8 @@ const DocBubble = memo(function DocBubble({
             </View>
           )}
         </Pressable>
+        {!isMe && sidekick}
+        </View>
         <View style={styles.bubbleMetaRow}>
           <Text style={[styles.bubbleTime, { color: c.mutedForeground }]}>
             {time}
@@ -2102,8 +2121,11 @@ const styles = StyleSheet.create({
   bubbleInlineRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 6,
   },
+  // Attachments vary in height (tall photos vs short file cards); pin the
+  // reaction to the bubble's bottom edge so the gap reads the same for both.
+  bubbleInlineRowDoc: { alignItems: "flex-end" },
   bubbleBarWrap: { marginTop: 3 },
   bubbleBarWrapMe: { alignItems: "flex-end" },
   avatar: {

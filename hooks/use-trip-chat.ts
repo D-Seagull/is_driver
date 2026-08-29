@@ -269,6 +269,14 @@ export function useTripChat(
             m.id === payload.targetId ? { ...m, reactions: payload.reactions } : m,
           ),
         );
+      } else if (payload.targetType === 'TRIP_DOC' && tripId) {
+        // Trip documents live in React Query (useTripDocuments), not local
+        // state — patch that cache so a reaction on a file/photo updates.
+        qc.setQueryData<DriverDocument[]>(documentKeys.trip(tripId), (old = []) =>
+          old.map((d) =>
+            d.id === payload.targetId ? { ...d, reactions: payload.reactions } : d,
+          ),
+        );
       }
     };
 
