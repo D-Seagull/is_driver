@@ -32,6 +32,29 @@ const REFRESH_KEY = 'auth_refresh';
 
 const isWeb = Platform.OS === 'web';
 
+// Refresh tokens are single-use (rotated on every refresh). If two callers race
+// (e.g. the socket reconnect handshake AND an api 401 retry, both firing after
+// a 15-min idle), the second would send an already-rotated token and kill the
+// session. Dedupe: everyone awaits the same in-flight refresh.
+let refreshInFlight: Promise<string | null> | null = null;
+
+// Decode the JWT `exp` (seconds) to tell if the access token is still good.
+// Treats an undecodable token as stale so we refresh rather than send garbage.
+function accessTokenFresh(token: string | null): boolean {
+  if (!token) return false;
+  try {
+    const part = token.split('.')[1];
+    const b64 = part.replace(/-/g, '+').replace(/_/g, '/');
+    const pad = b64.length % 4 ? '='.repeat(4 - (b64.length % 4)) : '';
+    const json = globalThis.atob(b64 + pad);
+    const exp = (JSON.parse(json) as { exp?: number }).exp;
+    // Fresh only if it survives the next 60s — leaves room for the handshake.
+    return !!exp && exp * 1000 - Date.now() > 60_000;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Hybrid persisted storage: the sensitive access + refresh tokens live in the
  * OS keychain / keystore (expo-secure-store), while the non-sensitive user
@@ -152,11 +175,18 @@ export const useAuthStore = create<AuthState>()(
         // Set token first so the api interceptor injects Authorization on the
         // follow-up /auth/me call below.
         set({ user, token, refreshToken, isLoading: false });
+        let finalUser: AuthUser = user;
         try {
-          const enriched = await fetchMe();
-          set({ user: enriched });
+          finalUser = await fetchMe();
+          set({ user: finalUser });
         } catch {
           // Non-fatal — basic user from verify is enough to proceed.
+        }
+        // Лише водії можуть заходити в застосунок водія. Якщо це не водій —
+        // вийти й показати помилку на екрані коду.
+        if (finalUser.role !== 'DRIVER') {
+          get().logout();
+          throw new Error('DRIVER_ONLY');
         }
         // Open socket connection now that we have a token
         getSocket(get().token ?? undefined);
@@ -173,6 +203,12 @@ export const useAuthStore = create<AuthState>()(
           // refreshes and retries this call — so a success here may already be
           // running on a freshly rotated token.
           const user = await fetchMe();
+          // Лише водії можуть користуватись застосунком водія. Персистована сесія
+          // менеджера/адміна (напр. з тестів) має вилетіти на логін.
+          if (user.role !== 'DRIVER') {
+            set({ user: null, token: null, refreshToken: null, isLoading: false });
+            return;
+          }
           set({ user, isLoading: false });
         } catch {
           set({ user: null, token: null, refreshToken: null, isLoading: false });
@@ -180,17 +216,32 @@ export const useAuthStore = create<AuthState>()(
       },
 
       refresh: async () => {
-        const rt = get().refreshToken;
-        if (!rt) return null;
+        // Coalesce concurrent refreshes onto one in-flight request so the
+        // single-use refresh token is rotated exactly once.
+        if (refreshInFlight) return refreshInFlight;
+        refreshInFlight = (async () => {
+          const rt = get().refreshToken;
+          if (!rt) return null;
+          try {
+            const { user, token, refreshToken } = await refreshTokens(rt);
+            // Роль могла змінитись на бекенді — не водій більше не має доступу.
+            if (user.role !== 'DRIVER') {
+              set({ user: null, token: null, refreshToken: null });
+              return null;
+            }
+            set({ user, token, refreshToken });
+            return token;
+          } catch {
+            // Refresh token rejected (expired / revoked / already rotated) —
+            // the session is dead; clear it so the app bounces to login.
+            set({ user: null, token: null, refreshToken: null });
+            return null;
+          }
+        })();
         try {
-          const { user, token, refreshToken } = await refreshTokens(rt);
-          set({ user, token, refreshToken });
-          return token;
-        } catch {
-          // Refresh token rejected (expired / revoked / already rotated) —
-          // the session is dead; clear it so the app bounces to login.
-          set({ user: null, token: null, refreshToken: null });
-          return null;
+          return await refreshInFlight;
+        } finally {
+          refreshInFlight = null;
         }
       },
 
@@ -232,7 +283,13 @@ configureApiAuth({
 
 // Feed the socket the current access token on every (re)connect, so a token
 // rotated by a silent refresh is used on the next handshake.
-configureSocketAuth(() => useAuthStore.getState().token);
+configureSocketAuth(async () => {
+  const s = useAuthStore.getState();
+  if (accessTokenFresh(s.token)) return s.token;
+  if (!s.refreshToken) return s.token;
+  await s.refresh();
+  return useAuthStore.getState().token;
+});
 
 // Selectors
 export const useUser = () => useAuthStore((s) => s.user);

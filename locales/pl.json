@@ -39,7 +39,9 @@
       "change": "Zmień",
       "remove": "Usuń"
     },
-    "status": { "title": "Status" },
+    "status": {
+      "title": "Status"
+    },
     "name": {
       "title": "Imię i nazwisko",
       "first": "Imię",
@@ -65,6 +67,11 @@
       "photoPermBody": "Zezwól na dostęp do galerii, aby wybrać zdjęcie profilowe.",
       "uploadAvatar": "Nie udało się przesłać zdjęcia.",
       "deleteAvatar": "Nie udało się usunąć zdjęcia."
+    },
+    "notifications": {
+      "title": "Powiadomienia",
+      "sound": "Dźwięk",
+      "vibration": "Wibracja"
     }
   },
   "auth": {
@@ -85,7 +92,8 @@
       "server": "Błąd serwera ({{status}})",
       "cannotReach": "Brak połączenia z serwerem. Sprawdź, czy backend działa, a EXPO_PUBLIC_API_URL jest poprawny.",
       "sendFailed": "Nie udało się wysłać kodu.",
-      "invalidCode": "Nieprawidłowy kod."
+      "invalidCode": "Nieprawidłowy kod.",
+      "driverOnly": "Ta aplikacja jest tylko dla kierowców. Zaloguj się na konto kierowcy."
     }
   },
   "alarm": {
@@ -169,10 +177,13 @@
     "newCount_many": "{{count}} nowych",
     "readOnlyNotice": "Nie jesteś już członkiem tego czatu — tylko do odczytu.",
     "docsTitle": "Dokumenty trasy",
-    "attachSheet": { "title": "Załącz" },
+    "attachSheet": {
+      "title": "Załącz"
+    },
     "stops": {
       "loading": "Załadunek",
-      "unloading": "Rozładunek"
+      "unloading": "Rozładunek",
+      "waypoint": "Dodatkowy przystanek"
     }
   },
   "tripStatus": {

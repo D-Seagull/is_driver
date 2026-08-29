@@ -39,7 +39,9 @@
       "change": "Keisti",
       "remove": "Pašalinti"
     },
-    "status": { "title": "Būsena" },
+    "status": {
+      "title": "Būsena"
+    },
     "name": {
       "title": "Vardas ir pavardė",
       "first": "Vardas",
@@ -65,6 +67,11 @@
       "photoPermBody": "Leiskite pasiekti galeriją, kad pasirinktumėte profilio nuotrauką.",
       "uploadAvatar": "Nepavyko įkelti nuotraukos.",
       "deleteAvatar": "Nepavyko ištrinti nuotraukos."
+    },
+    "notifications": {
+      "title": "Pranešimai",
+      "sound": "Garsas",
+      "vibration": "Vibracija"
     }
   },
   "auth": {
@@ -85,7 +92,8 @@
       "server": "Serverio klaida ({{status}})",
       "cannotReach": "Nepavyksta pasiekti serverio. Patikrinkite, ar veikia backend'as ir ar EXPO_PUBLIC_API_URL teisingas.",
       "sendFailed": "Nepavyko išsiųsti kodo.",
-      "invalidCode": "Neteisingas kodas."
+      "invalidCode": "Neteisingas kodas.",
+      "driverOnly": "Ši programa skirta tik vairuotojams. Prisijunkite vairuotojo paskyra."
     }
   },
   "alarm": {
@@ -169,10 +177,13 @@
     "newCount_other": "{{count}} naujų",
     "readOnlyNotice": "Jūs nebeesate šio pokalbio narys — tik skaitymui.",
     "docsTitle": "Reiso dokumentai",
-    "attachSheet": { "title": "Prisegti" },
+    "attachSheet": {
+      "title": "Prisegti"
+    },
     "stops": {
       "loading": "Pakrovimas",
-      "unloading": "Iškrovimas"
+      "unloading": "Iškrovimas",
+      "waypoint": "Papildomas sustojimas"
     }
   },
   "tripStatus": {

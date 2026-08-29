@@ -1,6 +1,6 @@
 import { TripStatus } from '@/constants/trip-status';
 
-export type StopType = 'LOADING' | 'UNLOADING';
+export type StopType = 'LOADING' | 'UNLOADING' | 'WAYPOINT';
 export type TruckStatus = 'AVAILABLE' | 'ON_TRIP' | 'REPAIR';
 
 export interface TruckNote {
@@ -34,6 +34,7 @@ export interface TripStop {
   tripId: string;
   type: StopType;
   order: number;
+  name: string | null; // мітка для WAYPOINT (напр. "Кастомс")
   address: string | null;
   ref: string | null;
   coords: string | null;

@@ -1,5 +1,7 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { EDIT_WINDOW_MS } from "@/lib/constants";
 import { fullName, formatStopWindow } from "@/lib/format";
+import { roleBadgeIcon } from "@/lib/roles";
 import {
   DrawerActions,
   useIsFocused,
@@ -40,6 +42,7 @@ import EmojiPicker from "rn-emoji-keyboard";
 
 import { MessageReactionsCluster } from "@/components/message-reactions";
 import { MessageActionsSheet, type MessageActions } from "@/components/message-actions-sheet";
+import { UserCardSheet } from "@/components/user-card-sheet";
 import { MessageQuote } from "@/components/message-quote";
 import { ScreenPlaceholder } from "@/components/screen-placeholder";
 import { StatusPicker } from "@/components/status-picker";
@@ -58,7 +61,7 @@ import {
 import { DriverDocument, UploadFileLocal } from "@/lib/documents-api";
 import { formatDate, formatTime } from "@/lib/format-date";
 import { systemMessageText } from "@/lib/system-message";
-import { Trip } from "@/lib/types";
+import { Trip, StopType } from "@/lib/types";
 import { useUser } from "@/store/auth";
 
 // Reply target for the composer banner — a message or a document quote.
@@ -290,6 +293,7 @@ function TripWithChat({
 
   // Jump to a replied-to message/document + briefly highlight it.
   const [highlightId, setHighlightId] = useState<string | null>(null);
+  const [cardUserId, setCardUserId] = useState<string | null>(null);
   const scrollToMessage = useCallback((targetId?: string | null) => {
     if (!targetId) return;
     const index = timelineRef.current.findIndex((it) => it.data.id === targetId);
@@ -495,6 +499,7 @@ function TripWithChat({
             highlighted={item.data.id === highlightId}
             onLongPress={handleMsgLongPress}
             onReplyJump={scrollToMessage}
+            onOpenUser={setCardUserId}
           />
         );
       }
@@ -503,6 +508,7 @@ function TripWithChat({
         <DocBubble
           doc={item.data}
           isMe={isMe}
+          currentUserId={user?.id}
           highlighted={item.data.id === highlightId}
           onOpen={handleOpenDoc}
           onLongPress={handleDocLongPress}
@@ -885,6 +891,9 @@ function TripWithChat({
         onEmojiSelected={(e) => setText((prev) => prev + e.emoji)}
       />
 
+      {/* Tap a sender's name → mini profile card */}
+      <UserCardSheet userId={cardUserId} onClose={() => setCardUserId(null)} />
+
       {/* Long-press menu for a message — reply / copy / edit / delete */}
       <MessageActionsSheet
         visible={!!msgSheetFor}
@@ -911,7 +920,7 @@ function TripWithChat({
                   msgSheetFor.senderId === user?.id &&
                   !msgSheetFor.deletedAt &&
                   Date.now() - new Date(msgSheetFor.createdAt).getTime() <
-                    15 * 60 * 1000
+                    EDIT_WINDOW_MS
                     ? () => {
                         const m = msgSheetFor;
                         setEditing({ id: m.id, original: m.content });
@@ -1066,6 +1075,7 @@ const MessageBubble = memo(function MessageBubble({
   highlighted,
   onLongPress,
   onReplyJump,
+  onOpenUser,
 }: {
   message: ChatMessage;
   isMe: boolean;
@@ -1073,10 +1083,12 @@ const MessageBubble = memo(function MessageBubble({
   highlighted?: boolean;
   onLongPress?: (m: ChatMessage) => void;
   onReplyJump: (targetId: string) => void;
+  onOpenUser?: (userId: string) => void;
 }) {
   const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? "light"];
   const isManager = message.sender.role !== "DRIVER";
+  const roleIcon = roleBadgeIcon(message.sender.role);
   const isDeleted = !!message.deletedAt;
   const time = formatTime(message.createdAt, { hour: "2-digit", minute: "2-digit" });
 
@@ -1106,7 +1118,7 @@ const MessageBubble = memo(function MessageBubble({
           ]}
         >
           <Ionicons
-            name={isManager ? "headset-outline" : "person-outline"}
+            name={roleIcon}
             size={12}
             color={isManager ? "#fff" : c.mutedForeground}
           />
@@ -1114,10 +1126,15 @@ const MessageBubble = memo(function MessageBubble({
       )}
       <View style={styles.bubbleCol}>
         {!isMe && (
-          <Text style={[styles.bubbleSender, { color: c.mutedForeground }]}>
-            {fullName(message.sender) ||
-              (isManager ? t("nav.manager") : t("nav.driverFallback"))}
-          </Text>
+          <Pressable
+            onPress={() => message.sender?.id && onOpenUser?.(message.sender.id)}
+            hitSlop={4}
+          >
+            <Text style={[styles.bubbleSender, { color: c.mutedForeground }]}>
+              {fullName(message.sender) ||
+                (isManager ? t("nav.manager") : t("nav.driverFallback"))}
+            </Text>
+          </Pressable>
         )}
         <View style={styles.bubbleInlineRow}>
           {isMe && sidekick}
@@ -1421,12 +1438,14 @@ function TripDocsModal({
 const DocBubble = memo(function DocBubble({
   doc,
   isMe,
+  currentUserId,
   highlighted,
   onOpen,
   onLongPress,
 }: {
   doc: DriverDocument;
   isMe: boolean;
+  currentUserId?: string;
   highlighted?: boolean;
   onOpen: (d: DriverDocument) => void;
   onLongPress?: (d: DriverDocument) => void;
@@ -1436,7 +1455,16 @@ const DocBubble = memo(function DocBubble({
   const isPhoto = doc.fileType === "PHOTO";
   const time = formatTime(doc.createdAt, { hour: "2-digit", minute: "2-digit" });
   const isManager = doc.uploader?.role !== "DRIVER";
+  const roleIcon = roleBadgeIcon(doc.uploader?.role);
   const ext = doc.fileName.split(".").pop()?.toUpperCase() ?? "FILE";
+  const sidekick = (
+    <MessageReactionsCluster
+      type="TRIP_DOC"
+      targetId={doc.id}
+      reactions={doc.reactions ?? []}
+      currentUserId={currentUserId}
+    />
+  );
 
   return (
     <View
@@ -1453,7 +1481,7 @@ const DocBubble = memo(function DocBubble({
           ]}
         >
           <Ionicons
-            name={isManager ? "headset-outline" : "person-outline"}
+            name={roleIcon}
             size={12}
             color={isManager ? "#fff" : c.mutedForeground}
           />
@@ -1466,6 +1494,8 @@ const DocBubble = memo(function DocBubble({
               (isManager ? t("nav.manager") : t("nav.driverFallback"))}
           </Text>
         )}
+        <View style={[styles.bubbleInlineRow, styles.bubbleInlineRowDoc]}>
+        {isMe && sidekick}
         <Pressable
           onPress={() => onOpen(doc)}
           onLongPress={onLongPress ? () => onLongPress(doc) : undefined}
@@ -1520,6 +1550,8 @@ const DocBubble = memo(function DocBubble({
             </View>
           )}
         </Pressable>
+        {!isMe && sidekick}
+        </View>
         <View style={styles.bubbleMetaRow}>
           <Text style={[styles.bubbleTime, { color: c.mutedForeground }]}>
             {time}
@@ -1553,9 +1585,7 @@ function TripInfoCard({
 }) {
   const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? "light"];
-  const [collapsed, setCollapsed] = useState(false);
-  const loading = trip.stops.filter((s) => s.type === "LOADING");
-  const unloading = trip.stops.filter((s) => s.type === "UNLOADING");
+  const [collapsed, setCollapsed] = useState(true);
 
   return (
     <View
@@ -1595,12 +1625,7 @@ function TripInfoCard({
 
       {!collapsed && (
         <>
-          {loading.length > 0 && (
-            <StopsBlock label={t("trip.stops.loading")} color="#10B981" stops={loading} />
-          )}
-          {unloading.length > 0 && (
-            <StopsBlock label={t("trip.stops.unloading")} color="#f87171" stops={unloading} />
-          )}
+          {trip.stops.length > 0 && <StopsBlock stops={trip.stops} />}
           {trip.notes ? (
             <View style={[styles.notes, { borderTopColor: c.border }]}>
               <Text style={[styles.notesText, { color: "#dc2626" }]}>
@@ -1632,26 +1657,29 @@ function openInMaps(coords: string) {
   Linking.openURL(url).catch(() => {});
 }
 
-function StopsBlock({
-  label,
-  color,
-  stops,
-}: {
-  label: string;
-  color: string;
-  stops: Trip["stops"];
-}) {
+const STOP_COLOR: Record<StopType, string> = {
+  LOADING: "#10B981",
+  UNLOADING: "#f87171",
+  WAYPOINT: "#f59e0b",
+};
+
+function StopsBlock({ stops }: { stops: Trip["stops"] }) {
   const c = Colors[useColorScheme() ?? "light"];
+  const { t } = useTranslation();
+  const stopLabel = (s: Trip["stops"][number]) => {
+    if (s.type === "WAYPOINT") return s.name || t("trip.stops.waypoint", "Проміжна точка");
+    return s.type === "LOADING" ? t("trip.stops.loading") : t("trip.stops.unloading");
+  };
   return (
     <View style={styles.stopsBlock}>
-      <View style={styles.stopsHeader}>
-        <Ionicons name="location-outline" size={13} color={color} />
-        <Text style={[styles.stopsLabel, { color }]}>
-          {label} ({stops.length})
-        </Text>
-      </View>
       {stops.map((s, i) => (
         <View key={s.id} style={styles.stopCard}>
+          <View style={styles.stopsHeader}>
+            <Ionicons name="location-outline" size={13} color={STOP_COLOR[s.type]} />
+            <Text style={[styles.stopsLabel, { color: STOP_COLOR[s.type] }]}>
+              {i + 1}. {stopLabel(s)}
+            </Text>
+          </View>
           <View style={styles.stopRow}>
             <Text style={[styles.stopIndex, { color: c.mutedForeground }]}>
               {i + 1}.
@@ -2093,8 +2121,11 @@ const styles = StyleSheet.create({
   bubbleInlineRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 6,
   },
+  // Attachments vary in height (tall photos vs short file cards); pin the
+  // reaction to the bubble's bottom edge so the gap reads the same for both.
+  bubbleInlineRowDoc: { alignItems: "flex-end" },
   bubbleBarWrap: { marginTop: 3 },
   bubbleBarWrapMe: { alignItems: "flex-end" },
   avatar: {

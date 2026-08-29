@@ -30,6 +30,7 @@ import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 import { ChatAvatar } from '@/components/chat-avatar';
 import { MessageActionsSheet, type MessageActions } from '@/components/message-actions-sheet';
+import { UserCardSheet } from '@/components/user-card-sheet';
 import { MessageQuote } from '@/components/message-quote';
 import { MessageReactionsCluster } from '@/components/message-reactions';
 import { Colors, Radius, Spacing } from '@/constants/theme';
@@ -51,11 +52,10 @@ import {
   type DirectMessage,
 } from '@/hooks/use-direct-messages';
 import { useReactionsSocketSync } from '@/hooks/use-message-reactions';
+import { EDIT_WINDOW_MS } from '@/lib/constants';
 import { formatDate, formatTime } from '@/lib/format-date';
 import { getSocket } from '@/lib/socket';
 import { useUser } from '@/store/auth';
-
-const EDIT_WINDOW_MS = 15 * 60 * 1000;
 
 type ReplyTarget = {
   id: string;
@@ -181,6 +181,7 @@ export default function DmScreen() {
 
   // ─── Jump to a replied-to message/document ─────────────────────────
   const [highlightId, setHighlightId] = useState<string | null>(null);
+  const [cardOpen, setCardOpen] = useState(false);
   const scrollToMessage = (targetId?: string | null) => {
     if (!targetId) return;
     const index = data.findIndex((it) => it.data.id === targetId);
@@ -321,15 +322,18 @@ export default function DmScreen() {
         >
           <Ionicons name="chevron-back" size={26} color={c.foreground} />
         </Pressable>
-        <ChatAvatar user={peer} size={36} />
-        <View style={styles.headerText}>
-          <Text style={[styles.headerName, { color: c.foreground }]} numberOfLines={1}>
-            {peerName}
-          </Text>
-          <Text style={[styles.headerRole, { color: c.mutedForeground }]} numberOfLines={1}>
-            {peer?.role?.toLowerCase()}
-          </Text>
-        </View>
+        {/* Tap the peer's avatar/name → mini profile card */}
+        <Pressable onPress={() => peerId && setCardOpen(true)} hitSlop={6} style={styles.headerPeer}>
+          <ChatAvatar user={peer} size={36} />
+          <View style={styles.headerText}>
+            <Text style={[styles.headerName, { color: c.foreground }]} numberOfLines={1}>
+              {peerName}
+            </Text>
+            <Text style={[styles.headerRole, { color: c.mutedForeground }]} numberOfLines={1}>
+              {peer?.role?.toLowerCase()}
+            </Text>
+          </View>
+        </Pressable>
         {/* Quick access to all attachments — same pill as the Trip chat */}
         <Pressable
           onPress={() => setFolderOpen(true)}
@@ -387,6 +391,7 @@ export default function DmScreen() {
               <DocBubble
                 doc={item.data}
                 isOwn={item.data.uploadedBy === myId}
+                myId={myId}
                 highlighted={item.data.id === highlightId}
                 onOpen={() => openDoc(item.data)}
                 onLongPress={() => setDocSheetFor(item.data)}
@@ -495,6 +500,10 @@ export default function DmScreen() {
         open={emojiOpen}
         onClose={() => setEmojiOpen(false)}
         onEmojiSelected={(e) => setText((prev) => prev + e.emoji)}
+      />
+
+      {/* Tap the peer header → mini profile card */}
+      <UserCardSheet userId={cardOpen ? peerId : null} onClose={() => setCardOpen(false)}
       />
 
       {/* Long-press menu */}
@@ -802,12 +811,14 @@ function MessageBubble({
 function DocBubble({
   doc,
   isOwn,
+  myId,
   highlighted,
   onOpen,
   onLongPress,
 }: {
   doc: ConversationDocumentFull;
   isOwn: boolean;
+  myId: string;
   highlighted?: boolean;
   onOpen: () => void;
   onLongPress: () => void;
@@ -818,6 +829,14 @@ function DocBubble({
   const isDeleted = !!doc.deletedAt;
   const isPhoto = doc.fileType === 'PHOTO';
   const time = formatTime(doc.createdAt, { hour: '2-digit', minute: '2-digit' });
+  const sidekick = isDeleted ? null : (
+    <MessageReactionsCluster
+      type="DM_DOC"
+      targetId={doc.id}
+      reactions={doc.reactions ?? []}
+      currentUserId={myId}
+    />
+  );
 
   if (isDeleted) {
     return (
@@ -833,6 +852,8 @@ function DocBubble({
 
   return (
     <View style={[styles.outerCol, isOwn && styles.outerColOwn]}>
+      <View style={[styles.bubbleRow, styles.bubbleRowDoc]}>
+      {isOwn && sidekick}
       <Pressable
         onPress={onOpen}
         onLongPress={onLongPress}
@@ -866,6 +887,8 @@ function DocBubble({
           </Text>
         ) : null}
       </Pressable>
+      {!isOwn && sidekick}
+      </View>
       <View style={[styles.meta, isOwn && styles.metaOwn]}>
         <Text style={[styles.metaText, { color: c.mutedForeground }]}>{time}</Text>
       </View>
@@ -1046,6 +1069,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   backBtn: { padding: 4 },
+  headerPeer: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, minWidth: 0 },
   headerText: { flex: 1, minWidth: 0 },
   headerName: { fontSize: 15, fontWeight: '600' },
   headerRole: { fontSize: 12, marginTop: 1, textTransform: 'capitalize' },
@@ -1142,6 +1166,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
+  // Attachments vary in height; pin the reaction to the bubble's bottom edge
+  // so the gap reads the same for tall photos and short file cards.
+  bubbleRowDoc: { alignItems: 'flex-end' },
   barWrap: { marginTop: 3 },
   barWrapOwn: { alignItems: 'flex-end' },
 

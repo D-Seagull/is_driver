@@ -8,7 +8,7 @@ import { documentKeys } from '@/hooks/use-documents';
 import { deleteDocument, DriverDocument } from '@/lib/documents-api';
 import { deleteTripMessage, editTripMessage, fetchTripMessages } from '@/lib/trips-api';
 import { getSocket } from '@/lib/socket';
-import { playMessageSound } from '@/lib/sounds';
+import { notifyIncomingMessage } from '@/lib/message-alert';
 import { useAuthStore } from '@/store/auth';
 
 import { fullName } from "@/lib/format";
@@ -199,8 +199,9 @@ export function useTripChat(
       // when they scroll back down or tap the pill.
       if (msg.senderId !== meId) {
         if (!nearBottomRef || nearBottomRef.current) markRead();
-        // Chime for incoming non-system messages.
-        if (!msg.isSystem) playMessageSound();
+        // Chime + vibration for incoming non-system messages (each honours its
+        // own Settings toggle).
+        if (!msg.isSystem) notifyIncomingMessage();
       }
     };
 
@@ -266,6 +267,14 @@ export function useTripChat(
         setMessages((prev) =>
           prev.map((m) =>
             m.id === payload.targetId ? { ...m, reactions: payload.reactions } : m,
+          ),
+        );
+      } else if (payload.targetType === 'TRIP_DOC' && tripId) {
+        // Trip documents live in React Query (useTripDocuments), not local
+        // state — patch that cache so a reaction on a file/photo updates.
+        qc.setQueryData<DriverDocument[]>(documentKeys.trip(tripId), (old = []) =>
+          old.map((d) =>
+            d.id === payload.targetId ? { ...d, reactions: payload.reactions } : d,
           ),
         );
       }

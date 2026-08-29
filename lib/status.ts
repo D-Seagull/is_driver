@@ -17,8 +17,10 @@ export function resolveDisplayStatus(
     | null
     | undefined,
   isOnline: boolean,
+  // Offline but seen within the last week → amber "away"; older → grey OFFLINE.
+  isAway = false,
 ): DisplayStatus {
-  if (!isOnline) return 'OFFLINE';
+  if (!isOnline) return isAway ? 'AWAY' : 'OFFLINE';
   const stored = user?.status ?? 'ONLINE';
   if (stored === 'ONLINE') return 'ONLINE';
   if (user?.statusUntil) {

@@ -7,7 +7,7 @@ import {
   STATUS_HEX,
   type DisplayStatus,
 } from '@/lib/status';
-import { useIsUserOnline } from '@/hooks/use-presence';
+import { useUserPresence } from '@/hooks/use-presence';
 
 interface StatusDotProps {
   user:
@@ -33,9 +33,11 @@ interface StatusDotProps {
  * existing Image / Text avatar without touching layout.
  */
 export function StatusDot({ user, isOnline, size = 10, ring = '#000' }: StatusDotProps) {
-  const livePresence = useIsUserOnline(user?.id);
-  const effectiveOnline = isOnline ?? livePresence;
-  const status: DisplayStatus = resolveDisplayStatus(user, effectiveOnline);
+  const presence = useUserPresence(user?.id);
+  // An explicit `isOnline` override (e.g. self) skips the away tier entirely.
+  const effectiveOnline = isOnline ?? presence === 'online';
+  const effectiveAway = isOnline == null && presence === 'away';
+  const status: DisplayStatus = resolveDisplayStatus(user, effectiveOnline, effectiveAway);
   const inner = size;
   const outer = inner + 4;
   return (
