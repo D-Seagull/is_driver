@@ -630,6 +630,10 @@ function TripWithChat({
             keyExtractor={(item) =>
               item.kind === "msg" ? `m-${item.data.id}` : `d-${item.data.id}`
             }
+            initialNumToRender={12}
+            maxToRenderPerBatch={10}
+            windowSize={11}
+            removeClippedSubviews
             contentContainerStyle={styles.messageList}
             onScroll={(e) => {
               const { contentOffset, contentSize, layoutMeasurement } =

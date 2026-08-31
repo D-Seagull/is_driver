@@ -5,7 +5,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -157,17 +157,20 @@ export default function GroupChatScreen() {
   // ─── Jump to a replied-to message/document ─────────────────────────
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [cardUserId, setCardUserId] = useState<string | null>(null);
-  const scrollToMessage = (targetId?: string | null) => {
-    if (!targetId) return;
-    const index = data.findIndex((it) => it.data.id === targetId);
-    if (index < 0) return;
-    listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
-    setHighlightId(targetId);
-    setTimeout(
-      () => setHighlightId((h) => (h === targetId ? null : h)),
-      1500,
-    );
-  };
+  const scrollToMessage = useCallback(
+    (targetId?: string | null) => {
+      if (!targetId) return;
+      const index = data.findIndex((it) => it.data.id === targetId);
+      if (index < 0) return;
+      listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
+      setHighlightId(targetId);
+      setTimeout(
+        () => setHighlightId((h) => (h === targetId ? null : h)),
+        1500,
+      );
+    },
+    [data],
+  );
 
   // ─── Attach flow ───────────────────────────────────────────────────
   const pickAndUpload = async (source: 'camera' | 'gallery' | 'document') => {
@@ -226,19 +229,30 @@ export default function GroupChatScreen() {
     ]);
   };
 
-  const openDoc = async (doc: GroupDocumentFull) => {
-    // Photos open instantly in an in-app viewer; other files hand off to the
-    // system browser (PDF/doc preview).
-    if (doc.fileType === 'PHOTO') {
-      setViewerUri(doc.signedUrl);
-      return;
-    }
-    try {
-      await WebBrowser.openBrowserAsync(doc.signedUrl);
-    } catch (e) {
-      Alert.alert(t('documents.cannotOpen'), (e as Error).message);
-    }
-  };
+  const openDoc = useCallback(
+    async (doc: GroupDocumentFull) => {
+      // Photos open instantly in an in-app viewer; other files hand off to the
+      // system browser (PDF/doc preview).
+      if (doc.fileType === 'PHOTO') {
+        setViewerUri(doc.signedUrl);
+        return;
+      }
+      try {
+        await WebBrowser.openBrowserAsync(doc.signedUrl);
+      } catch (e) {
+        Alert.alert(t('documents.cannotOpen'), (e as Error).message);
+      }
+    },
+    [t],
+  );
+
+  // Stable per-list callbacks so the memoized bubbles don't re-render on every
+  // parent update (typing, presence ticks).
+  const handleMsgLongPress = useCallback((m: GroupMessage) => setSheetFor(m), []);
+  const handleDocLongPress = useCallback(
+    (d: GroupDocumentFull) => setDocSheetFor(d),
+    [],
+  );
 
   // ─── Send / edit ───────────────────────────────────────────────────
   const handleSend = async () => {
@@ -329,6 +343,10 @@ export default function GroupChatScreen() {
           ref={listRef}
           data={data}
           keyExtractor={(it) => `${it.kind}:${it.data.id}`}
+          initialNumToRender={12}
+          maxToRenderPerBatch={10}
+          windowSize={11}
+          removeClippedSubviews
           inverted
           contentContainerStyle={{ paddingVertical: Spacing.sm }}
           onScrollToIndexFailed={() => {}}
@@ -354,7 +372,7 @@ export default function GroupChatScreen() {
                 isOwn={item.data.senderId === myId}
                 myId={myId}
                 highlighted={item.data.id === highlightId}
-                onLongPress={() => setSheetFor(item.data)}
+                onLongPress={handleMsgLongPress}
                 onReplyJump={scrollToMessage}
                 onOpenUser={setCardUserId}
               />
@@ -364,8 +382,8 @@ export default function GroupChatScreen() {
                 isOwn={item.data.uploadedBy === myId}
                 myId={myId}
                 highlighted={item.data.id === highlightId}
-                onOpen={() => openDoc(item.data)}
-                onLongPress={() => setDocSheetFor(item.data)}
+                onOpen={openDoc}
+                onLongPress={handleDocLongPress}
               />
             )
           }
@@ -798,7 +816,7 @@ function Banner({
 
 // ─── Message bubble ───────────────────────────────────────────────────────
 
-function GroupBubble({
+const GroupBubble = memo(function GroupBubble({
   msg,
   isOwn,
   myId,
@@ -811,7 +829,7 @@ function GroupBubble({
   isOwn: boolean;
   myId: string;
   highlighted?: boolean;
-  onLongPress: () => void;
+  onLongPress: (m: GroupMessage) => void;
   onReplyJump: (targetId: string) => void;
   onOpenUser: (userId: string) => void;
 }) {
@@ -856,7 +874,7 @@ function GroupBubble({
       <View style={styles.reactRow}>
       {isOwn && sidekick}
       <Pressable
-        onLongPress={onLongPress}
+        onLongPress={() => onLongPress(msg)}
         delayLongPress={400}
         style={[
           styles.bubble,
@@ -919,11 +937,11 @@ function GroupBubble({
       </View>
     </View>
   );
-}
+});
 
 // ─── Document bubble (photo thumbnail / file card) ────────────────────────
 
-function DocBubble({
+const DocBubble = memo(function DocBubble({
   doc,
   isOwn,
   myId,
@@ -935,8 +953,8 @@ function DocBubble({
   isOwn: boolean;
   myId: string;
   highlighted?: boolean;
-  onOpen: () => void;
-  onLongPress: () => void;
+  onOpen: (d: GroupDocumentFull) => void;
+  onLongPress: (d: GroupDocumentFull) => void;
 }) {
   const { t } = useTranslation();
   const scheme = useColorScheme() ?? 'light';
@@ -976,8 +994,8 @@ function DocBubble({
       <View style={[styles.reactRow, styles.reactRowDoc]}>
       {isOwn && sidekick}
       <Pressable
-        onPress={onOpen}
-        onLongPress={onLongPress}
+        onPress={() => onOpen(doc)}
+        onLongPress={() => onLongPress(doc)}
         delayLongPress={400}
         style={[
           styles.docBubble,
@@ -1023,7 +1041,7 @@ function DocBubble({
       </View>
     </View>
   );
-}
+});
 
 // ─── Styles ───────────────────────────────────────────────────────────────
 
