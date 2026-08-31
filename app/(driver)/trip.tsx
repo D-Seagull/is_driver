@@ -41,6 +41,7 @@ import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import EmojiPicker from "rn-emoji-keyboard";
 
 import { MessageReactionsCluster } from "@/components/message-reactions";
+import { ChatBackground } from "@/components/chat-background";
 import { MessageActionsSheet, type MessageActions } from "@/components/message-actions-sheet";
 import { UserCardSheet } from "@/components/user-card-sheet";
 import { MessageQuote } from "@/components/message-quote";
@@ -124,6 +125,7 @@ export default function TripScreen() {
       behavior="padding"
       keyboardVerticalOffset={0}
     >
+      <ChatBackground />
       <Stack.Screen options={{ headerShown: false }} />
       <TripHeader
         truck={truckPlate ?? ""}
