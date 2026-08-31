@@ -13,7 +13,7 @@ export function ChatBackground() {
     <Image
       source={CHAT_BG}
       resizeMode="cover"
-      style={[StyleSheet.absoluteFill, { opacity: scheme === 'dark' ? 0.14 : 0.6 }]}
+      style={[StyleSheet.absoluteFill, { opacity: scheme === 'dark' ? 0.2 : 0.6 }]}
     />
   );
 }
