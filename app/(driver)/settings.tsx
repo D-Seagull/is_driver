@@ -372,6 +372,48 @@ export default function DriverSettingsScreen() {
           </View>
         </SectionCard>
 
+        {/* ── Save button + saved hint ─────────────────────────────── */}
+        <View style={{ gap: Spacing.xs }}>
+          <Pressable
+            onPress={handleSaveProfile}
+            disabled={!canSaveProfile}
+            style={({ pressed }) => [
+              styles.saveBtn,
+              {
+                backgroundColor: canSaveProfile ? c.primary : c.muted,
+                opacity: pressed && canSaveProfile ? 0.85 : 1,
+              },
+            ]}
+          >
+            {savingProfile ? (
+              <ActivityIndicator color={c.primaryForeground} />
+            ) : (
+              <Text
+                style={[
+                  styles.saveText,
+                  {
+                    color: canSaveProfile
+                      ? c.primaryForeground
+                      : c.mutedForeground,
+                  },
+                ]}
+              >
+                {t('settings.saveChanges')}
+              </Text>
+            )}
+          </Pressable>
+          {savedHint && (
+            <Text
+              style={[
+                styles.savedHint,
+                { color: c.primary },
+              ]}
+            >
+              {t('settings.saved')}
+            </Text>
+          )}
+        </View>
+
         {/* ── Language ─────────────────────────────────────────────── */}
         <SectionCard colors={c} compact={compact} title={t('settings.language.title')}>
           <Pressable
@@ -420,48 +462,6 @@ export default function DriverSettingsScreen() {
             </View>
           </View>
         </SectionCard>
-
-        {/* ── Save button + saved hint ─────────────────────────────── */}
-        <View style={{ gap: Spacing.xs }}>
-          <Pressable
-            onPress={handleSaveProfile}
-            disabled={!canSaveProfile}
-            style={({ pressed }) => [
-              styles.saveBtn,
-              {
-                backgroundColor: canSaveProfile ? c.primary : c.muted,
-                opacity: pressed && canSaveProfile ? 0.85 : 1,
-              },
-            ]}
-          >
-            {savingProfile ? (
-              <ActivityIndicator color={c.primaryForeground} />
-            ) : (
-              <Text
-                style={[
-                  styles.saveText,
-                  {
-                    color: canSaveProfile
-                      ? c.primaryForeground
-                      : c.mutedForeground,
-                  },
-                ]}
-              >
-                {t('settings.saveChanges')}
-              </Text>
-            )}
-          </Pressable>
-          {savedHint && (
-            <Text
-              style={[
-                styles.savedHint,
-                { color: c.primary },
-              ]}
-            >
-              {t('settings.saved')}
-            </Text>
-          )}
-        </View>
 
         {/* ── Logout block ─────────────────────────────────────────── */}
         <Pressable
