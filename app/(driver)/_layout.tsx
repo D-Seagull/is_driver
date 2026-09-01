@@ -9,6 +9,7 @@ import {
 } from "@react-navigation/drawer";
 import { Redirect, router } from "expo-router";
 import { Drawer } from "expo-router/drawer";
+import { Image as ExpoImage } from "expo-image";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -563,9 +564,11 @@ function DriverFooter({ colors: c }: { colors: ThemeColors }) {
           <View style={{ position: "relative" }}>
             <View style={[styles.avatarLg, { backgroundColor: c.muted }]}>
               {user?.avatar ? (
-                <Image
+                <ExpoImage
                   source={{ uri: user.avatar }}
                   style={styles.avatarLgImg}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
                 />
               ) : (
                 <Text
@@ -679,7 +682,7 @@ function ManagerRow({
       <View style={{ position: "relative" }}>
         <View style={[styles.avatarSm, { backgroundColor: c.muted }]}>
           {person.avatar ? (
-            <Image source={{ uri: person.avatar }} style={styles.avatarImg} />
+            <ExpoImage source={{ uri: person.avatar }} style={styles.avatarImg} contentFit="cover" cachePolicy="memory-disk" />
           ) : (
             <Ionicons
               name="headset-outline"

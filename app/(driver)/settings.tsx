@@ -2,11 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { Image as ExpoImage } from 'expo-image';
 import { Stack } from 'expo-router';
 import {
   ActivityIndicator,
   Alert,
-  Image,
   Modal,
   Platform,
   Pressable,
@@ -215,9 +215,11 @@ export default function DriverSettingsScreen() {
               ]}
             >
               {user?.avatar ? (
-                <Image
+                <ExpoImage
                   source={{ uri: user.avatar }}
                   style={styles.avatarImg}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
                 />
               ) : (
                 <Text
