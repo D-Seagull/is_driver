@@ -331,5 +331,18 @@
       "week1": "Tydzień",
       "weeks2": "2 tygodnie"
     }
+  },
+  "bugReport": {
+    "title": "Zgłoś problem",
+    "subtitle": "Opisz, co poszło nie tak. Możesz dołączyć zrzut ekranu.",
+    "placeholder": "Co się stało?",
+    "attach": "Dodaj zrzut",
+    "send": "Wyślij",
+    "sent": "Dziękujemy! Zgłoszenie wysłane.",
+    "sentTitle": "Gotowe",
+    "error": "Nie udało się wysłać. Spróbuj ponownie.",
+    "errorTitle": "Błąd",
+    "permissionTitle": "Brak dostępu",
+    "permissionBody": "Zezwól na dostęp do galerii, aby dołączyć zrzut."
   }
 }

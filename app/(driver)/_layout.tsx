@@ -23,7 +23,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { NextTripOverlay } from "@/components/next-trip-overlay";
-import { NotificationBell } from "@/components/notification-bell";
+import { HeaderActions, BugReportButton } from "@/components/header-actions";
 import { PushNoticeOverlay } from "@/components/push-notice-overlay";
 import { Colors, Radius, Spacing, ThemeColors } from "@/constants/theme";
 import { useAppStatePresence } from "@/hooks/use-app-state-presence";
@@ -97,7 +97,7 @@ export default function DriverLayout() {
           headerTitleStyle: { fontWeight: "600" },
           // Standardised notification bell in the header of every drawer
           // screen, so new messages are always visible.
-          headerRight: () => <NotificationBell colors={c} />,
+          headerRight: () => <HeaderActions colors={c} />,
           headerRightContainerStyle: { paddingRight: Spacing.md },
           sceneStyle: { backgroundColor: c.background },
           drawerStyle: { backgroundColor: c.sidebar, width: 300 },
@@ -269,6 +269,9 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
                 resizeMode="contain"
               />
             </View>
+            {/* Bug report — sits next to the bell in the drawer, not in the
+                per-screen header. */}
+            <BugReportButton colors={c} />
             {/* Bell button */}
             <Pressable
               onPress={() => setBellOpen((o) => !o)}

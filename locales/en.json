@@ -328,5 +328,18 @@
       "week1": "Week",
       "weeks2": "2 weeks"
     }
+  },
+  "bugReport": {
+    "title": "Report a problem",
+    "subtitle": "Describe what went wrong. You can attach a screenshot.",
+    "placeholder": "What happened?",
+    "attach": "Attach screenshot",
+    "send": "Send",
+    "sent": "Thanks! Your report was sent.",
+    "sentTitle": "Done",
+    "error": "Couldn't send. Try again.",
+    "errorTitle": "Error",
+    "permissionTitle": "No access",
+    "permissionBody": "Allow gallery access to attach a screenshot."
   }
 }
