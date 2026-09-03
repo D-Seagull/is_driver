@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
@@ -29,6 +29,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 import { ChatAvatar } from '@/components/chat-avatar';
+import { NotificationBell } from '@/components/notification-bell';
 import { MessageActionsSheet, type MessageActions } from '@/components/message-actions-sheet';
 import { UserCardSheet } from '@/components/user-card-sheet';
 import { MessageQuote } from '@/components/message-quote';
@@ -359,6 +360,7 @@ export default function DmScreen() {
             {liveDocs.length}
           </Text>
         </Pressable>
+        <NotificationBell colors={c} />
       </View>
 
       {/* Messages */}

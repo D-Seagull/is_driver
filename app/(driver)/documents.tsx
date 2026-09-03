@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { DrawerActions, useNavigation } from '@react-navigation/native';
+import { useNavigation } from 'expo-router';
+import type { DrawerNavigationProp } from 'expo-router/drawer';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { Stack } from 'expo-router';
@@ -55,7 +56,8 @@ interface FolderGroup {
 export default function DocumentsScreen() {
   const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? 'light'];
-  const navigation = useNavigation();
+  const navigation =
+    useNavigation<DrawerNavigationProp<Record<string, object | undefined>>>();
   const { top } = useSafeAreaInsets();
   const user = useUser();
   const { data: truck } = useDriverTruck();
@@ -192,7 +194,7 @@ export default function DocumentsScreen() {
         ]}
       >
         <Pressable
-          onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+          onPress={() => navigation.openDrawer()}
           hitSlop={8}
           style={({ pressed }) => [styles.menuBtn, { opacity: pressed ? 0.6 : 1 }]}
         >

@@ -6,7 +6,7 @@ import {
   DrawerContentComponentProps,
   DrawerContentScrollView,
   useDrawerStatus,
-} from "@react-navigation/drawer";
+} from "expo-router/drawer";
 import { Redirect, router } from "expo-router";
 import { Drawer } from "expo-router/drawer";
 import { Image as ExpoImage } from "expo-image";
@@ -113,7 +113,8 @@ export default function DriverLayout() {
             options={{
               title: t(`nav.items.${it.name}`),
               drawerLabel: t(`nav.items.${it.name}`),
-              drawerIcon: ({ color, size }) => it.renderIcon(color, size),
+              drawerIcon: ({ color, size }) =>
+                it.renderIcon(color as string, size),
             }}
             listeners={
               it.name === "trip"

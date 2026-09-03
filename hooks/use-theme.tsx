@@ -17,7 +17,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const system = useSystemColorScheme();
   const [mode, setMode] = useState<ThemeMode>('system');
 
-  const resolved: ResolvedScheme = mode === 'system' ? (system ?? 'light') : mode;
+  const resolved: ResolvedScheme =
+    mode === 'system' ? (system === 'dark' ? 'dark' : 'light') : mode;
 
   const value = useMemo<ThemeContextValue>(
     () => ({
@@ -37,7 +38,7 @@ export function useThemeMode(): ThemeContextValue {
   if (!ctx) {
     // Safe fallback if provider is missing — keeps Storybook/tests usable.
     const system = useSystemColorScheme();
-    const resolved: ResolvedScheme = system ?? 'light';
+    const resolved: ResolvedScheme = system === 'dark' ? 'dark' : 'light';
     return {
       mode: 'system',
       resolved,

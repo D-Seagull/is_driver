@@ -7,7 +7,6 @@
     "icon": "./assets/images/IS-driverapp-img.png",
     "scheme": "isdriver",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.dseadull.isdriver",
@@ -25,7 +24,6 @@
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/IS-driverapp-img.png"
       },
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
     "web": {
@@ -58,7 +56,11 @@
         }
       ],
       "expo-asset",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-font",
+      "expo-image",
+      "expo-status-bar",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,

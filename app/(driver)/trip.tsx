@@ -2,11 +2,8 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { EDIT_WINDOW_MS } from "@/lib/constants";
 import { fullName, formatStopWindow } from "@/lib/format";
 import { roleBadgeIcon } from "@/lib/roles";
-import {
-  DrawerActions,
-  useIsFocused,
-  useNavigation,
-} from "@react-navigation/native";
+import { useIsFocused, useNavigation } from "expo-router";
+import type { DrawerNavigationProp } from "expo-router/drawer";
 import * as Clipboard from "expo-clipboard";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
@@ -1834,7 +1831,8 @@ function TripHeader({
   canEditStatus: boolean;
 }) {
   const c = Colors[useColorScheme() ?? "light"];
-  const navigation = useNavigation();
+  const navigation =
+    useNavigation<DrawerNavigationProp<Record<string, object | undefined>>>();
   const { top } = useSafeAreaInsets();
   return (
     <View
@@ -1849,7 +1847,7 @@ function TripHeader({
     >
       <View style={styles.row}>
         <Pressable
-          onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+          onPress={() => navigation.openDrawer()}
           hitSlop={8}
           style={({ pressed }) => [
             styles.menuBtn,
