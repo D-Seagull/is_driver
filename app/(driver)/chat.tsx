@@ -134,6 +134,10 @@ function ChatTab() {
   // Existing conversations — manager-tier (manager/admin/teamlead) pinned to
   // top, then most-recent first. Filtered by the search box.
   const sorted = [...(conversations ?? [])].sort((a, b) => {
+    // Unread first so chats with new messages never get lost in a long list.
+    const aUnread = a.unreadCount > 0 ? 0 : 1;
+    const bUnread = b.unreadCount > 0 ? 0 : 1;
+    if (aUnread !== bUnread) return aUnread - bUnread;
     const aMgr = a.user.role !== 'DRIVER' ? 0 : 1;
     const bMgr = b.user.role !== 'DRIVER' ? 0 : 1;
     if (aMgr !== bMgr) return aMgr - bMgr;
@@ -392,9 +396,14 @@ function GroupsTab() {
     );
   }
 
+  // Groups with unread first, then their existing order.
+  const sortedGroups = [...groups].sort(
+    (a, b) => (a.unreadCount > 0 ? 0 : 1) - (b.unreadCount > 0 ? 0 : 1),
+  );
+
   return (
     <FlatList
-      data={groups}
+      data={sortedGroups}
       keyExtractor={(g) => g.id}
       renderItem={({ item }) => <GroupRow group={item} />}
       ItemSeparatorComponent={() => (
