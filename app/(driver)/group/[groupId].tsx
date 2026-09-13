@@ -27,6 +27,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 // lets the input jump). Requires <KeyboardProvider> in app/_layout.tsx.
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
+import { ChatBackground } from '@/components/chat-background';
 import { NotificationBell } from '@/components/notification-bell';
 import { MessageActionsSheet, type MessageActions } from '@/components/message-actions-sheet';
 import { UserCardSheet } from '@/components/user-card-sheet';
@@ -296,6 +297,7 @@ export default function GroupChatScreen() {
       keyboardVerticalOffset={0}
       style={[styles.root, { backgroundColor: c.background }]}
     >
+      <ChatBackground />
       {/* Header */}
       <View
         style={[

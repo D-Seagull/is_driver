@@ -122,7 +122,7 @@ export default function TripScreen() {
       behavior="padding"
       keyboardVerticalOffset={0}
     >
-      <ChatBackground />
+      <ChatBackground variant="trip" />
       <Stack.Screen options={{ headerShown: false }} />
       <TripHeader
         truck={truckPlate ?? ""}

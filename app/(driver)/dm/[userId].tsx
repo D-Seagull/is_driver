@@ -29,6 +29,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 import { ChatAvatar } from '@/components/chat-avatar';
+import { ChatBackground } from '@/components/chat-background';
 import { NotificationBell } from '@/components/notification-bell';
 import { MessageActionsSheet, type MessageActions } from '@/components/message-actions-sheet';
 import { UserCardSheet } from '@/components/user-card-sheet';
@@ -319,6 +320,7 @@ export default function DmScreen() {
       keyboardVerticalOffset={0}
       style={[styles.root, { backgroundColor: c.background }]}
     >
+      <ChatBackground />
       {/* Header */}
       <View
         style={[
