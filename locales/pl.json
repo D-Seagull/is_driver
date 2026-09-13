@@ -72,6 +72,13 @@
       "title": "Powiadomienia",
       "sound": "Dźwięk",
       "vibration": "Wibracja"
+    },
+    "deleteAccount": "Usuń konto",
+    "deleteAccountConfirm": {
+      "title": "Usunąć konto?",
+      "body": "Tej operacji nie można cofnąć. Twoje dane osobowe zostaną usunięte, a logowanie stanie się trwale niemożliwe. Trasy i rozmowy pozostaną w historii firmy w formie zanonimizowanej.",
+      "confirm": "Usuń trwale",
+      "error": "Nie udało się usunąć konta"
     }
   },
   "auth": {

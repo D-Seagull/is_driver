@@ -72,6 +72,13 @@
       "title": "Pranešimai",
       "sound": "Garsas",
       "vibration": "Vibracija"
+    },
+    "deleteAccount": "Ištrinti paskyrą",
+    "deleteAccountConfirm": {
+      "title": "Ištrinti paskyrą?",
+      "body": "Šio veiksmo atšaukti negalima. Jūsų asmens duomenys bus ištrinti, o prisijungti nebebus įmanoma. Reisai ir pokalbiai liks įmonės istorijoje nuasmeninti.",
+      "confirm": "Ištrinti visam laikui",
+      "error": "Nepavyko ištrinti paskyros"
     }
   },
   "auth": {

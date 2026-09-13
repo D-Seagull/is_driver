@@ -25,6 +25,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   DriverLanguage,
   DriverUserStatus,
+  deleteAccount,
   deleteAvatar,
   updateMe,
   uploadAvatar,
@@ -68,6 +69,7 @@ export default function DriverSettingsScreen() {
   const [langPickerOpen, setLangPickerOpen] = useState(false);
   const [savedHint, setSavedHint] = useState(false);
   const [statusPickerOpen, setStatusPickerOpen] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   const currentStatus = (user?.status as DriverUserStatus | undefined) ?? 'ONLINE';
 
@@ -169,6 +171,41 @@ export default function DriverSettingsScreen() {
         onPress: logout,
       },
     ]);
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      t('settings.deleteAccountConfirm.title'),
+      t('settings.deleteAccountConfirm.body'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('settings.deleteAccountConfirm.confirm'),
+          style: 'destructive',
+          onPress: async () => {
+            setDeletingAccount(true);
+            try {
+              await deleteAccount();
+              // The token is dead the moment the request returns, so drop the
+              // session rather than leaving the app on a screen that can no
+              // longer fetch anything.
+              logout();
+            } catch (e: any) {
+              // The server refuses on one business rule (last admin standing) —
+              // show its message rather than a generic failure.
+              const msg =
+                e?.response?.data?.message ??
+                t('settings.deleteAccountConfirm.error');
+              Alert.alert(
+                t('settings.deleteAccountConfirm.error'),
+                Array.isArray(msg) ? msg[0] : String(msg),
+              );
+              setDeletingAccount(false);
+            }
+          },
+        },
+      ],
+    );
   };
 
   return (
@@ -489,6 +526,29 @@ export default function DriverSettingsScreen() {
             {t('settings.logout')}
           </Text>
         </Pressable>
+
+        {/* Account erasure. Store policy requires an in-app path to it, but it
+            is a rare, irreversible action — so it sits below logout as plain
+            muted text rather than competing with the real controls. */}
+        <Pressable
+          onPress={handleDeleteAccount}
+          disabled={deletingAccount}
+          hitSlop={8}
+          style={({ pressed }) => [
+            styles.deleteAccountBtn,
+            { opacity: pressed || deletingAccount ? 0.6 : 1 },
+          ]}
+        >
+          {deletingAccount ? (
+            <ActivityIndicator size="small" color={c.mutedForeground} />
+          ) : (
+            <Text
+              style={[styles.deleteAccountText, { color: c.mutedForeground }]}
+            >
+              {t('settings.deleteAccount')}
+            </Text>
+          )}
+        </Pressable>
       </ScrollView>
 
       {/* ── Status picker — shared sheet with the full set of statuses
@@ -702,6 +762,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   logoutText: { fontSize: 15, fontWeight: '700' },
+  deleteAccountBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.md,
+    minHeight: 44,
+  },
+  deleteAccountText: {
+    fontSize: 13,
+    fontWeight: '500',
+    textDecorationLine: 'underline',
+  },
   modalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',

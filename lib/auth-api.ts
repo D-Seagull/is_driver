@@ -255,3 +255,17 @@ export async function fetchMe(): Promise<AuthUser> {
   const { data } = await api.get<AuthUser>('/auth/me');
   return data;
 }
+
+/**
+ * Irreversible self-service account erasure — required by Google Play and the
+ * App Store for any app with sign-in. The server anonymises the row (trips and
+ * messages stay in the company history) and revokes every token, so the caller
+ * must log out immediately afterwards; nothing else will authenticate.
+ */
+export async function deleteAccount(): Promise<void> {
+  if (MOCK_AUTH) {
+    await wait(FAKE_DELAY);
+    return;
+  }
+  await api.delete('/users/me');
+}
