@@ -68,7 +68,7 @@
     },
     "extra": {
       "router": {},
-      "API_URL": "https://is-fleet-backend.onrender.com",
+      "API_URL": "https://api.isfleet.eu",
       "MOCK_AUTH": "false",
       "eas": {
         "projectId": "8bb837ef-9e50-4f36-b896-35fcd5e3920f"
