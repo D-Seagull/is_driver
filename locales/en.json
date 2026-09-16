@@ -78,7 +78,9 @@
       "body": "This cannot be undone. Your personal data will be erased and signing in will be impossible forever. Trips and conversations stay in the company history, anonymised.",
       "confirm": "Delete permanently",
       "error": "Could not delete the account"
-    }
+    },
+    "privacyPolicy": "Privacy Policy",
+    "terms": "Terms of Service"
   },
   "auth": {
     "phone": {
