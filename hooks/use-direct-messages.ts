@@ -244,3 +244,31 @@ export function useEditDirectMessage(otherUserId: string) {
     },
   });
 }
+
+/**
+ * "Delete for me" — hides the conversation with `peerId` from the list.
+ *
+ * Nothing is destroyed and the other side notices nothing: the server records
+ * the hide per user, and the thread returns the moment either of them writes
+ * again. That is why the confirmation says "delete" while this says "hide" —
+ * the user means one, the system does the other.
+ *
+ * The cache is patched straight away so the row leaves the list without
+ * waiting for a refetch, then chat-init is invalidated so the next hydrate
+ * matches the server.
+ */
+export function useHideConversation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (peerId: string) => {
+      await api.post(`/direct-messages/${peerId}/hide`);
+      return peerId;
+    },
+    onSuccess: (peerId) => {
+      qc.setQueryData<Conversation[]>(dmKeys.conversations, (prev) =>
+        prev ? prev.filter((c) => c.user.id !== peerId) : prev,
+      );
+      qc.invalidateQueries({ queryKey: ['chat-init'] });
+    },
+  });
+}

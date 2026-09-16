@@ -165,7 +165,9 @@
     "emptyChat": "Žinučių dar nėra. Pradėkite pokalbį.",
     "groupFallback": "Grupė",
     "groupChat": "Grupės pokalbis",
-    "groupDocsTitle": "Grupės dokumentai"
+    "groupDocsTitle": "Grupės dokumentai",
+    "hideConfirm": "Ištrinti pokalbį?",
+    "hideConfirmBody": "Pokalbis dings iš jūsų sąrašo. Pašnekovas to nematys, o pokalbis grįš po naujos žinutės."
   },
   "trip": {
     "noActiveTrip": {

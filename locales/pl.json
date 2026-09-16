@@ -165,7 +165,9 @@
     "emptyChat": "Brak wiadomości. Rozpocznij rozmowę.",
     "groupFallback": "Grupa",
     "groupChat": "Czat grupowy",
-    "groupDocsTitle": "Dokumenty grupy"
+    "groupDocsTitle": "Dokumenty grupy",
+    "hideConfirm": "Usunąć czat?",
+    "hideConfirmBody": "Czat zniknie z Twojej listy. Rozmówca tego nie zobaczy, a wróci po nowej wiadomości."
   },
   "trip": {
     "noActiveTrip": {

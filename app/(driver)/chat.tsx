@@ -7,6 +7,7 @@ import { fullName } from "@/lib/format";
 import {
   ActivityIndicator,
   FlatList,
+  Alert,
   Pressable,
   StyleSheet,
   Text,
@@ -20,7 +21,7 @@ import { ScreenPlaceholder } from '@/components/screen-placeholder';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useCompanyUsers, type CompanyUser } from '@/hooks/use-company-users';
-import { useConversations, type Conversation } from '@/hooks/use-direct-messages';
+import { useConversations, type Conversation, useHideConversation } from '@/hooks/use-direct-messages';
 import { useDriverGroups, type DriverGroup } from '@/hooks/use-groups';
 import { type DriverUserStatus } from '@/lib/auth-api';
 import { roleBadgeIcon } from '@/lib/roles';
@@ -306,6 +307,25 @@ function DirectoryRow({ user }: { user: CompanyUser }) {
 
 function ConversationRow({ conv }: { conv: Conversation }) {
   const { t } = useTranslation();
+  const hideConversation = useHideConversation();
+
+  // Long-press to remove the thread from the list. Hidden for this user
+  // only — the other side keeps the history and notices nothing, and the
+  // conversation reappears the moment either of them writes again.
+  const confirmHide = () => {
+    Alert.alert(
+      t('chat.hideConfirm', 'Видалити чат?'),
+      t('chat.hideConfirmBody', 'Чат зникне з вашого списку. Співрозмовник цього не побачить, а листування повернеться після нового повідомлення.'),
+      [
+        { text: t('common.cancel', 'Скасувати'), style: 'cancel' },
+        {
+          text: t('common.delete', 'Видалити'),
+          style: 'destructive',
+          onPress: () => hideConversation.mutate(conv.user.id),
+        },
+      ],
+    );
+  };
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
   const hasUnread = conv.unreadCount > 0;
@@ -314,6 +334,8 @@ function ConversationRow({ conv }: { conv: Conversation }) {
   return (
     <Pressable
       onPress={() => router.push(`/(driver)/dm/${conv.user.id}` as never)}
+      onLongPress={confirmHide}
+      delayLongPress={450}
       style={({ pressed }) => [
         styles.row,
         {
