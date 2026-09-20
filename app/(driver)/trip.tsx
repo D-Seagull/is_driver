@@ -1662,10 +1662,25 @@ function openInMaps(coords: string) {
 
 const STOP_COLOR: Record<StopType, string> = {
   LOADING: "#10B981",
-  UNLOADING: "#f87171",
-  WAYPOINT: "#f59e0b",
+  UNLOADING: "#EF4444",
+  WAYPOINT: "#F59E0B",
 };
 
+const STOP_ICON: Record<StopType, keyof typeof Ionicons.glyphMap> = {
+  LOADING: "ellipse-outline",
+  UNLOADING: "location",
+  WAYPOINT: "flag-outline",
+};
+
+/**
+ * Адреси рейсу — та сама схема, що в застосунку менеджера: кожен стоп у
+ * блоці, підфарбованому власним кольором, заголовок і чипи в тому ж кольорі,
+ * сама адреса нейтральна. Завантаження і розвантаження неможливо переплутати
+ * навіть боковим зором, а це рівно те, як водій дивиться в телефон.
+ *
+ * Від менеджерської версії лишаємо відмінність: кнопки копіювання і навігації.
+ * Менеджер адресу читає, водій — копіює й веде по ній машину.
+ */
 function StopsBlock({ stops }: { stops: Trip["stops"] }) {
   const c = Colors[useColorScheme() ?? "light"];
   const { t } = useTranslation();
@@ -1675,144 +1690,122 @@ function StopsBlock({ stops }: { stops: Trip["stops"] }) {
   };
   return (
     <View style={styles.stopsBlock}>
-      {stops.map((s, i) => (
-        <View key={s.id} style={styles.stopCard}>
-          <View style={styles.stopsHeader}>
-            <Ionicons name="location-outline" size={13} color={STOP_COLOR[s.type]} />
-            <Text style={[styles.stopsLabel, { color: STOP_COLOR[s.type] }]}>
-              {i + 1}. {stopLabel(s)}
-            </Text>
-          </View>
-          <View style={styles.stopRow}>
-            <Text style={[styles.stopIndex, { color: c.mutedForeground }]}>
-              {i + 1}.
-            </Text>
-            {/* Tap anywhere on the address to copy. The icon button is the
-                discoverable affordance; selectable would intercept the tap
-                on Android, so we keep it off. */}
-            <Pressable
-              onPress={() => s.address && copyToClipboard(s.address)}
-              style={styles.stopAddressWrap}
-              hitSlop={6}
-            >
-              <Text
-                style={[styles.stopAddress, { color: c.foreground }]}
-                numberOfLines={3}
-              >
-                {s.address ?? "—"}
+      {stops.map((s, i) => {
+        const color = STOP_COLOR[s.type];
+        const chipBorder = `${color}55`;
+        const window = formatStopWindow(s);
+        return (
+          <View
+            key={s.id}
+            style={[styles.stopCard, { backgroundColor: `${color}18` }]}
+          >
+            <View style={styles.stopsHeader}>
+              <Ionicons name={STOP_ICON[s.type]} size={14} color={color} />
+              <Text style={[styles.stopsLabel, { color }]}>
+                {stops.length > 1 ? `${i + 1}. ` : ""}
+                {stopLabel(s)}
               </Text>
-            </Pressable>
-            {s.address ? (
+            </View>
+
+            <View style={styles.stopRow}>
+              {/* Тап по адресі копіює її. Іконка поруч — видима підказка, що
+                  так можна; selectable перехопив би тап на Android. */}
               <Pressable
-                onPress={() => copyToClipboard(s.address!)}
-                hitSlop={10}
-                style={({ pressed }) => [
-                  styles.addrCopyBtn,
-                  { backgroundColor: pressed ? c.muted : "transparent" },
-                ]}
+                onPress={() => s.address && copyToClipboard(s.address)}
+                style={styles.stopAddressWrap}
+                hitSlop={6}
               >
-                <Ionicons name="copy-outline" size={18} color={c.foreground} />
-              </Pressable>
-            ) : null}
-          </View>
-          {(s.ref || s.coords) && (
-            <View style={styles.stopMetaRow}>
-              {s.ref ? (
-                <Pressable
-                  onPress={() => copyToClipboard(s.ref!)}
-                  style={({ pressed }) => [
-                    styles.metaChip,
-                    {
-                      borderColor: c.border,
-                      backgroundColor: pressed ? c.muted : "transparent",
-                    },
-                  ]}
-                  hitSlop={6}
+                <Text
+                  style={[styles.stopAddress, { color: c.foreground }]}
+                  numberOfLines={3}
                 >
-                  <Text style={[styles.metaLabel, { color: c.foreground }]}>
-                    ref:
-                  </Text>
-                  <Text
-                    style={[styles.metaText, { color: c.foreground }]}
-                    numberOfLines={1}
-                    selectable
-                  >
-                    {s.ref}
-                  </Text>
-                  <Ionicons
-                    name="copy-outline"
-                    size={16}
-                    color={c.foreground}
-                  />
+                  {s.address ?? "—"}
+                </Text>
+              </Pressable>
+              {s.address ? (
+                <Pressable
+                  onPress={() => copyToClipboard(s.address!)}
+                  hitSlop={10}
+                  style={({ pressed }) => [
+                    styles.addrCopyBtn,
+                    { backgroundColor: pressed ? c.muted : "transparent" },
+                  ]}
+                >
+                  <Ionicons name="copy-outline" size={18} color={color} />
                 </Pressable>
               ) : null}
-              {s.coords ? (
-                <View style={[styles.metaChip, { borderColor: c.border }]}>
-                  <Ionicons
-                    name="navigate-outline"
-                    size={14}
-                    color={c.foreground}
-                  />
-                  <Text
-                    style={[styles.metaText, { color: c.foreground }]}
-                    numberOfLines={1}
-                    selectable
-                  >
-                    {s.coords}
-                  </Text>
-                  <Pressable
-                    onPress={() => copyToClipboard(s.coords!)}
-                    hitSlop={10}
-                    style={({ pressed }) => [
-                      styles.metaActionBtn,
-                      { backgroundColor: pressed ? c.muted : "transparent" },
-                    ]}
-                  >
-                    <Ionicons
-                      name="copy-outline"
-                      size={16}
-                      color={c.foreground}
-                    />
-                  </Pressable>
-                  <Pressable
-                    onPress={() => openInMaps(s.coords!)}
-                    hitSlop={10}
-                    style={({ pressed }) => [
-                      styles.metaActionBtn,
-                      { backgroundColor: pressed ? c.muted : "transparent" },
-                    ]}
-                  >
-                    <Ionicons
-                      name="open-outline"
-                      size={16}
-                      color={c.foreground}
-                    />
-                  </Pressable>
-                </View>
-              ) : null}
             </View>
-          )}
-          {formatStopWindow(s) ? (
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 4,
-                marginTop: 3,
-              }}
-            >
-              <Ionicons
-                name="time-outline"
-                size={12}
-                color={c.mutedForeground}
-              />
-              <Text style={{ fontSize: 11, color: c.mutedForeground }}>
-                {formatStopWindow(s)}
-              </Text>
-            </View>
-          ) : null}
-        </View>
-      ))}
+
+            {s.ref || s.coords || window ? (
+              <View style={styles.stopMetaRow}>
+                {s.ref ? (
+                  <Pressable
+                    onPress={() => copyToClipboard(s.ref!)}
+                    style={({ pressed }) => [
+                      styles.metaChip,
+                      {
+                        borderColor: chipBorder,
+                        backgroundColor: pressed ? c.muted : "transparent",
+                      },
+                    ]}
+                    hitSlop={6}
+                  >
+                    <Text style={[styles.metaHash, { color }]}>#</Text>
+                    <Text
+                      style={[styles.metaText, { color: c.foreground }]}
+                      numberOfLines={1}
+                    >
+                      {s.ref}
+                    </Text>
+                    <Ionicons name="copy-outline" size={14} color={color} />
+                  </Pressable>
+                ) : null}
+
+                {s.coords ? (
+                  <View style={[styles.metaChip, { borderColor: chipBorder }]}>
+                    <Ionicons name="navigate-outline" size={14} color={color} />
+                    <Text
+                      style={[styles.metaText, { color: c.foreground }]}
+                      numberOfLines={1}
+                    >
+                      {s.coords}
+                    </Text>
+                    <Pressable
+                      onPress={() => copyToClipboard(s.coords!)}
+                      hitSlop={10}
+                      style={({ pressed }) => [
+                        styles.metaActionBtn,
+                        { backgroundColor: pressed ? c.muted : "transparent" },
+                      ]}
+                    >
+                      <Ionicons name="copy-outline" size={14} color={color} />
+                    </Pressable>
+                    <Pressable
+                      onPress={() => openInMaps(s.coords!)}
+                      hitSlop={10}
+                      style={({ pressed }) => [
+                        styles.metaActionBtn,
+                        { backgroundColor: pressed ? c.muted : "transparent" },
+                      ]}
+                    >
+                      <Ionicons name="open-outline" size={14} color={color} />
+                    </Pressable>
+                  </View>
+                ) : null}
+
+                {window ? (
+                  <View style={[styles.metaChip, { borderColor: chipBorder }]}>
+                    <Ionicons name="time-outline" size={13} color={color} />
+                    <Text style={[styles.metaText, { color: c.foreground }]}>
+                      {window}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+            ) : null}
+          </View>
+        );
+      })}
     </View>
   );
 }
@@ -1966,34 +1959,29 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
-  stopCard: { gap: 6, paddingVertical: 2 },
-  stopRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingLeft: 2,
+  stopCard: {
+    gap: 6,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
-  stopIndex: { fontSize: 13, fontWeight: "600", minWidth: 16, marginTop: 1 },
+  stopRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   stopAddressWrap: { flex: 1 },
-  stopAddress: { fontSize: 13 },
+  stopAddress: { fontSize: 13.5, fontWeight: "600", lineHeight: 18 },
   addrCopyBtn: {
     padding: 8,
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
   },
-  stopMetaRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    paddingLeft: 22,
-  },
+  stopMetaRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  metaHash: { fontSize: 12, fontWeight: "700" },
   metaChip: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    gap: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 8,
     maxWidth: "100%",
@@ -2013,7 +2001,6 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   metaText: { fontSize: 13, fontFamily: "monospace" },
-  metaLabel: { fontSize: 13, fontWeight: "600" },
 
   notes: { paddingTop: Spacing.sm, borderTopWidth: StyleSheet.hairlineWidth },
   notesText: { fontSize: 12, fontStyle: "italic" },
