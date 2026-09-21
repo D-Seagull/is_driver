@@ -759,7 +759,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   brandText: { fontSize: 18, fontWeight: "700" },
-  brandLogo: { height: 50, aspectRatio: 612 / 408, alignSelf: "flex-start" },
+  brandLogo: { height: 50, aspectRatio: 1458 / 324, alignSelf: "flex-start" },
   brandSub: { fontSize: 12, marginTop: 2 },
   themeBtn: {
     width: 36,
