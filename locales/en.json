@@ -166,7 +166,8 @@
     "groupChat": "Group chat",
     "groupDocsTitle": "Group documents",
     "hideConfirm": "Delete chat?",
-    "hideConfirmBody": "The chat leaves your list. The other person sees no change, and it returns as soon as either of you writes again."
+    "hideConfirmBody": "The chat leaves your list. The other person sees no change, and it returns as soon as either of you writes again.",
+    "companyDeactivatedNotice": "Unfortunately, you can't use the app in full right now."
   },
   "trip": {
     "noActiveTrip": {
@@ -185,6 +186,7 @@
     "newCount_one": "{{count}} new",
     "newCount_other": "{{count}} new",
     "readOnlyNotice": "You're no longer a member of this chat — read-only.",
+    "companyDeactivatedNotice": "Unfortunately, you can't use the app in full right now.",
     "docsTitle": "Trip documents",
     "attachSheet": {
       "title": "Attach"

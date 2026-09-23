@@ -451,72 +451,90 @@ export default function DmScreen() {
       )}
 
       {/* Composer */}
-      <View
-        style={[
-          styles.composer,
-          {
-            backgroundColor: c.card,
-            borderTopColor: c.border,
-            paddingBottom: Math.max(insets.bottom, Spacing.sm),
-          },
-        ]}
-      >
-        {!editing && (
-          <Pressable
-            onPress={showAttachSheet}
-            disabled={uploadDocs.isPending}
-            hitSlop={6}
-            style={({ pressed }) => [
-              styles.attachBtn,
-              { opacity: pressed || uploadDocs.isPending ? 0.5 : 1 },
-            ]}
-          >
-            {uploadDocs.isPending ? (
-              <ActivityIndicator size="small" color={c.mutedForeground} />
-            ) : (
-              <Ionicons name="attach" size={24} color={c.mutedForeground} />
-            )}
-          </Pressable>
-        )}
-        <Pressable
-          onPress={() => {
-            Keyboard.dismiss();
-            setEmojiOpen(true);
-          }}
-          hitSlop={6}
-          style={({ pressed }) => [
-            styles.attachBtn,
-            { opacity: pressed ? 0.6 : 1 },
-          ]}
-        >
-          <Ionicons name="happy-outline" size={24} color={c.mutedForeground} />
-        </Pressable>
-        <TextInput
-          value={text}
-          onChangeText={setText}
-          placeholder={editing ? t('chat.editPlaceholder') : t('chat.messagePlaceholder')}
-          placeholderTextColor={c.mutedForeground}
-          style={[styles.input, { color: c.foreground, backgroundColor: c.muted }]}
-          multiline
-        />
-        <Pressable
-          onPress={handleSend}
-          disabled={!text.trim()}
-          style={({ pressed }) => [
-            styles.sendBtn,
+      {me?.company?.isActive === false ? (
+        <View
+          style={[
+            styles.composer,
             {
-              backgroundColor: c.primary,
-              opacity: pressed ? 0.7 : text.trim() ? 1 : 0.4,
+              backgroundColor: c.card,
+              borderTopColor: c.border,
+              paddingBottom: Math.max(insets.bottom, Spacing.sm),
+              justifyContent: 'center',
             },
           ]}
         >
-          <Ionicons
-            name={editing ? 'checkmark' : 'send'}
-            size={18}
-            color={c.primaryForeground}
+          <Text style={{ color: c.mutedForeground, fontSize: 12, textAlign: 'center' }}>
+            {t('chat.companyDeactivatedNotice')}
+          </Text>
+        </View>
+      ) : (
+        <View
+          style={[
+            styles.composer,
+            {
+              backgroundColor: c.card,
+              borderTopColor: c.border,
+              paddingBottom: Math.max(insets.bottom, Spacing.sm),
+            },
+          ]}
+        >
+          {!editing && (
+            <Pressable
+              onPress={showAttachSheet}
+              disabled={uploadDocs.isPending}
+              hitSlop={6}
+              style={({ pressed }) => [
+                styles.attachBtn,
+                { opacity: pressed || uploadDocs.isPending ? 0.5 : 1 },
+              ]}
+            >
+              {uploadDocs.isPending ? (
+                <ActivityIndicator size="small" color={c.mutedForeground} />
+              ) : (
+                <Ionicons name="attach" size={24} color={c.mutedForeground} />
+              )}
+            </Pressable>
+          )}
+          <Pressable
+            onPress={() => {
+              Keyboard.dismiss();
+              setEmojiOpen(true);
+            }}
+            hitSlop={6}
+            style={({ pressed }) => [
+              styles.attachBtn,
+              { opacity: pressed ? 0.6 : 1 },
+            ]}
+          >
+            <Ionicons name="happy-outline" size={24} color={c.mutedForeground} />
+          </Pressable>
+          <TextInput
+            value={text}
+            onChangeText={setText}
+            placeholder={editing ? t('chat.editPlaceholder') : t('chat.messagePlaceholder')}
+            placeholderTextColor={c.mutedForeground}
+            style={[styles.input, { color: c.foreground, backgroundColor: c.muted }]}
+            multiline
           />
-        </Pressable>
-      </View>
+          <Pressable
+            onPress={handleSend}
+            disabled={!text.trim()}
+            style={({ pressed }) => [
+              styles.sendBtn,
+              {
+                backgroundColor: c.primary,
+                opacity: pressed ? 0.7 : text.trim() ? 1 : 0.4,
+              },
+            ]}
+          >
+            <Ionicons
+              name={editing ? 'checkmark' : 'send'}
+              size={18}
+              color={c.primaryForeground}
+            />
+          </Pressable>
+        </View>
+      )}
 
       <EmojiPicker
         open={emojiOpen}

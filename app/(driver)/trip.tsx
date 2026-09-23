@@ -265,6 +265,7 @@ function TripWithChat({
   // (server-side guard rejects the send anyway). Only hide once we *know*
   // the user is not the current driver.
   const isActiveDriver = !user || trip.driver?.id === user.id;
+  const isCompanyActive = user?.company?.isActive !== false;
 
   // Unified timeline: messages + documents sorted by createdAt.
   type TimelineItem =
@@ -749,7 +750,23 @@ function TripWithChat({
           always clears the safe area / Android nav bar so the input stays
           pinned to the very bottom on every device (the KAV lifts it above
           the keyboard when open). */}
-      {!isActiveDriver ? (
+      {!isCompanyActive ? (
+        <View
+          style={[
+            styles.inputWrap,
+            {
+              backgroundColor: c.card,
+              borderTopColor: c.border,
+              paddingBottom: Math.max(insets.bottom, Spacing.sm),
+              justifyContent: "center",
+            },
+          ]}
+        >
+          <Text style={[styles.inactiveNotice, { color: c.mutedForeground }]}>
+            {t("trip.companyDeactivatedNotice")}
+          </Text>
+        </View>
+      ) : !isActiveDriver ? (
         <View
           style={[
             styles.inputWrap,

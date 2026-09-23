@@ -167,7 +167,8 @@
     "groupChat": "Czat grupowy",
     "groupDocsTitle": "Dokumenty grupy",
     "hideConfirm": "Usunąć czat?",
-    "hideConfirmBody": "Czat zniknie z Twojej listy. Rozmówca tego nie zobaczy, a wróci po nowej wiadomości."
+    "hideConfirmBody": "Czat zniknie z Twojej listy. Rozmówca tego nie zobaczy, a wróci po nowej wiadomości.",
+    "companyDeactivatedNotice": "Niestety, obecnie nie możesz w pełni korzystać z aplikacji."
   },
   "trip": {
     "noActiveTrip": {
@@ -187,6 +188,7 @@
     "newCount_few": "{{count}} nowe",
     "newCount_many": "{{count}} nowych",
     "readOnlyNotice": "Nie jesteś już członkiem tego czatu — tylko do odczytu.",
+    "companyDeactivatedNotice": "Niestety, obecnie nie możesz w pełni korzystać z aplikacji.",
     "docsTitle": "Dokumenty trasy",
     "attachSheet": {
       "title": "Załącz"

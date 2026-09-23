@@ -167,7 +167,8 @@
     "groupChat": "Grupės pokalbis",
     "groupDocsTitle": "Grupės dokumentai",
     "hideConfirm": "Ištrinti pokalbį?",
-    "hideConfirmBody": "Pokalbis dings iš jūsų sąrašo. Pašnekovas to nematys, o pokalbis grįš po naujos žinutės."
+    "hideConfirmBody": "Pokalbis dings iš jūsų sąrašo. Pašnekovas to nematys, o pokalbis grįš po naujos žinutės.",
+    "companyDeactivatedNotice": "Deja, šiuo metu negalite naudotis programėle visa apimtimi."
   },
   "trip": {
     "noActiveTrip": {
@@ -187,6 +188,7 @@
     "newCount_few": "{{count}} naujos",
     "newCount_other": "{{count}} naujų",
     "readOnlyNotice": "Jūs nebeesate šio pokalbio narys — tik skaitymui.",
+    "companyDeactivatedNotice": "Deja, šiuo metu negalite naudotis programėle visa apimtimi.",
     "docsTitle": "Reiso dokumentai",
     "attachSheet": {
       "title": "Prisegti"

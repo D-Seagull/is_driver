@@ -39,6 +39,8 @@ export interface AuthUser {
   timezone?: string | null;
   currentTruck?: DriverTruckSummary | null;
   manager?: ManagerSummary | null;
+  /** null/undefined = не деактивована (безпечний дефолт); false — компанія деактивована. */
+  company?: { isActive: boolean } | null;
 }
 
 export async function setMyTimezone(timezone: string): Promise<void> {
