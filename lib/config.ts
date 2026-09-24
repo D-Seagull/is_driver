@@ -27,6 +27,15 @@ function readBool(key: string, fallback: boolean): boolean {
 export const API_URL = readString("API_URL", "http://localhost:3001");
 
 /**
+ * Where the public legal pages live. Always the deployed web app, even in a
+ * development build: a driver must read the published policy, and a localhost
+ * URL would simply fail to open on their phone. Overridable for staging.
+ */
+export const WEB_URL = readString("WEB_URL", "https://app.isfleet.eu");
+export const PRIVACY_URL = WEB_URL + "/privacy";
+export const TERMS_URL = WEB_URL + "/terms";
+
+/**
  * While the backend OTP endpoints aren't ready, we accept any 6-digit code
  * locally and synthesize a fake JWT/user. Flip the env to false to hit the
  * real backend.

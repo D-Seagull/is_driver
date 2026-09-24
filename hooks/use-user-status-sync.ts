@@ -164,9 +164,21 @@ export function useUserStatusSync() {
       );
     };
 
+    // `companyStatusChanged` (sent by admin deactivate/reactivate to
+    // `company-{companyId}`) — patch the auth store live so the chat
+    // banner / write-lockout apply immediately, without a reload.
+    const onCompanyChange = (evt: { companyId: string; isActive: boolean }) => {
+      const current = useAuthStore.getState().user;
+      if (current && current.companyId === evt.companyId) {
+        setUser({ ...current, company: { isActive: evt.isActive } });
+      }
+    };
+
     socket.on('userStatusChanged', onChange);
+    socket.on('companyStatusChanged', onCompanyChange);
     return () => {
       socket.off('userStatusChanged', onChange);
+      socket.off('companyStatusChanged', onCompanyChange);
     };
   }, [queryClient, setUser, myId]);
 }

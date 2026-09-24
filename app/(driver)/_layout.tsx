@@ -6,9 +6,10 @@ import {
   DrawerContentComponentProps,
   DrawerContentScrollView,
   useDrawerStatus,
-} from "@react-navigation/drawer";
+} from "expo-router/drawer";
 import { Redirect, router } from "expo-router";
 import { Drawer } from "expo-router/drawer";
+import { Image as ExpoImage } from "expo-image";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -22,7 +23,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { NextTripOverlay } from "@/components/next-trip-overlay";
-import { NotificationBell } from "@/components/notification-bell";
+import { HeaderActions, BugReportButton } from "@/components/header-actions";
 import { PushNoticeOverlay } from "@/components/push-notice-overlay";
 import { Colors, Radius, Spacing, ThemeColors } from "@/constants/theme";
 import { useAppStatePresence } from "@/hooks/use-app-state-presence";
@@ -96,7 +97,7 @@ export default function DriverLayout() {
           headerTitleStyle: { fontWeight: "600" },
           // Standardised notification bell in the header of every drawer
           // screen, so new messages are always visible.
-          headerRight: () => <NotificationBell colors={c} />,
+          headerRight: () => <HeaderActions colors={c} />,
           headerRightContainerStyle: { paddingRight: Spacing.md },
           sceneStyle: { backgroundColor: c.background },
           drawerStyle: { backgroundColor: c.sidebar, width: 300 },
@@ -112,7 +113,8 @@ export default function DriverLayout() {
             options={{
               title: t(`nav.items.${it.name}`),
               drawerLabel: t(`nav.items.${it.name}`),
-              drawerIcon: ({ color, size }) => it.renderIcon(color, size),
+              drawerIcon: ({ color, size }) =>
+                it.renderIcon(color as string, size),
             }}
             listeners={
               it.name === "trip"
@@ -268,6 +270,9 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
                 resizeMode="contain"
               />
             </View>
+            {/* Bug report — sits next to the bell in the drawer, not in the
+                per-screen header. */}
+            <BugReportButton colors={c} />
             {/* Bell button */}
             <Pressable
               onPress={() => setBellOpen((o) => !o)}
@@ -563,9 +568,11 @@ function DriverFooter({ colors: c }: { colors: ThemeColors }) {
           <View style={{ position: "relative" }}>
             <View style={[styles.avatarLg, { backgroundColor: c.muted }]}>
               {user?.avatar ? (
-                <Image
+                <ExpoImage
                   source={{ uri: user.avatar }}
                   style={styles.avatarLgImg}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
                 />
               ) : (
                 <Text
@@ -679,7 +686,7 @@ function ManagerRow({
       <View style={{ position: "relative" }}>
         <View style={[styles.avatarSm, { backgroundColor: c.muted }]}>
           {person.avatar ? (
-            <Image source={{ uri: person.avatar }} style={styles.avatarImg} />
+            <ExpoImage source={{ uri: person.avatar }} style={styles.avatarImg} contentFit="cover" cachePolicy="memory-disk" />
           ) : (
             <Ionicons
               name="headset-outline"
@@ -752,7 +759,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   brandText: { fontSize: 18, fontWeight: "700" },
-  brandLogo: { height: 50, aspectRatio: 612 / 408, alignSelf: "flex-start" },
+  brandLogo: { height: 20, aspectRatio: 1458 / 324, alignSelf: "flex-start" },
   brandSub: { fontSize: 12, marginTop: 2 },
   themeBtn: {
     width: 36,

@@ -4,10 +4,9 @@
     "slug": "is-driver",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/IS-driverapp-img.png",
+    "icon": "./assets/images/icon.png",
     "scheme": "isdriver",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.dseadull.isdriver",
@@ -22,10 +21,11 @@
       "versionCode": 1,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/IS-driverapp-img.png"
+        "backgroundImage": "./assets/images/adaptive-icon-background.png",
+        "backgroundColor": "#1E7AFD",
+        "foregroundImage": "./assets/images/adaptive-icon-foreground.png",
+        "monochromeImage": "./assets/images/adaptive-icon-monochrome.png"
       },
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
     "web": {
@@ -37,12 +37,12 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/IS-driverapp-img.png",
+          "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
+          "backgroundColor": "#1E7AFD",
           "dark": {
-            "backgroundColor": "#000000"
+            "backgroundColor": "#0F172A"
           }
         }
       ],
@@ -53,12 +53,16 @@
         "expo-notifications",
         {
           "icon": "./assets/images/notification-icon.png",
-          "color": "#ffffff",
-          "sounds": []
+          "color": "#1E7AFD",
+          "sounds": ["./assets/sounds/push_message.mp3"]
         }
       ],
       "expo-asset",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-font",
+      "expo-image",
+      "expo-status-bar",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -66,7 +70,7 @@
     },
     "extra": {
       "router": {},
-      "API_URL": "https://is-fleet-backend.onrender.com",
+      "API_URL": "https://api.isfleet.eu",
       "MOCK_AUTH": "false",
       "eas": {
         "projectId": "8bb837ef-9e50-4f36-b896-35fcd5e3920f"

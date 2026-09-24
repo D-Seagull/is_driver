@@ -1,6 +1,8 @@
 import axios from 'axios';
+import { Alert } from 'react-native';
 
 import { API_URL } from './config';
+import i18n from './i18n';
 
 export const api = axios.create({
   baseURL: API_URL,
@@ -20,21 +22,32 @@ let onUnauthorized: () => void = () => {};
 // Rotate the refresh token → new access token (or null if it failed). Injected
 // from the store so this module stays store-agnostic.
 let refreshAccessToken: () => Promise<string | null> = async () => null;
+let isCompanyActive: () => boolean = () => true;
 
 export function configureApiAuth(opts: {
   getToken: () => string | null;
   onUnauthorized?: () => void;
   refreshAccessToken?: () => Promise<string | null>;
+  isCompanyActive?: () => boolean;
 }) {
   getToken = opts.getToken;
   if (opts.onUnauthorized) onUnauthorized = opts.onUnauthorized;
   if (opts.refreshAccessToken) refreshAccessToken = opts.refreshAccessToken;
+  if (opts.isCompanyActive) isCompanyActive = opts.isCompanyActive;
 }
+
+const SAFE_METHODS = new Set(['get', 'head', 'options']);
 
 api.interceptors.request.use((config) => {
   const token = getToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  }
+  const method = (config.method ?? 'get').toLowerCase();
+  const isAuthPath = (config.url ?? '').includes('/auth/');
+  if (!isAuthPath && !SAFE_METHODS.has(method) && !isCompanyActive()) {
+    Alert.alert('', i18n.t('chat.companyDeactivatedNotice'));
+    return Promise.reject(new Error('company-deactivated'));
   }
   return config;
 });

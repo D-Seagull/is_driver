@@ -72,7 +72,16 @@
       "title": "Powiadomienia",
       "sound": "Dźwięk",
       "vibration": "Wibracja"
-    }
+    },
+    "deleteAccount": "Usuń konto",
+    "deleteAccountConfirm": {
+      "title": "Usunąć konto?",
+      "body": "Tej operacji nie można cofnąć. Twoje dane osobowe zostaną usunięte, a logowanie stanie się trwale niemożliwe. Trasy i rozmowy pozostaną w historii firmy w formie zanonimizowanej.",
+      "confirm": "Usuń trwale",
+      "error": "Nie udało się usunąć konta"
+    },
+    "privacyPolicy": "Polityka prywatności",
+    "terms": "Regulamin"
   },
   "auth": {
     "phone": {
@@ -156,7 +165,10 @@
     "emptyChat": "Brak wiadomości. Rozpocznij rozmowę.",
     "groupFallback": "Grupa",
     "groupChat": "Czat grupowy",
-    "groupDocsTitle": "Dokumenty grupy"
+    "groupDocsTitle": "Dokumenty grupy",
+    "hideConfirm": "Usunąć czat?",
+    "hideConfirmBody": "Czat zniknie z Twojej listy. Rozmówca tego nie zobaczy, a wróci po nowej wiadomości.",
+    "companyDeactivatedNotice": "Niestety, obecnie nie możesz w pełni korzystać z aplikacji."
   },
   "trip": {
     "noActiveTrip": {
@@ -176,6 +188,7 @@
     "newCount_few": "{{count}} nowe",
     "newCount_many": "{{count}} nowych",
     "readOnlyNotice": "Nie jesteś już członkiem tego czatu — tylko do odczytu.",
+    "companyDeactivatedNotice": "Niestety, obecnie nie możesz w pełni korzystać z aplikacji.",
     "docsTitle": "Dokumenty trasy",
     "attachSheet": {
       "title": "Załącz"
@@ -331,5 +344,18 @@
       "week1": "Tydzień",
       "weeks2": "2 tygodnie"
     }
+  },
+  "bugReport": {
+    "title": "Zgłoś problem",
+    "subtitle": "Opisz, co poszło nie tak. Możesz dołączyć zrzut ekranu.",
+    "placeholder": "Co się stało?",
+    "attach": "Dodaj zrzut",
+    "send": "Wyślij",
+    "sent": "Dziękujemy! Zgłoszenie wysłane.",
+    "sentTitle": "Gotowe",
+    "error": "Nie udało się wysłać. Spróbuj ponownie.",
+    "errorTitle": "Błąd",
+    "permissionTitle": "Brak dostępu",
+    "permissionBody": "Zezwól na dostęp do galerii, aby dołączyć zrzut."
   }
 }

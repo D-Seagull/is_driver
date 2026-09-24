@@ -72,7 +72,16 @@
       "title": "Pranešimai",
       "sound": "Garsas",
       "vibration": "Vibracija"
-    }
+    },
+    "deleteAccount": "Ištrinti paskyrą",
+    "deleteAccountConfirm": {
+      "title": "Ištrinti paskyrą?",
+      "body": "Šio veiksmo atšaukti negalima. Jūsų asmens duomenys bus ištrinti, o prisijungti nebebus įmanoma. Reisai ir pokalbiai liks įmonės istorijoje nuasmeninti.",
+      "confirm": "Ištrinti visam laikui",
+      "error": "Nepavyko ištrinti paskyros"
+    },
+    "privacyPolicy": "Privatumo politika",
+    "terms": "Naudojimo sąlygos"
   },
   "auth": {
     "phone": {
@@ -156,7 +165,10 @@
     "emptyChat": "Žinučių dar nėra. Pradėkite pokalbį.",
     "groupFallback": "Grupė",
     "groupChat": "Grupės pokalbis",
-    "groupDocsTitle": "Grupės dokumentai"
+    "groupDocsTitle": "Grupės dokumentai",
+    "hideConfirm": "Ištrinti pokalbį?",
+    "hideConfirmBody": "Pokalbis dings iš jūsų sąrašo. Pašnekovas to nematys, o pokalbis grįš po naujos žinutės.",
+    "companyDeactivatedNotice": "Deja, šiuo metu negalite naudotis programėle visa apimtimi."
   },
   "trip": {
     "noActiveTrip": {
@@ -176,6 +188,7 @@
     "newCount_few": "{{count}} naujos",
     "newCount_other": "{{count}} naujų",
     "readOnlyNotice": "Jūs nebeesate šio pokalbio narys — tik skaitymui.",
+    "companyDeactivatedNotice": "Deja, šiuo metu negalite naudotis programėle visa apimtimi.",
     "docsTitle": "Reiso dokumentai",
     "attachSheet": {
       "title": "Prisegti"
@@ -331,5 +344,18 @@
       "week1": "Savaitė",
       "weeks2": "2 savaitės"
     }
+  },
+  "bugReport": {
+    "title": "Pranešti apie problemą",
+    "subtitle": "Aprašykite, kas nutiko. Galite pridėti ekrano nuotrauką.",
+    "placeholder": "Kas nutiko?",
+    "attach": "Pridėti nuotrauką",
+    "send": "Siųsti",
+    "sent": "Ačiū! Pranešimas išsiųstas.",
+    "sentTitle": "Atlikta",
+    "error": "Nepavyko išsiųsti. Bandykite dar kartą.",
+    "errorTitle": "Klaida",
+    "permissionTitle": "Nėra prieigos",
+    "permissionBody": "Leiskite prieigą prie galerijos, kad pridėtumėte nuotrauką."
   }
 }

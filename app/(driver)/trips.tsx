@@ -72,13 +72,21 @@ export default function TripsScreen() {
     const section = (key: string, label: string, list: Trip[], variant: TripVariant) => {
       if (list.length === 0) return;
       out.push({ kind: 'header', key, label });
-      list.forEach((trip) => out.push({ kind: 'trip', trip, variant }));
+      // Within a status section, surface trips with unread chat first so new
+      // messages don't get lost — the section order itself stays intact.
+      [...list]
+        .sort(
+          (a, b) =>
+            ((tripUnread[a.id] ?? 0) > 0 ? 0 : 1) -
+            ((tripUnread[b.id] ?? 0) > 0 ? 0 : 1),
+        )
+        .forEach((trip) => out.push({ kind: 'trip', trip, variant }));
     };
     section('active', t('trips.active'), active, 'active');
     section('next', t('trips.next'), next, 'next');
     section('done', t('trips.done'), done, 'done');
     return out;
-  }, [filtered, activeId, t]);
+  }, [filtered, activeId, t, tripUnread]);
 
   return (
     <View style={{ flex: 1, backgroundColor: c.background }}>

@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused } from 'expo-router';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -7,6 +7,7 @@ import { fullName } from "@/lib/format";
 import {
   ActivityIndicator,
   FlatList,
+  Alert,
   Pressable,
   StyleSheet,
   Text,
@@ -20,7 +21,7 @@ import { ScreenPlaceholder } from '@/components/screen-placeholder';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useCompanyUsers, type CompanyUser } from '@/hooks/use-company-users';
-import { useConversations, type Conversation } from '@/hooks/use-direct-messages';
+import { useConversations, type Conversation, useHideConversation } from '@/hooks/use-direct-messages';
 import { useDriverGroups, type DriverGroup } from '@/hooks/use-groups';
 import { type DriverUserStatus } from '@/lib/auth-api';
 import { roleBadgeIcon } from '@/lib/roles';
@@ -134,6 +135,10 @@ function ChatTab() {
   // Existing conversations — manager-tier (manager/admin/teamlead) pinned to
   // top, then most-recent first. Filtered by the search box.
   const sorted = [...(conversations ?? [])].sort((a, b) => {
+    // Unread first so chats with new messages never get lost in a long list.
+    const aUnread = a.unreadCount > 0 ? 0 : 1;
+    const bUnread = b.unreadCount > 0 ? 0 : 1;
+    if (aUnread !== bUnread) return aUnread - bUnread;
     const aMgr = a.user.role !== 'DRIVER' ? 0 : 1;
     const bMgr = b.user.role !== 'DRIVER' ? 0 : 1;
     if (aMgr !== bMgr) return aMgr - bMgr;
@@ -302,6 +307,25 @@ function DirectoryRow({ user }: { user: CompanyUser }) {
 
 function ConversationRow({ conv }: { conv: Conversation }) {
   const { t } = useTranslation();
+  const hideConversation = useHideConversation();
+
+  // Long-press to remove the thread from the list. Hidden for this user
+  // only — the other side keeps the history and notices nothing, and the
+  // conversation reappears the moment either of them writes again.
+  const confirmHide = () => {
+    Alert.alert(
+      t('chat.hideConfirm', 'Видалити чат?'),
+      t('chat.hideConfirmBody', 'Чат зникне з вашого списку. Співрозмовник цього не побачить, а листування повернеться після нового повідомлення.'),
+      [
+        { text: t('common.cancel', 'Скасувати'), style: 'cancel' },
+        {
+          text: t('common.delete', 'Видалити'),
+          style: 'destructive',
+          onPress: () => hideConversation.mutate(conv.user.id),
+        },
+      ],
+    );
+  };
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
   const hasUnread = conv.unreadCount > 0;
@@ -310,6 +334,8 @@ function ConversationRow({ conv }: { conv: Conversation }) {
   return (
     <Pressable
       onPress={() => router.push(`/(driver)/dm/${conv.user.id}` as never)}
+      onLongPress={confirmHide}
+      delayLongPress={450}
       style={({ pressed }) => [
         styles.row,
         {
@@ -392,9 +418,14 @@ function GroupsTab() {
     );
   }
 
+  // Groups with unread first, then their existing order.
+  const sortedGroups = [...groups].sort(
+    (a, b) => (a.unreadCount > 0 ? 0 : 1) - (b.unreadCount > 0 ? 0 : 1),
+  );
+
   return (
     <FlatList
-      data={groups}
+      data={sortedGroups}
       keyExtractor={(g) => g.id}
       renderItem={({ item }) => <GroupRow group={item} />}
       ItemSeparatorComponent={() => (

@@ -1,11 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { fullName } from "@/lib/format";
 import {
@@ -29,6 +29,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 import { ChatAvatar } from '@/components/chat-avatar';
+import { ChatBackground } from '@/components/chat-background';
+import { NotificationBell } from '@/components/notification-bell';
 import { MessageActionsSheet, type MessageActions } from '@/components/message-actions-sheet';
 import { UserCardSheet } from '@/components/user-card-sheet';
 import { MessageQuote } from '@/components/message-quote';
@@ -182,17 +184,20 @@ export default function DmScreen() {
   // ─── Jump to a replied-to message/document ─────────────────────────
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [cardOpen, setCardOpen] = useState(false);
-  const scrollToMessage = (targetId?: string | null) => {
-    if (!targetId) return;
-    const index = data.findIndex((it) => it.data.id === targetId);
-    if (index < 0) return; // original is older than the loaded page
-    listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
-    setHighlightId(targetId);
-    setTimeout(
-      () => setHighlightId((h) => (h === targetId ? null : h)),
-      1500,
-    );
-  };
+  const scrollToMessage = useCallback(
+    (targetId?: string | null) => {
+      if (!targetId) return;
+      const index = data.findIndex((it) => it.data.id === targetId);
+      if (index < 0) return; // original is older than the loaded page
+      listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
+      setHighlightId(targetId);
+      setTimeout(
+        () => setHighlightId((h) => (h === targetId ? null : h)),
+        1500,
+      );
+    },
+    [data],
+  );
 
   // ─── Attach flow ───────────────────────────────────────────────────
   const pickAndUpload = async (source: 'camera' | 'gallery' | 'document') => {
@@ -251,17 +256,28 @@ export default function DmScreen() {
     ]);
   };
 
-  const openDoc = async (doc: ConversationDocumentFull) => {
-    if (doc.fileType === 'PHOTO') {
-      setViewerUri(doc.signedUrl);
-      return;
-    }
-    try {
-      await WebBrowser.openBrowserAsync(doc.signedUrl);
-    } catch (e) {
-      Alert.alert(t('documents.cannotOpen'), (e as Error).message);
-    }
-  };
+  const openDoc = useCallback(
+    async (doc: ConversationDocumentFull) => {
+      if (doc.fileType === 'PHOTO') {
+        setViewerUri(doc.signedUrl);
+        return;
+      }
+      try {
+        await WebBrowser.openBrowserAsync(doc.signedUrl);
+      } catch (e) {
+        Alert.alert(t('documents.cannotOpen'), (e as Error).message);
+      }
+    },
+    [t],
+  );
+
+  // Stable per-list callbacks so the memoized bubbles don't re-render on every
+  // parent update (typing, presence ticks).
+  const handleMsgLongPress = useCallback((m: DirectMessage) => setSheetFor(m), []);
+  const handleDocLongPress = useCallback(
+    (d: ConversationDocumentFull) => setDocSheetFor(d),
+    [],
+  );
 
   // ─── Send / edit ───────────────────────────────────────────────────
   const handleSend = async () => {
@@ -304,6 +320,7 @@ export default function DmScreen() {
       keyboardVerticalOffset={0}
       style={[styles.root, { backgroundColor: c.background }]}
     >
+      <ChatBackground />
       {/* Header */}
       <View
         style={[
@@ -345,6 +362,7 @@ export default function DmScreen() {
             {liveDocs.length}
           </Text>
         </Pressable>
+        <NotificationBell colors={c} />
       </View>
 
       {/* Messages */}
@@ -357,6 +375,10 @@ export default function DmScreen() {
           ref={listRef}
           data={data}
           keyExtractor={(it) => `${it.kind}:${it.data.id}`}
+          initialNumToRender={12}
+          maxToRenderPerBatch={10}
+          windowSize={11}
+          removeClippedSubviews
           inverted
           contentContainerStyle={{ paddingVertical: Spacing.sm }}
           onScrollToIndexFailed={() => {}}
@@ -384,7 +406,7 @@ export default function DmScreen() {
                 isOwn={item.data.senderId === myId}
                 myId={myId}
                 highlighted={item.data.id === highlightId}
-                onLongPress={() => setSheetFor(item.data)}
+                onLongPress={handleMsgLongPress}
                 onReplyJump={scrollToMessage}
               />
             ) : (
@@ -393,8 +415,8 @@ export default function DmScreen() {
                 isOwn={item.data.uploadedBy === myId}
                 myId={myId}
                 highlighted={item.data.id === highlightId}
-                onOpen={() => openDoc(item.data)}
-                onLongPress={() => setDocSheetFor(item.data)}
+                onOpen={openDoc}
+                onLongPress={handleDocLongPress}
               />
             )
           }
@@ -429,72 +451,90 @@ export default function DmScreen() {
       )}
 
       {/* Composer */}
-      <View
-        style={[
-          styles.composer,
-          {
-            backgroundColor: c.card,
-            borderTopColor: c.border,
-            paddingBottom: Math.max(insets.bottom, Spacing.sm),
-          },
-        ]}
-      >
-        {!editing && (
-          <Pressable
-            onPress={showAttachSheet}
-            disabled={uploadDocs.isPending}
-            hitSlop={6}
-            style={({ pressed }) => [
-              styles.attachBtn,
-              { opacity: pressed || uploadDocs.isPending ? 0.5 : 1 },
-            ]}
-          >
-            {uploadDocs.isPending ? (
-              <ActivityIndicator size="small" color={c.mutedForeground} />
-            ) : (
-              <Ionicons name="attach" size={24} color={c.mutedForeground} />
-            )}
-          </Pressable>
-        )}
-        <Pressable
-          onPress={() => {
-            Keyboard.dismiss();
-            setEmojiOpen(true);
-          }}
-          hitSlop={6}
-          style={({ pressed }) => [
-            styles.attachBtn,
-            { opacity: pressed ? 0.6 : 1 },
-          ]}
-        >
-          <Ionicons name="happy-outline" size={24} color={c.mutedForeground} />
-        </Pressable>
-        <TextInput
-          value={text}
-          onChangeText={setText}
-          placeholder={editing ? t('chat.editPlaceholder') : t('chat.messagePlaceholder')}
-          placeholderTextColor={c.mutedForeground}
-          style={[styles.input, { color: c.foreground, backgroundColor: c.muted }]}
-          multiline
-        />
-        <Pressable
-          onPress={handleSend}
-          disabled={!text.trim()}
-          style={({ pressed }) => [
-            styles.sendBtn,
+      {me?.company?.isActive === false ? (
+        <View
+          style={[
+            styles.composer,
             {
-              backgroundColor: c.primary,
-              opacity: pressed ? 0.7 : text.trim() ? 1 : 0.4,
+              backgroundColor: c.card,
+              borderTopColor: c.border,
+              paddingBottom: Math.max(insets.bottom, Spacing.sm),
+              justifyContent: 'center',
             },
           ]}
         >
-          <Ionicons
-            name={editing ? 'checkmark' : 'send'}
-            size={18}
-            color={c.primaryForeground}
+          <Text style={{ color: c.mutedForeground, fontSize: 12, textAlign: 'center' }}>
+            {t('chat.companyDeactivatedNotice')}
+          </Text>
+        </View>
+      ) : (
+        <View
+          style={[
+            styles.composer,
+            {
+              backgroundColor: c.card,
+              borderTopColor: c.border,
+              paddingBottom: Math.max(insets.bottom, Spacing.sm),
+            },
+          ]}
+        >
+          {!editing && (
+            <Pressable
+              onPress={showAttachSheet}
+              disabled={uploadDocs.isPending}
+              hitSlop={6}
+              style={({ pressed }) => [
+                styles.attachBtn,
+                { opacity: pressed || uploadDocs.isPending ? 0.5 : 1 },
+              ]}
+            >
+              {uploadDocs.isPending ? (
+                <ActivityIndicator size="small" color={c.mutedForeground} />
+              ) : (
+                <Ionicons name="attach" size={24} color={c.mutedForeground} />
+              )}
+            </Pressable>
+          )}
+          <Pressable
+            onPress={() => {
+              Keyboard.dismiss();
+              setEmojiOpen(true);
+            }}
+            hitSlop={6}
+            style={({ pressed }) => [
+              styles.attachBtn,
+              { opacity: pressed ? 0.6 : 1 },
+            ]}
+          >
+            <Ionicons name="happy-outline" size={24} color={c.mutedForeground} />
+          </Pressable>
+          <TextInput
+            value={text}
+            onChangeText={setText}
+            placeholder={editing ? t('chat.editPlaceholder') : t('chat.messagePlaceholder')}
+            placeholderTextColor={c.mutedForeground}
+            style={[styles.input, { color: c.foreground, backgroundColor: c.muted }]}
+            multiline
           />
-        </Pressable>
-      </View>
+          <Pressable
+            onPress={handleSend}
+            disabled={!text.trim()}
+            style={({ pressed }) => [
+              styles.sendBtn,
+              {
+                backgroundColor: c.primary,
+                opacity: pressed ? 0.7 : text.trim() ? 1 : 0.4,
+              },
+            ]}
+          >
+            <Ionicons
+              name={editing ? 'checkmark' : 'send'}
+              size={18}
+              color={c.primaryForeground}
+            />
+          </Pressable>
+        </View>
+      )}
 
       <EmojiPicker
         open={emojiOpen}
@@ -682,7 +722,7 @@ function Banner({
 
 // ─── Message bubble ───────────────────────────────────────────────────────
 
-function MessageBubble({
+const MessageBubble = memo(function MessageBubble({
   msg,
   isOwn,
   myId,
@@ -694,7 +734,7 @@ function MessageBubble({
   isOwn: boolean;
   myId: string;
   highlighted?: boolean;
-  onLongPress: () => void;
+  onLongPress: (m: DirectMessage) => void;
   onReplyJump: (targetId: string) => void;
 }) {
   const { t } = useTranslation();
@@ -717,7 +757,7 @@ function MessageBubble({
 
   const bubble = (
     <Pressable
-      onLongPress={onLongPress}
+      onLongPress={() => onLongPress(msg)}
       delayLongPress={400}
       style={[
         styles.bubble,
@@ -804,11 +844,11 @@ function MessageBubble({
       </View>
     </View>
   );
-}
+});
 
 // ─── Document bubble (photo thumbnail / file card) ────────────────────────
 
-function DocBubble({
+const DocBubble = memo(function DocBubble({
   doc,
   isOwn,
   myId,
@@ -820,8 +860,8 @@ function DocBubble({
   isOwn: boolean;
   myId: string;
   highlighted?: boolean;
-  onOpen: () => void;
-  onLongPress: () => void;
+  onOpen: (d: ConversationDocumentFull) => void;
+  onLongPress: (d: ConversationDocumentFull) => void;
 }) {
   const { t } = useTranslation();
   const scheme = useColorScheme() ?? 'light';
@@ -855,8 +895,8 @@ function DocBubble({
       <View style={[styles.bubbleRow, styles.bubbleRowDoc]}>
       {isOwn && sidekick}
       <Pressable
-        onPress={onOpen}
-        onLongPress={onLongPress}
+        onPress={() => onOpen(doc)}
+        onLongPress={() => onLongPress(doc)}
         delayLongPress={400}
         style={[
           styles.docBubble,
@@ -894,7 +934,7 @@ function DocBubble({
       </View>
     </View>
   );
-}
+});
 
 // ─── Documents folder modal — standardised with the Trip docs modal ───────
 

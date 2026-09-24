@@ -4,7 +4,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, Stack } from 'expo-router';
 import {
   ActivityIndicator,
-  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -14,6 +13,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { Image as ExpoImage } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { StatusDot } from '@/components/status-dot';
@@ -112,7 +112,7 @@ export default function ManagerScreen() {
         <View style={styles.headerRow}>
           <View>
             {profile.avatar ? (
-              <Image source={{ uri: profile.avatar }} style={styles.avatar} />
+              <ExpoImage source={{ uri: profile.avatar }} style={styles.avatar} contentFit="cover" cachePolicy="memory-disk" />
             ) : (
               <View style={[styles.avatarFallback, { backgroundColor: c.muted }]}>
                 <Ionicons

@@ -2,11 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { Image as ExpoImage } from 'expo-image';
 import { Stack } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import {
   ActivityIndicator,
   Alert,
-  Image,
   Modal,
   Platform,
   Pressable,
@@ -25,6 +26,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   DriverLanguage,
   DriverUserStatus,
+  deleteAccount,
   deleteAvatar,
   updateMe,
   uploadAvatar,
@@ -32,6 +34,7 @@ import {
 import { fullName, initials } from '@/lib/format';
 import { StatusDot } from '@/components/status-dot';
 import { PresenceStatusSheet } from '@/components/presence-status-sheet';
+import { PRIVACY_URL, TERMS_URL } from '@/lib/config';
 import { useAlertPrefs } from '@/store/alert-prefs';
 import { useAuthStore, useUser } from '@/store/auth';
 
@@ -68,6 +71,7 @@ export default function DriverSettingsScreen() {
   const [langPickerOpen, setLangPickerOpen] = useState(false);
   const [savedHint, setSavedHint] = useState(false);
   const [statusPickerOpen, setStatusPickerOpen] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   const currentStatus = (user?.status as DriverUserStatus | undefined) ?? 'ONLINE';
 
@@ -171,6 +175,41 @@ export default function DriverSettingsScreen() {
     ]);
   };
 
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      t('settings.deleteAccountConfirm.title'),
+      t('settings.deleteAccountConfirm.body'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('settings.deleteAccountConfirm.confirm'),
+          style: 'destructive',
+          onPress: async () => {
+            setDeletingAccount(true);
+            try {
+              await deleteAccount();
+              // The token is dead the moment the request returns, so drop the
+              // session rather than leaving the app on a screen that can no
+              // longer fetch anything.
+              logout();
+            } catch (e: any) {
+              // The server refuses on one business rule (last admin standing) —
+              // show its message rather than a generic failure.
+              const msg =
+                e?.response?.data?.message ??
+                t('settings.deleteAccountConfirm.error');
+              Alert.alert(
+                t('settings.deleteAccountConfirm.error'),
+                Array.isArray(msg) ? msg[0] : String(msg),
+              );
+              setDeletingAccount(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   return (
     <View
       style={[
@@ -215,9 +254,11 @@ export default function DriverSettingsScreen() {
               ]}
             >
               {user?.avatar ? (
-                <Image
+                <ExpoImage
                   source={{ uri: user.avatar }}
                   style={styles.avatarImg}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
                 />
               ) : (
                 <Text
@@ -370,6 +411,48 @@ export default function DriverSettingsScreen() {
           </View>
         </SectionCard>
 
+        {/* ── Save button + saved hint ─────────────────────────────── */}
+        <View style={{ gap: Spacing.xs }}>
+          <Pressable
+            onPress={handleSaveProfile}
+            disabled={!canSaveProfile}
+            style={({ pressed }) => [
+              styles.saveBtn,
+              {
+                backgroundColor: canSaveProfile ? c.primary : c.muted,
+                opacity: pressed && canSaveProfile ? 0.85 : 1,
+              },
+            ]}
+          >
+            {savingProfile ? (
+              <ActivityIndicator color={c.primaryForeground} />
+            ) : (
+              <Text
+                style={[
+                  styles.saveText,
+                  {
+                    color: canSaveProfile
+                      ? c.primaryForeground
+                      : c.mutedForeground,
+                  },
+                ]}
+              >
+                {t('settings.saveChanges')}
+              </Text>
+            )}
+          </Pressable>
+          {savedHint && (
+            <Text
+              style={[
+                styles.savedHint,
+                { color: c.primary },
+              ]}
+            >
+              {t('settings.saved')}
+            </Text>
+          )}
+        </View>
+
         {/* ── Language ─────────────────────────────────────────────── */}
         <SectionCard colors={c} compact={compact} title={t('settings.language.title')}>
           <Pressable
@@ -419,48 +502,6 @@ export default function DriverSettingsScreen() {
           </View>
         </SectionCard>
 
-        {/* ── Save button + saved hint ─────────────────────────────── */}
-        <View style={{ gap: Spacing.xs }}>
-          <Pressable
-            onPress={handleSaveProfile}
-            disabled={!canSaveProfile}
-            style={({ pressed }) => [
-              styles.saveBtn,
-              {
-                backgroundColor: canSaveProfile ? c.primary : c.muted,
-                opacity: pressed && canSaveProfile ? 0.85 : 1,
-              },
-            ]}
-          >
-            {savingProfile ? (
-              <ActivityIndicator color={c.primaryForeground} />
-            ) : (
-              <Text
-                style={[
-                  styles.saveText,
-                  {
-                    color: canSaveProfile
-                      ? c.primaryForeground
-                      : c.mutedForeground,
-                  },
-                ]}
-              >
-                {t('settings.saveChanges')}
-              </Text>
-            )}
-          </Pressable>
-          {savedHint && (
-            <Text
-              style={[
-                styles.savedHint,
-                { color: c.primary },
-              ]}
-            >
-              {t('settings.saved')}
-            </Text>
-          )}
-        </View>
-
         {/* ── Logout block ─────────────────────────────────────────── */}
         <Pressable
           onPress={handleLogout}
@@ -487,6 +528,53 @@ export default function DriverSettingsScreen() {
             {t('settings.logout')}
           </Text>
         </Pressable>
+
+        {/* Account erasure. Store policy requires an in-app path to it, but it
+            is a rare, irreversible action — so it sits below logout as plain
+            muted text rather than competing with the real controls. */}
+        <Pressable
+          onPress={handleDeleteAccount}
+          disabled={deletingAccount}
+          hitSlop={8}
+          style={({ pressed }) => [
+            styles.deleteAccountBtn,
+            { opacity: pressed || deletingAccount ? 0.6 : 1 },
+          ]}
+        >
+          {deletingAccount ? (
+            <ActivityIndicator size="small" color={c.mutedForeground} />
+          ) : (
+            <Text
+              style={[styles.deleteAccountText, { color: c.mutedForeground }]}
+            >
+              {t('settings.deleteAccount')}
+            </Text>
+          )}
+        </Pressable>
+
+        {/* Store policy wants the privacy policy reachable from inside the
+            app, not only from the listing. Opened in the system browser
+            rather than a WebView, so the driver can see the real address of
+            what they are reading. */}
+        <View style={styles.legalRow}>
+          <Pressable
+            onPress={() => WebBrowser.openBrowserAsync(PRIVACY_URL)}
+            hitSlop={8}
+          >
+            <Text style={[styles.legalLink, { color: c.mutedForeground }]}>
+              {t('settings.privacyPolicy')}
+            </Text>
+          </Pressable>
+          <Text style={[styles.legalLink, { color: c.mutedForeground }]}>·</Text>
+          <Pressable
+            onPress={() => WebBrowser.openBrowserAsync(TERMS_URL)}
+            hitSlop={8}
+          >
+            <Text style={[styles.legalLink, { color: c.mutedForeground }]}>
+              {t('settings.terms')}
+            </Text>
+          </Pressable>
+        </View>
       </ScrollView>
 
       {/* ── Status picker — shared sheet with the full set of statuses
@@ -700,6 +788,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   logoutText: { fontSize: 15, fontWeight: '700' },
+  deleteAccountBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.md,
+    minHeight: 44,
+  },
+  legalRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingBottom: Spacing.md,
+  },
+  legalLink: { fontSize: 12, textDecorationLine: 'underline' },
+  deleteAccountText: {
+    fontSize: 13,
+    fontWeight: '500',
+    textDecorationLine: 'underline',
+  },
   modalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',

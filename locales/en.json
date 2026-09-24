@@ -71,7 +71,16 @@
       "title": "Notifications",
       "sound": "Sound",
       "vibration": "Vibration"
-    }
+    },
+    "deleteAccount": "Delete account",
+    "deleteAccountConfirm": {
+      "title": "Delete account?",
+      "body": "This cannot be undone. Your personal data will be erased and signing in will be impossible forever. Trips and conversations stay in the company history, anonymised.",
+      "confirm": "Delete permanently",
+      "error": "Could not delete the account"
+    },
+    "privacyPolicy": "Privacy Policy",
+    "terms": "Terms of Service"
   },
   "auth": {
     "phone": {
@@ -155,7 +164,10 @@
     "emptyChat": "No messages yet. Start the conversation.",
     "groupFallback": "Group",
     "groupChat": "Group chat",
-    "groupDocsTitle": "Group documents"
+    "groupDocsTitle": "Group documents",
+    "hideConfirm": "Delete chat?",
+    "hideConfirmBody": "The chat leaves your list. The other person sees no change, and it returns as soon as either of you writes again.",
+    "companyDeactivatedNotice": "Unfortunately, you can't use the app in full right now."
   },
   "trip": {
     "noActiveTrip": {
@@ -174,6 +186,7 @@
     "newCount_one": "{{count}} new",
     "newCount_other": "{{count}} new",
     "readOnlyNotice": "You're no longer a member of this chat — read-only.",
+    "companyDeactivatedNotice": "Unfortunately, you can't use the app in full right now.",
     "docsTitle": "Trip documents",
     "attachSheet": {
       "title": "Attach"
@@ -328,5 +341,18 @@
       "week1": "Week",
       "weeks2": "2 weeks"
     }
+  },
+  "bugReport": {
+    "title": "Report a problem",
+    "subtitle": "Describe what went wrong. You can attach a screenshot.",
+    "placeholder": "What happened?",
+    "attach": "Attach screenshot",
+    "send": "Send",
+    "sent": "Thanks! Your report was sent.",
+    "sentTitle": "Done",
+    "error": "Couldn't send. Try again.",
+    "errorTitle": "Error",
+    "permissionTitle": "No access",
+    "permissionBody": "Allow gallery access to attach a screenshot."
   }
 }
