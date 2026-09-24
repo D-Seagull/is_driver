@@ -27,13 +27,15 @@ function ensureAudioMode(): Promise<void> {
   return audioModeReady;
 }
 
-function getPlayer(key: 'message' | 'alarm'): AudioPlayer | null {
+function getPlayer(key: 'message' | 'alarm' | 'reaction'): AudioPlayer | null {
   if (players[key]) return players[key];
   try {
     const asset =
       key === 'message'
         ? require('../assets/sounds/is_message.mp3')
-        : require('../assets/sounds/is_alarm.mp3');
+        : key === 'alarm'
+          ? require('../assets/sounds/is_alarm.mp3')
+          : require('../assets/sounds/reaction.mp3');
     players[key] = createAudioPlayer(asset);
     return players[key];
   } catch (e) {
@@ -42,14 +44,17 @@ function getPlayer(key: 'message' | 'alarm'): AudioPlayer | null {
   }
 }
 
-function play(key: 'message' | 'alarm') {
+async function play(key: 'message' | 'alarm' | 'reaction') {
   // Set audio mode once (resolves async); on cold first call the chime
   // might land before the mode is applied — acceptable for a one-frame race.
   void ensureAudioMode();
   try {
     const p = getPlayer(key);
     if (!p) return;
-    p.seekTo(0);
+    // seekTo is async — NOT awaiting it let a rapid repeat call (e.g.
+    // quick double-tap on a reaction) call play() while the previous seek
+    // was still in flight, so the chime sometimes silently didn't restart.
+    await p.seekTo(0);
     p.play();
   } catch (e) {
     // expo-audio may not be available in Expo Go on some platforms — fail silently.
@@ -59,10 +64,15 @@ function play(key: 'message' | 'alarm') {
 
 /** Chat-message chime. Restarts if already playing. */
 export function playMessageSound() {
-  play('message');
+  void play('message');
 }
 
 /** Alarm / reminder chime — louder, used by PushNoticeOverlay on ALARM push. */
 export function playAlarmSound() {
-  play('alarm');
+  void play('alarm');
+}
+
+/** Short tap on every reaction toggle (add/remove/change emoji). */
+export function playReactionSound() {
+  void play('reaction');
 }

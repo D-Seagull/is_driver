@@ -54,7 +54,7 @@
         {
           "icon": "./assets/images/notification-icon.png",
           "color": "#1E7AFD",
-          "sounds": []
+          "sounds": ["./assets/sounds/push_message.mp3"]
         }
       ],
       "expo-asset",

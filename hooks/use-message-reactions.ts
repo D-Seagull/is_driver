@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { api } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
+import { playReactionSound } from '@/lib/sounds';
 
 import { useAuthStore } from '@/store/auth';
 
@@ -46,6 +47,7 @@ interface ReactionChangedPayload {
   targetType: ReactionTarget;
   targetId: string;
   reactions: MessageReactionRow[];
+  actorId?: string;
 }
 
 // REST routes mirror the web client — backend exposes the same endpoints.
@@ -89,6 +91,7 @@ export function useToggleReaction() {
     // so the bubble flips instantly. The WS `reaction_changed` echo will
     // reconcile if anything diverged.
     onMutate: ({ type, id, emoji }) => {
+      playReactionSound();
       // Without a known userId the optimistic row would land in "others"
       // and produce a flickering ghost reaction. Skip and let the WS echo
       // populate state.
@@ -165,6 +168,7 @@ interface SyncOptions {
  */
 export function useReactionsSocketSync(opts: SyncOptions) {
   const queryClient = useQueryClient();
+  const myId = useAuthStore((s) => s.user?.id);
   const { tripId, dmOtherUserId, groupId } = opts;
 
   useEffect(() => {
@@ -172,6 +176,9 @@ export function useReactionsSocketSync(opts: SyncOptions) {
 
     const onChanged = (p: ReactionChangedPayload) => {
       const { targetType, targetId, reactions } = p;
+      // The actor already heard the tap sound instantly via onMutate — only
+      // the OTHER participant should hear it here, off the socket echo.
+      if (p.actorId && p.actorId !== myId) playReactionSound();
       switch (targetType) {
         case 'TRIP': {
           if (!tripId) return;
@@ -246,5 +253,5 @@ export function useReactionsSocketSync(opts: SyncOptions) {
     return () => {
       socket.off('reaction_changed', onChanged);
     };
-  }, [queryClient, tripId, dmOtherUserId, groupId]);
+  }, [queryClient, tripId, dmOtherUserId, groupId, myId]);
 }
