@@ -17,6 +17,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ThemeProvider } from '@/hooks/use-theme';
 import { setAppLanguage } from '@/lib/i18n';
 import { queryClient } from '@/lib/query';
+import { useOtaUpdates } from '@/lib/updates';
 import { useAuthStore } from '@/store/auth';
 
 // SDK 57 (RN 0.86) deprecates InteractionManager; the warning comes from RN
@@ -58,6 +59,7 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   useAppStateRefetch();
+  useOtaUpdates();
   useSyncLanguage();
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

@@ -357,5 +357,11 @@
     "errorTitle": "Klaida",
     "permissionTitle": "Nėra prieigos",
     "permissionBody": "Leiskite prieigą prie galerijos, kad pridėtumėte nuotrauką."
+  },
+  "update": {
+    "title": "Yra atnaujinimas",
+    "body": "Atsisiųsta nauja programėlės versija. Paleisti iš naujo dabar, kad ji būtų pritaikyta?",
+    "later": "Vėliau",
+    "restart": "Paleisti iš naujo"
   }
 }
