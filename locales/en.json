@@ -309,6 +309,7 @@
     "openSettings": "Open settings",
     "toggleTheme": "Toggle theme",
     "messageManager": "Message manager",
+    "callManager": "Call manager",
     "fileAttachment": "📎 File"
   },
   "push": {
@@ -354,5 +355,11 @@
     "errorTitle": "Error",
     "permissionTitle": "No access",
     "permissionBody": "Allow gallery access to attach a screenshot."
+  },
+  "update": {
+    "title": "Update available",
+    "body": "A new version of the app has been downloaded. Restart now to apply it?",
+    "later": "Later",
+    "restart": "Restart"
   }
 }

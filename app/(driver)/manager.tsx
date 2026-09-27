@@ -27,6 +27,7 @@ import {
 import { useUser } from '@/store/auth';
 import { useDriverTruck } from '@/hooks/use-truck';
 import { fullName } from '@/lib/format';
+import { callPhone } from '@/lib/phone';
 import { formatDate } from '@/lib/format-date';
 import { type DriverUserStatus } from '@/lib/auth-api';
 import type { ManagerRating } from '@/lib/manager-api';
@@ -176,6 +177,7 @@ export default function ManagerScreen() {
           label={t('manager.info.phone')}
           value={profile.phone ?? '—'}
           colors={c}
+          onPress={profile.phone ? () => callPhone(profile.phone) : undefined}
         />
       </View>
 
@@ -258,24 +260,36 @@ function InfoRow({
   label,
   value,
   colors,
+  onPress,
 }: {
   icon: React.ComponentProps<typeof Ionicons>['name'];
   label: string;
   value: string;
   colors: typeof Colors.light;
+  /** Makes the row tappable (e.g. dial the number) and tints the value. */
+  onPress?: () => void;
 }) {
   return (
-    <View style={styles.infoRow}>
+    <Pressable
+      onPress={onPress}
+      disabled={!onPress}
+      style={({ pressed }) => [styles.infoRow, { opacity: pressed ? 0.6 : 1 }]}
+    >
       <Ionicons name={icon} size={18} color={colors.mutedForeground} />
       <View style={{ flex: 1 }}>
         <Text style={[styles.infoLabel, { color: colors.mutedForeground }]}>
           {label}
         </Text>
-        <Text style={[styles.infoValue, { color: colors.foreground }]}>
+        <Text
+          style={[
+            styles.infoValue,
+            { color: onPress ? colors.primary : colors.foreground },
+          ]}
+        >
           {value}
         </Text>
       </View>
-    </View>
+    </Pressable>
   );
 }
 

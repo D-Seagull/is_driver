@@ -1,6 +1,7 @@
 import { PresenceStatusSheet } from "@/components/presence-status-sheet";
 import { StatusDot } from "@/components/status-dot";
 import { fullName, initials } from "@/lib/format";
+import { callPhone } from "@/lib/phone";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import {
   DrawerContentComponentProps,
@@ -721,6 +722,22 @@ function ManagerRow({
           </Text>
         ) : null}
       </View>
+      {person.phone ? (
+        <Pressable
+          onPress={() => callPhone(person.phone)}
+          hitSlop={8}
+          accessibilityLabel={t("nav.callManager")}
+          style={({ pressed }) => [
+            styles.managerChatBtn,
+            {
+              backgroundColor: pressed ? c.sidebarAccent : "transparent",
+              borderRadius: Radius.sm,
+            },
+          ]}
+        >
+          <Ionicons name="call-outline" size={20} color={c.mutedForeground} />
+        </Pressable>
+      ) : null}
       <Pressable
         onPress={() => router.push(`/(driver)/dm/${person.id}` as never)}
         hitSlop={8}

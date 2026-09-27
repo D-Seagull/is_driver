@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { fullName } from "@/lib/format";
+import { callPhone } from "@/lib/phone";
 import {
   ActivityIndicator,
   Alert,
@@ -56,22 +57,36 @@ function InfoRow({
   icon,
   label,
   value,
+  onPress,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
+  /** Makes the row tappable (e.g. dial the number) and tints the value. */
+  onPress?: () => void;
 }) {
   const c = Colors[useColorScheme() ?? "light"];
   return (
-    <View style={styles.infoRow}>
+    <Pressable
+      onPress={onPress}
+      disabled={!onPress}
+      style={({ pressed }) => [styles.infoRow, { opacity: pressed ? 0.6 : 1 }]}
+    >
       <View style={styles.infoIcon}>{icon}</View>
       <View style={{ flex: 1 }}>
         <Text style={[styles.infoLabel, { color: c.mutedForeground }]}>
           {label}
         </Text>
-        <Text style={[styles.infoValue, { color: c.foreground }]}>{value}</Text>
+        <Text
+          style={[styles.infoValue, { color: onPress ? c.primary : c.foreground }]}
+        >
+          {value}
+        </Text>
       </View>
-    </View>
+      {onPress ? (
+        <Ionicons name="call-outline" size={18} color={c.primary} />
+      ) : null}
+    </Pressable>
   );
 }
 
@@ -244,6 +259,7 @@ export default function TruckScreen() {
                   : fullName(manager)
                 : (manager.phone ?? "—")
             }
+            onPress={manager.phone ? () => callPhone(manager.phone) : undefined}
           />
         )}
       </View>

@@ -312,6 +312,7 @@
     "openSettings": "Otwórz ustawienia",
     "toggleTheme": "Przełącz motyw",
     "messageManager": "Napisz do menedżera",
+    "callManager": "Zadzwoń do menedżera",
     "fileAttachment": "📎 Plik"
   },
   "push": {
@@ -357,5 +358,11 @@
     "errorTitle": "Błąd",
     "permissionTitle": "Brak dostępu",
     "permissionBody": "Zezwól na dostęp do galerii, aby dołączyć zrzut."
+  },
+  "update": {
+    "title": "Dostępna aktualizacja",
+    "body": "Pobrano nową wersję aplikacji. Uruchomić ponownie teraz, aby ją zastosować?",
+    "later": "Później",
+    "restart": "Uruchom ponownie"
   }
 }

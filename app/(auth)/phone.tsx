@@ -1,8 +1,8 @@
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import axios from 'axios';
+import { Ionicons } from "@expo/vector-icons";
+import axios from "axios";
+import { useRouter } from "expo-router";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Pressable,
@@ -10,46 +10,50 @@ import {
   Text,
   TextInput,
   View,
-} from 'react-native';
+} from "react-native";
 
-import { Colors, Radius, Spacing } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useAuthStore } from '@/store/auth';
+import { Colors, Radius, Spacing } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useAuthStore } from "@/store/auth";
 
 export default function PhoneScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const c = Colors[useColorScheme() ?? 'light'];
+  const c = Colors[useColorScheme() ?? "light"];
   const requestOtp = useAuthStore((s) => s.requestOtp);
 
-  const [phone, setPhone] = useState('+380');
+  const [phone, setPhone] = useState("+48");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canSubmit = phone.replace(/\D/g, '').length >= 9 && !submitting;
+  const canSubmit = phone.replace(/\D/g, "").length >= 9 && !submitting;
 
   const onSubmit = async () => {
     setError(null);
     setSubmitting(true);
     try {
       await requestOtp(phone.trim());
-      router.push({ pathname: '/(auth)/otp', params: { phone: phone.trim() } });
+      router.push({ pathname: "/(auth)/otp", params: { phone: phone.trim() } });
     } catch (e) {
       // Surface the real cause so the user can act: bad URL, server down, 400, etc.
       if (axios.isAxiosError(e)) {
         if (e.response) {
           const data = e.response.data as { message?: string | string[] };
-          const msg = Array.isArray(data?.message) ? data.message[0] : data?.message;
-          setError(msg ?? t('auth.errors.server', { status: e.response.status }));
+          const msg = Array.isArray(data?.message)
+            ? data.message[0]
+            : data?.message;
+          setError(
+            msg ?? t("auth.errors.server", { status: e.response.status }),
+          );
         } else if (e.request) {
-          setError(t('auth.errors.cannotReach'));
+          setError(t("auth.errors.cannotReach"));
         } else {
           setError(e.message);
         }
       } else if (e instanceof Error) {
         setError(e.message);
       } else {
-        setError(t('auth.errors.sendFailed'));
+        setError(t("auth.errors.sendFailed"));
       }
     } finally {
       setSubmitting(false);
@@ -62,15 +66,15 @@ export default function PhoneScreen() {
         <Ionicons name="call-outline" size={36} color={c.mutedForeground} />
       </View>
       <Text style={[styles.title, { color: c.foreground }]}>
-        {t('auth.phone.title')}
+        {t("auth.phone.title")}
       </Text>
       <Text style={[styles.sub, { color: c.mutedForeground }]}>
-        {t('auth.phone.subtitle')}
+        {t("auth.phone.subtitle")}
       </Text>
       <TextInput
         value={phone}
         onChangeText={setPhone}
-        placeholder="+380 50 000 0000"
+        placeholder="+48 500 000 000"
         placeholderTextColor={c.mutedForeground}
         keyboardType="phone-pad"
         editable={!submitting}
@@ -103,7 +107,7 @@ export default function PhoneScreen() {
           <ActivityIndicator color={c.primaryForeground} />
         ) : (
           <Text style={[styles.btnText, { color: c.primaryForeground }]}>
-            {t('auth.phone.sendCode')}
+            {t("auth.phone.sendCode")}
           </Text>
         )}
       </Pressable>
@@ -122,11 +126,11 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: Spacing.sm,
   },
-  title: { fontSize: 26, fontWeight: '700' },
+  title: { fontSize: 26, fontWeight: "700" },
   sub: { fontSize: 14, marginBottom: Spacing.md },
   input: {
     borderWidth: 1,
@@ -137,8 +141,8 @@ const styles = StyleSheet.create({
   error: { fontSize: 13, marginTop: -Spacing.xs },
   btn: {
     paddingVertical: Spacing.md,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: Spacing.sm,
   },
-  btnText: { fontSize: 16, fontWeight: '700' },
+  btnText: { fontSize: 16, fontWeight: "700" },
 });

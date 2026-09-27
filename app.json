@@ -3,6 +3,12 @@
     "name": "is-driver",
     "slug": "is-driver",
     "version": "1.0.0",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/8bb837ef-9e50-4f36-b896-35fcd5e3920f"
+    },
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "isdriver",

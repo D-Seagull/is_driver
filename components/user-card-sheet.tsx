@@ -18,6 +18,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { DriverUserStatus } from '@/lib/auth-api';
 import { useManagerProfile } from '@/hooks/use-manager-rating';
 import { fullName } from '@/lib/format';
+import { callPhone } from '@/lib/phone';
 
 const LANG_LABELS: Record<string, string> = {
   EN: 'English',
@@ -99,7 +100,13 @@ export function UserCardSheet({
 
               <View style={styles.info}>
                 {person.phone ? (
-                  <Row icon="call-outline" label={t('login.phone', 'Телефон')} value={person.phone} c={c} />
+                  <Row
+                    icon="call-outline"
+                    label={t('login.phone', 'Телефон')}
+                    value={person.phone}
+                    c={c}
+                    onPress={() => callPhone(person.phone)}
+                  />
                 ) : null}
                 {person.email ? (
                   <Row icon="mail-outline" label={t('login.email', 'Email')} value={person.email} c={c} />
@@ -135,21 +142,31 @@ function Row({
   label,
   value,
   c,
+  onPress,
 }: {
   icon?: keyof typeof Ionicons.glyphMap;
   iconNode?: ReactNode;
   label: string;
   value: string;
   c: ThemeColors;
+  /** Makes the row tappable (e.g. dial the number) and tints the value. */
+  onPress?: () => void;
 }) {
   return (
-    <View style={styles.row}>
+    <Pressable
+      onPress={onPress}
+      disabled={!onPress}
+      style={({ pressed }) => [styles.row, { opacity: pressed ? 0.6 : 1 }]}
+    >
       {iconNode ?? <Ionicons name={icon ?? 'ellipse-outline'} size={16} color={c.mutedForeground} />}
       <Text style={{ color: c.mutedForeground, fontSize: 13, width: 84 }}>{label}</Text>
-      <Text style={{ flex: 1, color: c.foreground, fontSize: 14 }} numberOfLines={1}>
+      <Text
+        style={{ flex: 1, color: onPress ? c.primary : c.foreground, fontSize: 14 }}
+        numberOfLines={1}
+      >
         {value}
       </Text>
-    </View>
+    </Pressable>
   );
 }
 
