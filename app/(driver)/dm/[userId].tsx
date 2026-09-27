@@ -30,6 +30,7 @@ import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 import { ChatAvatar } from '@/components/chat-avatar';
 import { ChatBackground } from '@/components/chat-background';
+import { StatusDot } from '@/components/status-dot';
 import { NotificationBell } from '@/components/notification-bell';
 import { MessageActionsSheet, type MessageActions } from '@/components/message-actions-sheet';
 import { UserCardSheet } from '@/components/user-card-sheet';
@@ -341,7 +342,12 @@ export default function DmScreen() {
         </Pressable>
         {/* Tap the peer's avatar/name → mini profile card */}
         <Pressable onPress={() => peerId && setCardOpen(true)} hitSlop={6} style={styles.headerPeer}>
-          <ChatAvatar user={peer} size={36} />
+          <View style={{ width: 36, height: 36 }}>
+            <ChatAvatar user={peer} size={36} />
+            <View style={{ position: 'absolute', right: -2, bottom: -2 }}>
+              <StatusDot user={peer} size={11} ring={c.card} />
+            </View>
+          </View>
           <View style={styles.headerText}>
             <Text style={[styles.headerName, { color: c.foreground }]} numberOfLines={1}>
               {peerName}
