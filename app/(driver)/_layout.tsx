@@ -1,5 +1,5 @@
 import { PresenceStatusSheet } from "@/components/presence-status-sheet";
-import { StatusDot } from "@/components/status-dot";
+import { StatusDot, useDisplayStatus } from "@/components/status-dot";
 import { fullName, initials } from "@/lib/format";
 import { callPhone } from "@/lib/phone";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -673,6 +673,7 @@ function ManagerRow({
   colors: ThemeColors;
 }) {
   const { t } = useTranslation();
+  const status = useDisplayStatus(person);
   return (
     <Pressable
       onPress={() => router.push("/(driver)/manager")}
@@ -713,14 +714,14 @@ function ManagerRow({
         >
           {person.name}
         </Text>
-        {person.phone ? (
-          <Text
-            style={[styles.managerPhone, { color: c.mutedForeground }]}
-            numberOfLines={1}
-          >
-            {person.phone}
-          </Text>
-        ) : null}
+        {/* Status in words next to the dot (as in is-manager); the number
+            itself lives behind the call button. */}
+        <Text
+          style={[styles.managerStatus, { color: c.mutedForeground }]}
+          numberOfLines={1}
+        >
+          {t(`status.${status}`)}
+        </Text>
       </View>
       {person.phone ? (
         <Pressable
@@ -951,5 +952,5 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   managerName: { fontSize: 12, fontWeight: "500", marginTop: 1 },
-  managerPhone: { fontSize: 11, marginTop: 1 },
+  managerStatus: { fontSize: 11, marginTop: 1 },
 });

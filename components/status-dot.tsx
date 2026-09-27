@@ -32,12 +32,23 @@ interface StatusDotProps {
  * inside; the rest are solid fills. Pure-RN so we can drop it on any
  * existing Image / Text avatar without touching layout.
  */
-export function StatusDot({ user, isOnline, size = 10, ring = '#000' }: StatusDotProps) {
+/**
+ * What a user's dot shows — stored status + live presence. Exported so a
+ * label can spell out the same state (`t(\`status.${status}\`)`).
+ */
+export function useDisplayStatus(
+  user: StatusDotProps['user'],
+  isOnline?: boolean,
+): DisplayStatus {
   const presence = useUserPresence(user?.id);
   // An explicit `isOnline` override (e.g. self) skips the away tier entirely.
   const effectiveOnline = isOnline ?? presence === 'online';
   const effectiveAway = isOnline == null && presence === 'away';
-  const status: DisplayStatus = resolveDisplayStatus(user, effectiveOnline, effectiveAway);
+  return resolveDisplayStatus(user, effectiveOnline, effectiveAway);
+}
+
+export function StatusDot({ user, isOnline, size = 10, ring = '#000' }: StatusDotProps) {
+  const status = useDisplayStatus(user, isOnline);
   const inner = size;
   const outer = inner + 4;
   return (
