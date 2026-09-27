@@ -312,6 +312,7 @@
     "openSettings": "Открыть настройки",
     "toggleTheme": "Сменить тему",
     "messageManager": "Написать менеджеру",
+    "callManager": "Позвонить менеджеру",
     "fileAttachment": "📎 Файл"
   },
   "push": {
