@@ -51,7 +51,9 @@ import {
   type GroupMessage,
 } from '@/hooks/use-groups';
 import { MessageReactionsCluster } from '@/components/message-reactions';
+import { useChatTyping } from '@/hooks/use-chat-typing';
 import { useReactionsSocketSync } from '@/hooks/use-message-reactions';
+import { TypingIndicator } from '@/components/typing-indicator';
 import { EDIT_WINDOW_MS } from '@/lib/constants';
 import { fullName } from '@/lib/format';
 import { formatDate, formatTime } from '@/lib/format-date';
@@ -110,6 +112,7 @@ export default function GroupChatScreen() {
   useChatEvents({ groupId, myUserId: myId });
   useGroupDocsSocketSync(groupId);
   useReactionsSocketSync({ groupId });
+  const typing = useChatTyping(groupId ? { kind: 'group', groupId } : null);
 
   // Mark the whole group read on open and whenever a new message lands —
   // but only while the screen is focused. The drawer keeps it mounted after
@@ -278,6 +281,7 @@ export default function GroupChatScreen() {
 
     const replyMsgId = replyingTo?.targetType === 'msg' ? replyingTo.id : null;
     const replyDocId = replyingTo?.targetType === 'doc' ? replyingTo.id : null;
+    typing.notifyStopTyping();
     getSocket().emit('send_group_message', {
       groupId,
       content: trimmed,
@@ -417,6 +421,11 @@ export default function GroupChatScreen() {
         />
       )}
 
+      {/* Typing indicator — same row as the trip chat. */}
+      <TypingIndicator
+        names={[...typing.typers.values()].map((n) => n || t('chat.unknownSender'))}
+      />
+
       {/* Composer */}
       {me?.company?.isActive === false ? (
         <View
@@ -477,7 +486,11 @@ export default function GroupChatScreen() {
           </Pressable>
           <TextInput
             value={text}
-            onChangeText={setText}
+            onChangeText={(v) => {
+              setText(v);
+              if (!editing) typing.notifyTyping();
+            }}
+            onBlur={typing.notifyStopTyping}
             placeholder={editing ? t('chat.editPlaceholder') : t('chat.messagePlaceholder')}
             placeholderTextColor={c.mutedForeground}
             style={[styles.input, { color: c.foreground, backgroundColor: c.muted }]}
