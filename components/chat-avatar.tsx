@@ -7,6 +7,9 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { initials } from '@/lib/format';
 
+const MAX_RETRIES = 3;
+const RETRY_BASE_MS = 2000;
+
 /**
  * Round chat avatar: shows the user's uploaded photo when present, otherwise
  * falls back to their initials on a muted circle. Self-contained (clips the
@@ -36,11 +39,25 @@ export function ChatAvatar({
   const c = Colors[useColorScheme() ?? 'light'];
   const avatarUrl = user?.avatar?.trim();
   const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
-  // Reset the failure flag whenever the URL changes (new user / new photo).
+  // Reset the failure state whenever the URL changes (new user / new photo).
   useEffect(() => {
     setFailed(false);
+    setAttempt(0);
   }, [avatarUrl]);
+
+  // A failed load is usually a network blip, so retry with a growing pause
+  // (initials show meanwhile) instead of dropping the photo for good on one
+  // error. Remounting via `key={attempt}` makes expo-image fetch again.
+  useEffect(() => {
+    if (!failed || attempt >= MAX_RETRIES) return;
+    const timer = setTimeout(() => {
+      setAttempt((a) => a + 1);
+      setFailed(false);
+    }, RETRY_BASE_MS * (attempt + 1));
+    return () => clearTimeout(timer);
+  }, [failed, attempt]);
 
   return (
     <View
@@ -51,6 +68,7 @@ export function ChatAvatar({
     >
       {avatarUrl && !failed ? (
         <Image
+          key={attempt}
           source={avatarUrl}
           style={styles.img}
           contentFit="cover"
