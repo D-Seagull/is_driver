@@ -3,8 +3,14 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import { getSocket } from '@/lib/socket';
 import { useAuthStore } from '@/store/auth';
-import { DriverUserStatus } from '@/lib/auth-api';
+import { AuthUser, DriverUserStatus } from '@/lib/auth-api';
 import { truckKeys } from '@/hooks/use-truck';
+
+interface ProfileUpdatedEvent {
+  user: Partial<AuthUser> & { id: string };
+  /** Fields the edit touched — e.g. ["firstName"], ["language"]. */
+  changed: string[];
+}
 
 interface UserStatusEvent {
   userId: string;
@@ -174,11 +180,23 @@ export function useUserStatusSync() {
       }
     };
 
+    // `profileUpdated` (sent to my own `userId` room after any edit of my
+    // profile — from another device, or a manager editing me): merge it into
+    // the store. Name / avatar / phone repaint at once, and a new `language`
+    // is picked up by useSyncLanguage in the root layout.
+    const onProfile = (evt: ProfileUpdatedEvent) => {
+      const current = useAuthStore.getState().user;
+      if (!current || evt.user.id !== current.id) return;
+      setUser({ ...current, ...evt.user });
+    };
+
     socket.on('userStatusChanged', onChange);
     socket.on('companyStatusChanged', onCompanyChange);
+    socket.on('profileUpdated', onProfile);
     return () => {
       socket.off('userStatusChanged', onChange);
       socket.off('companyStatusChanged', onCompanyChange);
+      socket.off('profileUpdated', onProfile);
     };
   }, [queryClient, setUser, myId]);
 }
