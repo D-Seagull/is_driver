@@ -47,6 +47,7 @@ import { StatusPicker } from "@/components/status-picker";
 import { Colors, Radius, Spacing } from "@/constants/theme";
 import { TripStatus } from "@/constants/trip-status";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useComposerBottomPadding } from "@/hooks/use-composer-bottom-padding";
 import { useTripDocuments, useUploadDocuments } from "@/hooks/use-documents";
 import { NotificationBell } from "@/components/notification-bell";
 import { ChatMessage, useTripChat } from "@/hooks/use-trip-chat";
@@ -186,6 +187,8 @@ function TripWithChat({
     ? myTrips.find((tp) => tp.id !== trip.id && tp.status !== "DELIVERED")
     : undefined;
   const insets = useSafeAreaInsets();
+  // Safe-area pad when the keyboard is closed, small gap when it's open.
+  const composerPad = useComposerBottomPadding();
   const isFocused = useIsFocused();
 
   // The "next trip" strip is a transient heads-up, not a permanent fixture:
@@ -757,7 +760,7 @@ function TripWithChat({
             {
               backgroundColor: c.card,
               borderTopColor: c.border,
-              paddingBottom: Math.max(insets.bottom, Spacing.sm),
+              paddingBottom: composerPad,
               justifyContent: "center",
             },
           ]}
@@ -773,7 +776,7 @@ function TripWithChat({
             {
               backgroundColor: c.card,
               borderTopColor: c.border,
-              paddingBottom: Math.max(insets.bottom, Spacing.sm),
+              paddingBottom: composerPad,
               justifyContent: "center",
             },
           ]}
@@ -833,7 +836,7 @@ function TripWithChat({
               {
                 backgroundColor: c.card,
                 borderTopColor: c.border,
-                paddingBottom: Math.max(insets.bottom, Spacing.sm),
+                paddingBottom: composerPad,
               },
             ]}
           >
@@ -2092,6 +2095,9 @@ const styles = StyleSheet.create({
   },
   bubbleTick: { fontSize: 10, fontWeight: "700" },
   bubble: {
+    // Shrink next to the reaction trigger — maxWidth '100%' alone lets a long
+    // message push the row past the screen edge.
+    flexShrink: 1,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: Radius.lg,

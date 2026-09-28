@@ -34,6 +34,7 @@ import { UserCardSheet } from '@/components/user-card-sheet';
 import { MessageQuote } from '@/components/message-quote';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useComposerBottomPadding } from '@/hooks/use-composer-bottom-padding';
 import { useChatEvents, useJoinGroupRoom } from '@/hooks/use-chat-events';
 import {
   useDeleteGroupDoc,
@@ -80,6 +81,8 @@ export default function GroupChatScreen() {
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
   const insets = useSafeAreaInsets();
+  // Safe-area pad when the keyboard is closed, small gap when it's open.
+  const composerPad = useComposerBottomPadding();
   const { groupId, name } = useLocalSearchParams<{ groupId: string; name?: string }>();
   const me = useUser();
   const myId = me?.id ?? '';
@@ -434,7 +437,7 @@ export default function GroupChatScreen() {
             {
               backgroundColor: c.card,
               borderTopColor: c.border,
-              paddingBottom: Math.max(insets.bottom, Spacing.sm),
+              paddingBottom: composerPad,
               justifyContent: 'center',
             },
           ]}
@@ -450,7 +453,7 @@ export default function GroupChatScreen() {
             {
               backgroundColor: c.card,
               borderTopColor: c.border,
-              paddingBottom: Math.max(insets.bottom, Spacing.sm),
+              paddingBottom: composerPad,
             },
           ]}
         >
@@ -1174,6 +1177,9 @@ const styles = StyleSheet.create({
   senderName: { fontSize: 11, fontWeight: '700', marginBottom: 2, marginLeft: 4 },
 
   bubble: {
+    // Shrink next to the reaction trigger — maxWidth '100%' alone lets a long
+    // message push the row past the screen edge.
+    flexShrink: 1,
     borderRadius: Radius.lg,
     paddingHorizontal: 12,
     paddingVertical: 8,
