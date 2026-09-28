@@ -87,7 +87,10 @@ export function getSocket(token?: string): Socket {
     });
     socket.on('disconnect', (r) => console.log('[socket] ❌ disconnected reason=', r));
     socket.on('connect_error', (e) => console.warn('[socket] ⚠️ error=', e.message));
-    socket.io.on('upgrade', (t) => console.log('[socket] ⬆️ upgraded to', t.name));
+    // engine 'upgrade' isn't in the Manager's typed event map — listen on the engine.
+    socket.io.engine?.on('upgrade', (t: { name: string }) =>
+      console.log('[socket] ⬆️ upgraded to', t.name),
+    );
   }
   return socket;
 }
