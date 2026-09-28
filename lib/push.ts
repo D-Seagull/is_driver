@@ -1,5 +1,6 @@
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
+import type { ExpoPushToken } from 'expo-notifications';
 import { Platform } from 'react-native';
 
 import { registerPushToken, unregisterPushToken } from './push-api';
@@ -81,7 +82,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
     (Constants as unknown as { easConfig?: { projectId?: string } }).easConfig
       ?.projectId;
 
-  let tokenResponse: Notifications.ExpoPushToken;
+  let tokenResponse: ExpoPushToken;
   try {
     tokenResponse = await Notifications.getExpoPushTokenAsync(
       projectId ? { projectId } : undefined,

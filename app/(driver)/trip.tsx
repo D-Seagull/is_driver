@@ -16,7 +16,6 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
-  Easing,
   FlatList,
   Image,
   Keyboard,
@@ -35,6 +34,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 // RN's built-in one (behavior="height") lets the input jump. Requires the
 // <KeyboardProvider> mounted in app/_layout.tsx.
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
+import { TypingDots } from "@/components/typing-indicator";
 import EmojiPicker from "rn-emoji-keyboard";
 
 import { MessageReactionsCluster } from "@/components/message-reactions";
@@ -47,6 +47,7 @@ import { StatusPicker } from "@/components/status-picker";
 import { Colors, Radius, Spacing } from "@/constants/theme";
 import { TripStatus } from "@/constants/trip-status";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useComposerBottomPadding } from "@/hooks/use-composer-bottom-padding";
 import { useTripDocuments, useUploadDocuments } from "@/hooks/use-documents";
 import { NotificationBell } from "@/components/notification-bell";
 import { ChatMessage, useTripChat } from "@/hooks/use-trip-chat";
@@ -186,6 +187,8 @@ function TripWithChat({
     ? myTrips.find((tp) => tp.id !== trip.id && tp.status !== "DELIVERED")
     : undefined;
   const insets = useSafeAreaInsets();
+  // Safe-area pad when the keyboard is closed, small gap when it's open.
+  const composerPad = useComposerBottomPadding();
   const isFocused = useIsFocused();
 
   // The "next trip" strip is a transient heads-up, not a permanent fixture:
@@ -757,7 +760,7 @@ function TripWithChat({
             {
               backgroundColor: c.card,
               borderTopColor: c.border,
-              paddingBottom: Math.max(insets.bottom, Spacing.sm),
+              paddingBottom: composerPad,
               justifyContent: "center",
             },
           ]}
@@ -773,7 +776,7 @@ function TripWithChat({
             {
               backgroundColor: c.card,
               borderTopColor: c.border,
-              paddingBottom: Math.max(insets.bottom, Spacing.sm),
+              paddingBottom: composerPad,
               justifyContent: "center",
             },
           ]}
@@ -833,7 +836,7 @@ function TripWithChat({
               {
                 backgroundColor: c.card,
                 borderTopColor: c.border,
-                paddingBottom: Math.max(insets.bottom, Spacing.sm),
+                paddingBottom: composerPad,
               },
             ]}
           >
@@ -991,67 +994,6 @@ function TripWithChat({
         uploading={upload.isPending}
         onOpenDoc={handleOpenDoc}
       />
-    </View>
-  );
-}
-
-// ─── Typing dots (animated) ──────────────────────────────────────────────────
-
-function TypingDots({ color }: { color: string }) {
-  // Three Animated values, started with staggered delays so the dots bounce
-  // in a "wave". Same visual rhythm as the web `animate-bounce delay-0/100/200`.
-  const dots = useRef([
-    new Animated.Value(0),
-    new Animated.Value(0),
-    new Animated.Value(0),
-  ]).current;
-
-  useEffect(() => {
-    const animations = dots.map((dot, i) =>
-      Animated.loop(
-        Animated.sequence([
-          Animated.delay(i * 150),
-          Animated.timing(dot, {
-            toValue: 1,
-            duration: 400,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.timing(dot, {
-            toValue: 0,
-            duration: 400,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-        ]),
-      ),
-    );
-    animations.forEach((a) => a.start());
-    return () => animations.forEach((a) => a.stop());
-  }, [dots]);
-
-  return (
-    <View style={{ flexDirection: "row", gap: 2 }}>
-      {dots.map((dot, i) => (
-        <Animated.Text
-          key={i}
-          style={[
-            { color, fontSize: 14, lineHeight: 14 },
-            {
-              transform: [
-                {
-                  translateY: dot.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, -3],
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
-          .
-        </Animated.Text>
-      ))}
     </View>
   );
 }
@@ -2153,6 +2095,9 @@ const styles = StyleSheet.create({
   },
   bubbleTick: { fontSize: 10, fontWeight: "700" },
   bubble: {
+    // Shrink next to the reaction trigger — maxWidth '100%' alone lets a long
+    // message push the row past the screen edge.
+    flexShrink: 1,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: Radius.lg,
