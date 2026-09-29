@@ -322,7 +322,7 @@
   },
   "status": {
     "ONLINE": "Online",
-    "BUSY": "Do not disturb",
+    "BUSY": "Busy",
     "AWAY": "Away",
     "SLEEP": "Sleeping",
     "VACATION": "On vacation",
