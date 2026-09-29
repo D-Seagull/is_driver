@@ -64,10 +64,12 @@ export function getSocket(token?: string): Socket {
       // Async so we can silently refresh an expired token before the handshake
       // (function form → runs on every reconnect). Falls back to the creation
       // token if the provider throws.
+      // `client: 'mobile'` → the backend lets only a phone app on screen hold
+      // back chat pushes (an open web tab / desktop must not silence them).
       auth: (cb) => {
         Promise.resolve(getAuthToken())
-          .then((tok) => cb({ token: tok ?? token ?? '' }))
-          .catch(() => cb({ token: token ?? '' }));
+          .then((tok) => cb({ token: tok ?? token ?? '', client: 'mobile' }))
+          .catch(() => cb({ token: token ?? '', client: 'mobile' }));
       },
       // polling first → upgrades to WebSocket automatically.
       // This avoids Android WebSocket handshake failures.

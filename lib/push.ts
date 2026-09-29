@@ -74,6 +74,16 @@ export async function registerForPushNotifications(): Promise<string | null> {
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#FF231F7C',
     });
+    // Chat messages get their own channel: on Android 8+ the sound belongs to
+    // the CHANNEL (the push's `sound` is ignored) and a channel's sound can't
+    // change once created — hence a new id rather than editing 'default'.
+    // The file is bundled via app.json → expo-notifications `sounds`.
+    await Notifications.setNotificationChannelAsync('messages', {
+      name: 'Messages',
+      importance: Notifications.AndroidImportance.HIGH,
+      sound: 'push_message.mp3',
+      vibrationPattern: [0, 250, 250, 250],
+    });
   }
 
   // EAS / Expo project id — required by Expo Push Service.
@@ -110,6 +120,51 @@ export async function registerForPushNotifications(): Promise<string | null> {
   }
 
   return token;
+}
+
+/**
+ * Action buttons on the system banner (app in background / closed):
+ *  - `NEW_TRIP`: OK → accept the trip;
+ *  - `DEPART`: Yes / No → "Are we heading to loading?".
+ * Identifiers must match the backend's `categoryId` and PushNoticeOverlay's
+ * response handler. Buttons open the app so the answer can reach the API
+ * with a fresh token. Re-register when the UI language changes.
+ */
+export const TRIP_ACTIONS = {
+  ACCEPT: 'ACCEPT',
+  DEPART_YES: 'DEPART_YES',
+  DEPART_NO: 'DEPART_NO',
+} as const;
+
+export async function registerTripActionCategories(labels: {
+  ok: string;
+  yes: string;
+  no: string;
+}) {
+  if (!Notifications) return;
+  try {
+    await Notifications.setNotificationCategoryAsync('NEW_TRIP', [
+      {
+        identifier: TRIP_ACTIONS.ACCEPT,
+        buttonTitle: labels.ok,
+        options: { opensAppToForeground: true },
+      },
+    ]);
+    await Notifications.setNotificationCategoryAsync('DEPART', [
+      {
+        identifier: TRIP_ACTIONS.DEPART_YES,
+        buttonTitle: labels.yes,
+        options: { opensAppToForeground: true },
+      },
+      {
+        identifier: TRIP_ACTIONS.DEPART_NO,
+        buttonTitle: labels.no,
+        options: { opensAppToForeground: true },
+      },
+    ]);
+  } catch (e) {
+    console.warn('[push] setNotificationCategoryAsync failed', e);
+  }
 }
 
 export async function deregisterPushToken(token: string) {

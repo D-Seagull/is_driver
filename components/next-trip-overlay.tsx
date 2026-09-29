@@ -50,14 +50,20 @@ export function NextTripOverlay() {
         );
       });
       if (justDelivered) {
-        // Next order = the still-unaccepted (ASSIGNED) trip that the backend
-        // will promote to active — newest ASSIGNED, matching `findMyActiveTrip`.
-        const candidate = trips
-          .filter((trip) => trip.status === 'ASSIGNED')
-          .sort(
-            (a, b) =>
-              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-          )[0];
+        // Next order = the still-unaccepted (ASSIGNED) trip the backend makes
+        // current — the OLDEST one, matching `findMyActiveTrip` (loads go in
+        // the order given). An already-accepted next trip needs no OK here:
+        // the backend asks "heading to loading?" for it directly.
+        const hasAcceptedNext = trips.some((trip) => trip.status === 'ACCEPTED');
+        const candidate = hasAcceptedNext
+          ? undefined
+          : trips
+              .filter((trip) => trip.status === 'ASSIGNED')
+              .sort(
+                (a, b) =>
+                  new Date(a.createdAt).getTime() -
+                  new Date(b.createdAt).getTime(),
+              )[0];
         if (candidate) setNext(candidate);
       }
     }

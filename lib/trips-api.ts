@@ -42,3 +42,10 @@ export async function updateDriverTripStatus(id: string, status: string) {
   const { data } = await api.patch(`/trips/${id}/driver-status`, { status });
   return data;
 }
+
+/** Yes / No to "Are we heading to loading?" — Yes sets the trip ON_WAY,
+ *  No makes the backend ask again in 20 minutes. */
+export async function answerDepart(id: string, depart: boolean) {
+  const { data } = await api.patch(`/trips/${id}/depart-answer`, { depart });
+  return data;
+}

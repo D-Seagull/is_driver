@@ -197,7 +197,8 @@
       "loading": "Pakrovimas",
       "unloading": "Iškrovimas",
       "waypoint": "Papildomas sustojimas"
-    }
+    },
+    "queuedChatNotice": "Šio reiso pokalbis atsidarys, kai bus baigtas dabartinis reisas."
   },
   "tripStatus": {
     "ASSIGNED": "Priskirtas",
@@ -316,11 +317,15 @@
     "fileAttachment": "📎 Failas"
   },
   "push": {
-    "noticeTitle": "Pranešimas"
+    "noticeTitle": "Pranešimas",
+    "departTitle": "Vykstame į pakrovimą?",
+    "yes": "Taip",
+    "no": "Ne",
+    "ok": "OK"
   },
   "status": {
     "ONLINE": "Prisijungęs",
-    "BUSY": "Netrukdyti",
+    "BUSY": "Užimtas",
     "AWAY": "Išėjęs",
     "SLEEP": "Miegu",
     "VACATION": "Ilsiuosi",
