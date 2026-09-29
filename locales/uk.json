@@ -197,7 +197,8 @@
       "loading": "Завантаження",
       "unloading": "Розвантаження",
       "waypoint": "Додаткова зупинка"
-    }
+    },
+    "queuedChatNotice": "Чат цього рейсу відкриється, коли поточний рейс буде завершено."
   },
   "tripStatus": {
     "ASSIGNED": "Призначено",
@@ -316,7 +317,11 @@
     "fileAttachment": "📎 Файл"
   },
   "push": {
-    "noticeTitle": "Сповіщення"
+    "noticeTitle": "Сповіщення",
+    "departTitle": "Вирушаємо на завантаження?",
+    "yes": "Так",
+    "no": "Ні",
+    "ok": "OK"
   },
   "status": {
     "ONLINE": "Online",

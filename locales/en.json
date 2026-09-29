@@ -195,7 +195,8 @@
       "loading": "Loading",
       "unloading": "Unloading",
       "waypoint": "Additional stop"
-    }
+    },
+    "queuedChatNotice": "This trip's chat opens once the current trip is finished."
   },
   "tripStatus": {
     "ASSIGNED": "Assigned",
@@ -313,7 +314,11 @@
     "fileAttachment": "📎 File"
   },
   "push": {
-    "noticeTitle": "Notification"
+    "noticeTitle": "Notification",
+    "departTitle": "Heading to loading?",
+    "yes": "Yes",
+    "no": "No",
+    "ok": "OK"
   },
   "status": {
     "ONLINE": "Online",

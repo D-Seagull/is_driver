@@ -197,7 +197,8 @@
       "loading": "Załadunek",
       "unloading": "Rozładunek",
       "waypoint": "Dodatkowy przystanek"
-    }
+    },
+    "queuedChatNotice": "Czat tej trasy otworzy się po zakończeniu bieżącej trasy."
   },
   "tripStatus": {
     "ASSIGNED": "Przydzielona",
@@ -316,7 +317,11 @@
     "fileAttachment": "📎 Plik"
   },
   "push": {
-    "noticeTitle": "Powiadomienie"
+    "noticeTitle": "Powiadomienie",
+    "departTitle": "Jedziemy na załadunek?",
+    "yes": "Tak",
+    "no": "Nie",
+    "ok": "OK"
   },
   "status": {
     "ONLINE": "Dostępny",

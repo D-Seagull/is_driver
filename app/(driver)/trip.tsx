@@ -112,6 +112,14 @@ export default function TripScreen() {
   // entirely (no lone dash next to a phantom truck icon).
   const truckPlate = trip?.truck?.plate ?? user?.currentTruck?.plate ?? null;
   const status: TripStatus = trip?.status ?? "ASSIGNED";
+  // A queued trip (opened from My Trips while another load is still in
+  // progress) shows its details, but its chat stays closed until it's current.
+  const currentTrip = activeQuery.data;
+  const chatLocked =
+    !!trip &&
+    trip.status !== "DELIVERED" &&
+    !!currentTrip &&
+    currentTrip.id !== trip.id;
 
   return (
     // keyboard-controller's KeyboardAvoidingView (behavior="padding") lifts the
@@ -158,6 +166,7 @@ export default function TripScreen() {
           onRefresh={handleManualRefresh}
           refreshing={manualRefreshing}
           isActiveView={!explicitTripId}
+          chatLocked={chatLocked}
         />
       )}
     </KeyboardAvoidingView>
@@ -171,11 +180,13 @@ function TripWithChat({
   onRefresh,
   refreshing,
   isActiveView,
+  chatLocked = false,
 }: {
   trip: Trip;
   onRefresh: () => void;
   refreshing: boolean;
   isActiveView: boolean;
+  chatLocked?: boolean;
 }) {
   const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? "light"];
@@ -611,7 +622,13 @@ function TripWithChat({
         </View>
 
         {/* Timeline (messages + docs) */}
-        {chatLoading ? (
+        {chatLocked ? (
+          <View style={styles.emptyChat}>
+            <Text style={[styles.emptyChatText, { color: c.mutedForeground }]}>
+              {t("trip.queuedChatNotice")}
+            </Text>
+          </View>
+        ) : chatLoading ? (
           <View style={styles.center}>
             <ActivityIndicator size="small" color={c.primary} />
           </View>
@@ -753,7 +770,9 @@ function TripWithChat({
           always clears the safe area / Android nav bar so the input stays
           pinned to the very bottom on every device (the KAV lifts it above
           the keyboard when open). */}
-      {!isCompanyActive ? (
+      {chatLocked ? (
+        <View style={{ height: composerPad }} />
+      ) : !isCompanyActive ? (
         <View
           style={[
             styles.inputWrap,

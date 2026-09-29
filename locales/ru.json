@@ -197,7 +197,8 @@
       "loading": "Погрузка",
       "unloading": "Разгрузка",
       "waypoint": "Дополнительная остановка"
-    }
+    },
+    "queuedChatNotice": "Чат этого рейса откроется, когда текущий рейс будет завершён."
   },
   "tripStatus": {
     "ASSIGNED": "Назначен",
@@ -316,7 +317,11 @@
     "fileAttachment": "📎 Файл"
   },
   "push": {
-    "noticeTitle": "Уведомление"
+    "noticeTitle": "Уведомление",
+    "departTitle": "Выезжаем на погрузку?",
+    "yes": "Да",
+    "no": "Нет",
+    "ok": "OK"
   },
   "status": {
     "ONLINE": "В сети",
