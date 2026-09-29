@@ -38,6 +38,7 @@ import { MessageQuote } from '@/components/message-quote';
 import { MessageReactionsCluster } from '@/components/message-reactions';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAppActive } from '@/hooks/use-app-active';
 import { useComposerBottomPadding } from '@/hooks/use-composer-bottom-padding';
 import { useChatEvents } from '@/hooks/use-chat-events';
 import {
@@ -105,7 +106,9 @@ export default function DmScreen() {
   // Drawer keeps screens mounted, so this DM screen stays alive after you
   // navigate away. Only mark messages read while it's actually focused —
   // otherwise incoming messages get silently ack'd and never show as unread.
-  const isFocused = useIsFocused();
+  // Focused AND on screen — no read receipts from a backgrounded app.
+  const appActive = useAppActive();
+  const isFocused = useIsFocused() && appActive;
   const focusedRef = useRef(isFocused);
   useEffect(() => {
     focusedRef.current = isFocused;

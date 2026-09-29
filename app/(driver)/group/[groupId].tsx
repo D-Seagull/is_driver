@@ -34,6 +34,7 @@ import { UserCardSheet } from '@/components/user-card-sheet';
 import { MessageQuote } from '@/components/message-quote';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAppActive } from '@/hooks/use-app-active';
 import { useComposerBottomPadding } from '@/hooks/use-composer-bottom-padding';
 import { useChatEvents, useJoinGroupRoom } from '@/hooks/use-chat-events';
 import {
@@ -120,7 +121,9 @@ export default function GroupChatScreen() {
   // Mark the whole group read on open and whenever a new message lands —
   // but only while the screen is focused. The drawer keeps it mounted after
   // you leave, so without the focus gate it would keep ack'ing new messages.
-  const isFocused = useIsFocused();
+  // Focused AND on screen — no read receipts from a backgrounded app.
+  const appActive = useAppActive();
+  const isFocused = useIsFocused() && appActive;
   useEffect(() => {
     if (groupId && isFocused) markRead.mutate(groupId);
     // eslint-disable-next-line react-hooks/exhaustive-deps

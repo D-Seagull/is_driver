@@ -8,6 +8,7 @@ import { documentKeys } from '@/hooks/use-documents';
 import { deleteDocument, DriverDocument } from '@/lib/documents-api';
 import { deleteTripMessage, editTripMessage, fetchTripMessages } from '@/lib/trips-api';
 import { getSocket } from '@/lib/socket';
+import { useAppActive } from '@/hooks/use-app-active';
 import { notifyIncomingMessage } from '@/lib/message-alert';
 import { useAuthStore } from '@/store/auth';
 
@@ -60,7 +61,12 @@ export function useTripChat(
   // When `isFocused` is false (drawer opened a different screen), we still
   // listen for messages but stop auto-acknowledging them — otherwise the
   // sender sees ✓✓ even though the driver hasn't seen the message yet.
-  const { isFocused = true, nearBottomRef } = options;
+  const { isFocused: focusedProp = true, nearBottomRef } = options;
+  // "Looking at the chat" = focused in navigation AND the app on screen.
+  // Without the latter, a backgrounded app with a live socket acked
+  // incoming messages (✓✓ nobody saw); coming back marks them read.
+  const appActive = useAppActive();
+  const isFocused = focusedProp && appActive;
   const qc = useQueryClient();
   const token = useAuthStore((s) => s.token);
   const user = useAuthStore((s) => s.user);
