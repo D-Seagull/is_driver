@@ -267,7 +267,11 @@ function TripWithChat({
     typers,
     notifyTyping,
     notifyStopTyping,
-  } = useTripChat(trip.id, { isFocused, nearBottomRef });
+  } = useTripChat(trip.id, {
+    // A queued trip's chat is hidden — never ack its messages.
+    isFocused: isFocused && !chatLocked,
+    nearBottomRef,
+  });
   // `useTripChat` itself owns the `reaction_changed` listener since trip
   // messages live in its local state (not React Query). No extra hook needed.
   const { data: tripDocs = [] } = useTripDocuments(trip.id);
