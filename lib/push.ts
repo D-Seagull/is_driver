@@ -74,6 +74,16 @@ export async function registerForPushNotifications(): Promise<string | null> {
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#FF231F7C',
     });
+    // Chat messages get their own channel: on Android 8+ the sound belongs to
+    // the CHANNEL (the push's `sound` is ignored) and a channel's sound can't
+    // change once created — hence a new id rather than editing 'default'.
+    // The file is bundled via app.json → expo-notifications `sounds`.
+    await Notifications.setNotificationChannelAsync('messages', {
+      name: 'Messages',
+      importance: Notifications.AndroidImportance.HIGH,
+      sound: 'push_message.mp3',
+      vibrationPattern: [0, 250, 250, 250],
+    });
   }
 
   // EAS / Expo project id — required by Expo Push Service.
