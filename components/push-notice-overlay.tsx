@@ -34,12 +34,26 @@ interface Notice {
   title: string;
   body: string;
   tripId?: string;
+  /** Which ask of "heading to loading?" this is (1st, 2nd, 3rd). */
+  promptNo?: number;
 }
 
 type Payload = Record<string, unknown> | undefined;
 
-const noticeKey = (n: Pick<Notice, 'kind' | 'tripId' | 'title'>) =>
-  `${n.kind}:${n.tripId ?? n.title}`;
+/**
+ * Identity of ONE question. Copies of it (push + socket, a push delivered
+ * twice, the banner button + the modal) share the key; a re-ask 20 min later
+ * has a new `promptNo`, so it's a new question.
+ */
+const questionKey = (n: Pick<Notice, 'kind' | 'tripId' | 'promptNo'>) =>
+  n.kind === 'newTrip'
+    ? `newTrip:${n.tripId}`
+    : n.kind === 'depart'
+      ? `depart:${n.tripId}:${n.promptNo ?? ''}`
+      : null;
+
+const promptNoOf = (data: Payload) =>
+  typeof data?.promptNo === 'number' ? data.promptNo : undefined;
 
 /**
  * In-app modals for pushes that arrive while the app is open, plus the
@@ -51,9 +65,9 @@ const noticeKey = (n: Pick<Notice, 'kind' | 'tripId' | 'title'>) =>
  * The same answers are available as buttons on the system banner when the
  * app is in the background (categories in `lib/push.ts`).
  *
- * Notices queue and are de-duplicated by trip — a push delivered twice (two
- * tokens) or both by push and socket shows once, and a trip that's already
- * accepted never asks for OK again.
+ * Every question is asked ONCE: copies of it are dropped (see `questionKey`),
+ * answering on the banner removes it from the modal queue, and answering in
+ * the modal clears its banner from the notification tray.
  */
 export function PushNoticeOverlay() {
   const { t } = useTranslation();
@@ -64,6 +78,8 @@ export function PushNoticeOverlay() {
   const notice = queue[0] ?? null;
   // Trips we've already sent "accepted" for — later duplicates are dropped.
   const acceptedRef = useRef(new Set<string>());
+  // Questions already shown or answered (by `questionKey`) — never again.
+  const seenRef = useRef(new Set<string>());
   // Banner responses already handled (a cold start may replay the last one).
   const handledRef = useRef(new Set<string>());
 
@@ -96,12 +112,43 @@ export function PushNoticeOverlay() {
         const st = knownStatus(n.tripId);
         if (st && st !== 'ACCEPTED' && st !== 'ASSIGNED') return; // on its way
       }
+      const key = questionKey(n);
+      if (key) {
+        if (seenRef.current.has(key)) return;
+        seenRef.current.add(key);
+      }
       setQueue((q) =>
-        q.some((x) => noticeKey(x) === noticeKey(n)) ? q : [...q, n],
+        n.kind === 'depart'
+          ? // A newer ask for the same trip replaces an older one still queued.
+            [...q.filter((x) => !(x.kind === 'depart' && x.tripId === n.tripId)), n]
+          : [...q, n],
       );
     },
     [knownStatus],
   );
+
+  /** The question was answered (anywhere): drop its copies and banners. */
+  const settle = useCallback((n: Pick<Notice, 'kind' | 'tripId' | 'promptNo'>) => {
+    const key = questionKey(n);
+    if (key) seenRef.current.add(key);
+    setQueue((q) =>
+      q.filter((x) => !(x.kind === n.kind && x.tripId === n.tripId)),
+    );
+    if (!Notifications || !n.tripId) return;
+    const type = n.kind === 'newTrip' ? 'NEW_TRIP' : 'DEPART_PROMPT';
+    void Notifications.getPresentedNotificationsAsync()
+      .then((list) =>
+        Promise.all(
+          list
+            .filter((x) => {
+              const d = x.request.content.data as Payload;
+              return d?.type === type && d?.tripId === n.tripId;
+            })
+            .map((x) => Notifications!.dismissNotificationAsync(x.request.identifier)),
+        ),
+      )
+      .catch(() => {});
+  }, []);
 
   const close = () => setQueue((q) => q.slice(1));
 
@@ -142,7 +189,13 @@ export function PushNoticeOverlay() {
         return { kind: 'newTrip', title: title ?? t('push.noticeTitle'), body: body ?? '', tripId };
       }
       if (type === 'DEPART_PROMPT' && tripId) {
-        return { kind: 'depart', title: title ?? t('push.departTitle'), body: body ?? '', tripId };
+        return {
+          kind: 'depart',
+          title: title ?? t('push.departTitle'),
+          body: body ?? '',
+          tripId,
+          promptNo: promptNoOf(data),
+        };
       }
       return { kind: 'info', title: title ?? t('push.noticeTitle'), body: body ?? '' };
     },
@@ -163,12 +216,18 @@ export function PushNoticeOverlay() {
   useEffect(() => {
     if (!token) return;
     const socket = getSocket(token);
-    const onPrompt = (p: { tripId: string; title?: string; body?: string }) => {
+    const onPrompt = (p: {
+      tripId: string;
+      title?: string;
+      body?: string;
+      promptNo?: number;
+    }) => {
       enqueue({
         kind: 'depart',
         title: t('push.departTitle'),
         body: p.body ?? p.title ?? '',
         tripId: p.tripId,
+        promptNo: p.promptNo,
       });
     };
     socket.on('departPrompt', onPrompt);
@@ -208,15 +267,21 @@ export function PushNoticeOverlay() {
       const payload = (data as Payload) ?? undefined;
       const tripId =
         typeof payload?.tripId === 'string' ? payload.tripId : undefined;
+      const promptNo = promptNoOf(payload);
+      // Answered on the banner → never ask the same question again in-app.
       switch (r.actionIdentifier) {
         case TRIP_ACTIONS.ACCEPT:
-          if (tripId) void accept(tripId);
+          if (tripId) {
+            settle({ kind: 'newTrip', tripId });
+            void accept(tripId);
+          }
           return;
         case TRIP_ACTIONS.DEPART_YES:
-          if (tripId) void depart(tripId, true);
-          return;
         case TRIP_ACTIONS.DEPART_NO:
-          if (tripId) void depart(tripId, false);
+          if (tripId) {
+            settle({ kind: 'depart', tripId, promptNo });
+            void depart(tripId, r.actionIdentifier === TRIP_ACTIONS.DEPART_YES);
+          }
           return;
       }
       // Plain tap: ask the question in-app (plain notices need no modal —
@@ -234,18 +299,24 @@ export function PushNoticeOverlay() {
       recvSub.remove();
       respSub.remove();
     };
-  }, [refresh, fromPush, enqueue, accept, depart]);
+  }, [refresh, fromPush, enqueue, settle, accept, depart]);
 
   const onOk = () => {
     const n = notice;
     close();
-    if (n?.kind === 'newTrip' && n.tripId) void accept(n.tripId);
+    if (n?.kind === 'newTrip' && n.tripId) {
+      settle(n); // also clears its banner from the tray
+      void accept(n.tripId);
+    }
   };
 
   const onDepart = (yes: boolean) => {
     const n = notice;
     close();
-    if (n?.tripId) void depart(n.tripId, yes);
+    if (n?.tripId) {
+      settle(n);
+      void depart(n.tripId, yes);
+    }
   };
 
   // A trip question must be answered — only plain notices close on backdrop.
