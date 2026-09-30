@@ -196,7 +196,7 @@
       "unloading": "Unloading",
       "waypoint": "Additional stop"
     },
-    "queuedChatNotice": "This trip's chat opens once the current trip is finished."
+    "queuedChatNotice": "You can write here once this trip becomes the current one."
   },
   "tripStatus": {
     "ASSIGNED": "Assigned",
