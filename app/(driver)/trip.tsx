@@ -113,7 +113,7 @@ export default function TripScreen() {
   const truckPlate = trip?.truck?.plate ?? user?.currentTruck?.plate ?? null;
   const status: TripStatus = trip?.status ?? "ASSIGNED";
   // A queued trip (opened from My Trips while another load is still in
-  // progress) shows its details, but its chat stays closed until it's current.
+  // progress): the driver can read its chat, but writes only once it's current.
   const currentTrip = activeQuery.data;
   const chatLocked =
     !!trip &&
@@ -268,8 +268,7 @@ function TripWithChat({
     notifyTyping,
     notifyStopTyping,
   } = useTripChat(trip.id, {
-    // A queued trip's chat is hidden — never ack its messages.
-    isFocused: isFocused && !chatLocked,
+    isFocused,
     nearBottomRef,
   });
   // `useTripChat` itself owns the `reaction_changed` listener since trip
@@ -626,13 +625,7 @@ function TripWithChat({
         </View>
 
         {/* Timeline (messages + docs) */}
-        {chatLocked ? (
-          <View style={styles.emptyChat}>
-            <Text style={[styles.emptyChatText, { color: c.mutedForeground }]}>
-              {t("trip.queuedChatNotice")}
-            </Text>
-          </View>
-        ) : chatLoading ? (
+        {chatLoading ? (
           <View style={styles.center}>
             <ActivityIndicator size="small" color={c.primary} />
           </View>
@@ -775,7 +768,21 @@ function TripWithChat({
           pinned to the very bottom on every device (the KAV lifts it above
           the keyboard when open). */}
       {chatLocked ? (
-        <View style={{ height: composerPad }} />
+        <View
+          style={[
+            styles.inputWrap,
+            {
+              backgroundColor: c.card,
+              borderTopColor: c.border,
+              paddingBottom: composerPad,
+              justifyContent: "center",
+            },
+          ]}
+        >
+          <Text style={[styles.inactiveNotice, { color: c.mutedForeground }]}>
+            {t("trip.queuedChatNotice")}
+          </Text>
+        </View>
       ) : !isCompanyActive ? (
         <View
           style={[

@@ -198,7 +198,7 @@
       "unloading": "Rozładunek",
       "waypoint": "Dodatkowy przystanek"
     },
-    "queuedChatNotice": "Czat tej trasy otworzy się po zakończeniu bieżącej trasy."
+    "queuedChatNotice": "Pisać tutaj można, gdy ta trasa stanie się bieżącą."
   },
   "tripStatus": {
     "ASSIGNED": "Przydzielona",

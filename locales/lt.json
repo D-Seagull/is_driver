@@ -198,7 +198,7 @@
       "unloading": "Iškrovimas",
       "waypoint": "Papildomas sustojimas"
     },
-    "queuedChatNotice": "Šio reiso pokalbis atsidarys, kai bus baigtas dabartinis reisas."
+    "queuedChatNotice": "Rašyti čia galėsite, kai šis reisas taps dabartiniu."
   },
   "tripStatus": {
     "ASSIGNED": "Priskirtas",
