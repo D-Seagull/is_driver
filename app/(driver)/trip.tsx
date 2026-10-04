@@ -1,4 +1,5 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { openRemoteFile, readableFileName } from "@/lib/open-file";
 import { compressPhotos, PICKER_QUALITY } from "@/lib/compress-photo";
 import { albumSizes, groupAlbums } from "@/lib/albums";
 import { AlbumGrid } from "@/components/album-grid";
@@ -12,7 +13,6 @@ import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 import * as Linking from "expo-linking";
 import { router, Stack, useLocalSearchParams } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -487,7 +487,7 @@ function TripWithChat({
         if (r.canceled) return;
         files = r.assets.map((a) => ({
           uri: a.uri,
-          name: a.name,
+          name: readableFileName(a.name),
           mimeType: a.mimeType ?? "application/octet-stream",
         }));
       }
@@ -524,7 +524,7 @@ function TripWithChat({
         return;
       }
       try {
-        await WebBrowser.openBrowserAsync(doc.signedUrl);
+        await openRemoteFile(doc);
       } catch (e) {
         Alert.alert(t("documents.cannotOpen"), (e as Error).message);
       }
@@ -1530,6 +1530,25 @@ const DocBubble = memo(function DocBubble({
     />
   );
 
+  // Deleted (or gone from storage — then signedUrl is ""): a plain
+  // "File deleted" label, like the DM / group chats and the web.
+  if (doc.deletedAt || !doc.signedUrl) {
+    return (
+      <View
+        style={[
+          styles.bubbleRow,
+          isMe ? styles.bubbleRowMe : styles.bubbleRowOther,
+        ]}
+      >
+        <View style={[styles.docDeleted, { backgroundColor: c.muted }]}>
+          <Text style={[styles.docDeletedText, { color: c.mutedForeground }]}>
+            {t("common.fileDeleted")}
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View
       style={[
@@ -2459,6 +2478,8 @@ const styles = StyleSheet.create({
   },
   docFileName: { fontSize: 13, fontWeight: "600" },
   docFileMeta: { fontSize: 10, marginTop: 2 },
+  docDeleted: { borderRadius: Radius.lg, paddingHorizontal: 10, paddingVertical: 4 },
+  docDeletedText: { fontSize: 12, fontStyle: "italic" },
   albumBubble: {
     borderRadius: Radius.md,
     overflow: "hidden",

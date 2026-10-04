@@ -4,9 +4,9 @@ import * as Clipboard from 'expo-clipboard';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { openRemoteFile, readableFileName } from '@/lib/open-file';
 import { fullName } from "@/lib/format";
 import {
   ActivityIndicator,
@@ -285,7 +285,7 @@ export default function DmScreen() {
         if (r.canceled) return;
         files = r.assets.map((a) => ({
           uri: a.uri,
-          name: a.name,
+          name: readableFileName(a.name),
           type: a.mimeType ?? 'application/octet-stream',
         }));
       }
@@ -321,7 +321,7 @@ export default function DmScreen() {
         return;
       }
       try {
-        await WebBrowser.openBrowserAsync(doc.signedUrl);
+        await openRemoteFile(doc);
       } catch (e) {
         Alert.alert(t('documents.cannotOpen'), (e as Error).message);
       }

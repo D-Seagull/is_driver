@@ -4,9 +4,9 @@ import type { DrawerNavigationProp } from 'expo-router/drawer';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { Stack } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { openRemoteFile, readableFileName } from '@/lib/open-file';
 import { fullName } from "@/lib/format";
 import {
   ActivityIndicator,
@@ -154,7 +154,7 @@ export default function DocumentsScreen() {
         if (r.canceled) return;
         files = r.assets.map((a) => ({
           uri: a.uri,
-          name: a.name,
+          name: readableFileName(a.name),
           mimeType: a.mimeType ?? 'application/octet-stream',
         }));
       }
@@ -396,7 +396,7 @@ function FolderModal({
       return;
     }
     try {
-      await WebBrowser.openBrowserAsync(doc.signedUrl);
+      await openRemoteFile(doc);
     } catch (e) {
       Alert.alert(t('documents.cannotOpen'), (e as Error).message);
     }

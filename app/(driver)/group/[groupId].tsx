@@ -4,7 +4,6 @@ import * as Clipboard from 'expo-clipboard';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -58,6 +57,7 @@ import { MessageReactionsCluster } from '@/components/message-reactions';
 import { useChatTyping } from '@/hooks/use-chat-typing';
 import { useReactionsSocketSync } from '@/hooks/use-message-reactions';
 import { TypingIndicator } from '@/components/typing-indicator';
+import { openRemoteFile, readableFileName } from '@/lib/open-file';
 import { albumSizes, groupAlbums } from '@/lib/albums';
 import { compressPhotos, PICKER_QUALITY } from '@/lib/compress-photo';
 import { AlbumGrid } from '@/components/album-grid';
@@ -259,7 +259,7 @@ export default function GroupChatScreen() {
         if (r.canceled) return;
         files = r.assets.map((a) => ({
           uri: a.uri,
-          name: a.name,
+          name: readableFileName(a.name),
           type: a.mimeType ?? 'application/octet-stream',
         }));
       }
@@ -297,7 +297,7 @@ export default function GroupChatScreen() {
         return;
       }
       try {
-        await WebBrowser.openBrowserAsync(doc.signedUrl);
+        await openRemoteFile(doc);
       } catch (e) {
         Alert.alert(t('documents.cannotOpen'), (e as Error).message);
       }
