@@ -27,7 +27,7 @@ export function useAppStatePresence() {
           sock.disconnect();
           sock.connect();
         } else {
-          sock.emit('appActive');
+          sock.emit('appActive', { pulse: true });
           sock.emit('requestPresence');
         }
       } else {
@@ -50,7 +50,13 @@ export function useAppStatePresence() {
     const startWatchdog = () => {
       if (watchdog) return;
       watchdog = setInterval(() => {
-        if (AppState.currentState === 'active') ensureSocketAlive();
+        if (AppState.currentState !== 'active') return;
+        ensureSocketAlive();
+        // Foreground pulse: the server counts the phone as "on screen" (and
+        // holds back chat pushes) only while these keep coming, so a lost
+        // appBackground — phone locked mid-send — can't mute pushes for good.
+        const sock = getSocket();
+        if (sock.connected) sock.emit('appActive', { pulse: true });
       }, 15_000);
     };
     const stopWatchdog = () => {
