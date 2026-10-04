@@ -47,6 +47,7 @@ import { StatusPicker } from "@/components/status-picker";
 import { Colors, Radius, Spacing } from "@/constants/theme";
 import { TripStatus } from "@/constants/trip-status";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { PhotoGallery } from "@/components/photo-gallery";
 import { useComposerBottomPadding } from "@/hooks/use-composer-bottom-padding";
 import { useTripDocuments, useUploadDocuments } from "@/hooks/use-documents";
 import { NotificationBell } from "@/components/notification-bell";
@@ -274,6 +275,16 @@ function TripWithChat({
   // `useTripChat` itself owns the `reaction_changed` listener since trip
   // messages live in its local state (not React Query). No extra hook needed.
   const { data: tripDocs = [] } = useTripDocuments(trip.id);
+  // Every photo of this trip, oldest first (timeline order) — the gallery
+  // flips through all of them, starting at the one tapped.
+  const galleryPhotos = useMemo(
+    () =>
+      tripDocs
+        .filter((d) => d.fileType === "PHOTO" && !d.deletedAt && d.signedUrl)
+        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+        .map((d) => ({ id: d.id, uri: d.signedUrl, fileName: d.fileName })),
+    [tripDocs],
+  );
   const upload = useUploadDocuments();
 
   // Privacy: only the trip's current driver can write messages. Old drivers
@@ -415,6 +426,8 @@ function TripWithChat({
 
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [docsOpen, setDocsOpen] = useState(false);
+  // Index into `galleryPhotos` of the photo open in the gallery, or null.
+  const [galleryIndex, setGalleryIndex] = useState<number | null>(null);
 
   // ── Upload flow ─────────────────────────────────────────────────────────
   const pickAndUpload = async (source: "camera" | "gallery" | "document") => {
@@ -476,13 +489,26 @@ function TripWithChat({
 
   const handleOpenDoc = useCallback(
     async (doc: DriverDocument) => {
+      // Photos open in the gallery (swipe / zoom); other files in the browser.
+      const i = galleryPhotos.findIndex((p) => p.id === doc.id);
+      if (i >= 0) {
+        if (docsOpen) {
+          // From the documents folder: iOS won't show a Modal while another
+          // one is still closing — close it, then open.
+          setDocsOpen(false);
+          setTimeout(() => setGalleryIndex(i), 400);
+        } else {
+          setGalleryIndex(i);
+        }
+        return;
+      }
       try {
         await WebBrowser.openBrowserAsync(doc.signedUrl);
       } catch (e) {
         Alert.alert(t("documents.cannotOpen"), (e as Error).message);
       }
     },
-    [t],
+    [t, galleryPhotos, docsOpen],
   );
 
   // Stable long-press handlers so memoized bubbles don't re-render every time
@@ -619,7 +645,7 @@ function TripWithChat({
               color={c.mutedForeground}
             />
             <Text style={[styles.chatLabelText, { color: c.mutedForeground }]}>
-              {tripDocs.length}
+              {tripDocs.filter((d) => !d.deletedAt && d.signedUrl).length}
             </Text>
           </Pressable>
         </View>
@@ -1024,6 +1050,13 @@ function TripWithChat({
         uploading={upload.isPending}
         onOpenDoc={handleOpenDoc}
       />
+
+      {/* Full-screen photo gallery: swipe, pinch / double-tap zoom */}
+      <PhotoGallery
+        photos={galleryPhotos}
+        startIndex={galleryIndex}
+        onClose={() => setGalleryIndex(null)}
+      />
     </View>
   );
 }
@@ -1259,11 +1292,13 @@ function TripDocsModal({
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<DocTab>("ALL");
 
-  const photos = docs.filter((d) => d.fileType === "PHOTO");
-  const documents = docs.filter((d) => d.fileType === "DOCUMENT");
-  const filtered = tab === "ALL" ? docs : tab === "PHOTO" ? photos : documents;
+  // Deleted files (incl. ones gone from storage) can't be opened — hide them.
+  const live = docs.filter((d) => !d.deletedAt && d.signedUrl);
+  const photos = live.filter((d) => d.fileType === "PHOTO");
+  const documents = live.filter((d) => d.fileType === "DOCUMENT");
+  const filtered = tab === "ALL" ? live : tab === "PHOTO" ? photos : documents;
   const counts = {
-    ALL: docs.length,
+    ALL: live.length,
     PHOTO: photos.length,
     DOCUMENT: documents.length,
   };

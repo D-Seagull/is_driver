@@ -60,7 +60,9 @@
         {
           "icon": "./assets/images/notification-icon.png",
           "color": "#1E7AFD",
-          "sounds": ["./assets/sounds/push_message.mp3"]
+          "sounds": [
+            "./assets/sounds/push_message.mp3"
+          ]
         }
       ],
       "expo-asset",
@@ -68,7 +70,19 @@
       "expo-font",
       "expo-image",
       "expo-status-bar",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-sharing",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Додатку потрібен доступ до фотографій, щоб прикріплювати зображення в чат і документи та встановлювати аватар.",
+          "savePhotosPermission": "Додатку потрібен доступ до фотографій, щоб зберігати фото з чату у вашу галерею.",
+          "isAccessMediaLocationEnabled": false,
+          "granularPermissions": [
+            "photo"
+          ]
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

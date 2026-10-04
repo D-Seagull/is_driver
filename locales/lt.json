@@ -369,5 +369,14 @@
     "body": "Atsisiųsta nauja programėlės versija. Paleisti iš naujo dabar, kad ji būtų pritaikyta?",
     "later": "Vėliau",
     "restart": "Paleisti iš naujo"
+  },
+  "gallery": {
+    "save": "Išsaugoti",
+    "saved": "Išsaugota",
+    "share": "Bendrinti",
+    "saveFailed": "Nepavyko išsaugoti nuotraukos",
+    "shareFailed": "Nepavyko pasidalinti nuotrauka",
+    "permissionTitle": "Nėra prieigos prie galerijos",
+    "permissionBody": "Leiskite išsaugoti nuotraukas telefono nustatymuose."
   }
 }

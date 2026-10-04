@@ -33,6 +33,7 @@ import { MessageActionsSheet, type MessageActions } from '@/components/message-a
 import { UserCardSheet } from '@/components/user-card-sheet';
 import { MessageQuote } from '@/components/message-quote';
 import { Colors, Radius, Spacing } from '@/constants/theme';
+import { PhotoGallery } from '@/components/photo-gallery';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAppActive } from '@/hooks/use-app-active';
 import { useComposerBottomPadding } from '@/hooks/use-composer-bottom-padding';
@@ -105,6 +106,16 @@ export default function GroupChatScreen() {
   const { data: messages = [], isLoading } = useGroupMessages(groupId);
   const { loadOlder, loadingOlder, hasMore } = useLoadOlderGroupMessages(groupId);
   const { data: documents = [] } = useGroupDocuments(groupId);
+  // Every photo of this chat, oldest first (timeline order) — the gallery
+  // flips through all of them, starting at the one tapped.
+  const galleryPhotos = useMemo(
+    () =>
+      documents
+        .filter((d) => d.fileType === 'PHOTO' && !d.deletedAt && d.signedUrl)
+        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+        .map((d) => ({ id: d.id, uri: d.signedUrl, fileName: d.fileName })),
+    [documents],
+  );
   const deleteMsg = useDeleteGroupMessage();
   const editMsg = useEditGroupMessage(groupId);
   const markRead = useMarkGroupRead();
@@ -136,7 +147,8 @@ export default function GroupChatScreen() {
   const [editing, setEditing] = useState<EditingState | null>(null);
 
   // Photo viewer + documents folder overlays.
-  const [viewerUri, setViewerUri] = useState<string | null>(null);
+  // Index into `galleryPhotos` of the photo open in the gallery, or null.
+  const [galleryIndex, setGalleryIndex] = useState<number | null>(null);
   const [folderOpen, setFolderOpen] = useState(false);
 
   // ─── Long-press actions sheet ──────────────────────────────────────
@@ -245,7 +257,16 @@ export default function GroupChatScreen() {
       // Photos open instantly in an in-app viewer; other files hand off to the
       // system browser (PDF/doc preview).
       if (doc.fileType === 'PHOTO') {
-        setViewerUri(doc.signedUrl);
+        const i = galleryPhotos.findIndex((p) => p.id === doc.id);
+        if (i < 0) return;
+        if (folderOpen) {
+          // From the documents folder: iOS won't show a Modal while
+          // another one is still closing — close it, then open.
+          setFolderOpen(false);
+          setTimeout(() => setGalleryIndex(i), 400);
+        } else {
+          setGalleryIndex(i);
+        }
         return;
       }
       try {
@@ -254,7 +275,7 @@ export default function GroupChatScreen() {
         Alert.alert(t('documents.cannotOpen'), (e as Error).message);
       }
     },
-    [t],
+    [t, galleryPhotos, folderOpen],
   );
 
   // Stable per-list callbacks so the memoized bubbles don't re-render on every
@@ -594,30 +615,12 @@ export default function GroupChatScreen() {
         onClose={() => setFolderOpen(false)}
       />
 
-      {/* Full-screen photo viewer */}
-      <Modal
-        visible={!!viewerUri}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setViewerUri(null)}
-      >
-        <Pressable style={styles.viewerBackdrop} onPress={() => setViewerUri(null)}>
-          {viewerUri && (
-            <Image
-              source={{ uri: viewerUri }}
-              style={styles.viewerImage}
-              resizeMode="contain"
-            />
-          )}
-          <Pressable
-            onPress={() => setViewerUri(null)}
-            hitSlop={10}
-            style={[styles.viewerClose, { top: insets.top + Spacing.md }]}
-          >
-            <Ionicons name="close" size={30} color="#fff" />
-          </Pressable>
-        </Pressable>
-      </Modal>
+      {/* Full-screen photo gallery: swipe, pinch / double-tap zoom */}
+      <PhotoGallery
+        photos={galleryPhotos}
+        startIndex={galleryIndex}
+        onClose={() => setGalleryIndex(null)}
+      />
     </KeyboardAvoidingView>
   );
 }

@@ -10,6 +10,9 @@ export interface DriverDocument {
   uploadedBy: string;
   isRead: boolean;
   createdAt: string;
+  /** Set when deleted (also when the file vanished from storage — then
+   *  `signedUrl` is ""). Such files can't be shown or opened. */
+  deletedAt?: string | null;
   signedUrl: string;
   reactions?: MessageReactionRow[];
   uploader?: { id: string; firstName: string; lastName: string | null; role: string };

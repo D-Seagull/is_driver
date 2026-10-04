@@ -366,5 +366,14 @@
     "body": "A new version of the app has been downloaded. Restart now to apply it?",
     "later": "Later",
     "restart": "Restart"
+  },
+  "gallery": {
+    "save": "Save",
+    "saved": "Saved",
+    "share": "Share",
+    "saveFailed": "Couldn't save the photo",
+    "shareFailed": "Couldn't share the photo",
+    "permissionTitle": "No access to the gallery",
+    "permissionBody": "Allow saving photos in the phone's settings."
   }
 }

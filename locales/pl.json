@@ -369,5 +369,14 @@
     "body": "Pobrano nową wersję aplikacji. Uruchomić ponownie teraz, aby ją zastosować?",
     "later": "Później",
     "restart": "Uruchom ponownie"
+  },
+  "gallery": {
+    "save": "Zapisz",
+    "saved": "Zapisano",
+    "share": "Udostępnij",
+    "saveFailed": "Nie udało się zapisać zdjęcia",
+    "shareFailed": "Nie udało się udostępnić zdjęcia",
+    "permissionTitle": "Brak dostępu do galerii",
+    "permissionBody": "Zezwól na zapisywanie zdjęć w ustawieniach telefonu."
   }
 }

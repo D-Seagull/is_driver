@@ -27,6 +27,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NotificationBell } from '@/components/notification-bell';
 import { ScreenPlaceholder } from '@/components/screen-placeholder';
 import { Colors, Radius, Spacing } from '@/constants/theme';
+import { PhotoGallery } from '@/components/photo-gallery';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   useDeleteDocument,
@@ -74,6 +75,8 @@ export default function DocumentsScreen() {
     if (!docs) return [];
     const map = new Map<string, FolderGroup>();
     for (const d of docs) {
+      // Deleted files (incl. ones gone from storage) can't be opened.
+      if (d.deletedAt || !d.signedUrl) continue;
       const tripId = d.tripId;
       const existing = map.get(tripId);
       if (existing) {
@@ -380,7 +383,25 @@ function FolderModal({
     return folder.docs.filter((d) => d.fileType === tab);
   }, [folder, tab]);
 
+  // This folder's photos, oldest first — the gallery flips through them.
+  const galleryPhotos = useMemo(
+    () =>
+      (folder?.docs ?? [])
+        .filter((d) => d.fileType === 'PHOTO')
+        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+        .map((d) => ({ id: d.id, uri: d.signedUrl, fileName: d.fileName })),
+    [folder],
+  );
+  const [galleryIndex, setGalleryIndex] = useState<number | null>(null);
+
   const handleOpenDoc = async (doc: DriverDocument) => {
+    // Photos open in the gallery (inside this sheet, so closing it comes
+    // back here); other files in the browser.
+    const i = galleryPhotos.findIndex((p) => p.id === doc.id);
+    if (i >= 0) {
+      setGalleryIndex(i);
+      return;
+    }
     try {
       await WebBrowser.openBrowserAsync(doc.signedUrl);
     } catch (e) {
@@ -516,6 +537,13 @@ function FolderModal({
           />
         )}
       </View>
+      {/* Gallery inside this sheet — a Modal opened from within another one
+          shows on top on iOS too; closing it returns to the folder. */}
+      <PhotoGallery
+        photos={galleryPhotos}
+        startIndex={galleryIndex}
+        onClose={() => setGalleryIndex(null)}
+      />
     </Modal>
   );
 }
