@@ -415,8 +415,12 @@ export default function DmScreen() {
             </Text>
             <Text style={[styles.headerRole, { color: c.mutedForeground }]} numberOfLines={1}>
               {peer?.role?.toLowerCase()}
-              {peerLastSeen ? ` - ${peerLastSeen}` : ''}
             </Text>
+            {peerLastSeen ? (
+              <Text style={[styles.headerLastSeen, { color: c.mutedForeground }]} numberOfLines={1}>
+                {peerLastSeen}
+              </Text>
+            ) : null}
           </View>
         </Pressable>
         {/* Quick access to all attachments — same pill as the Trip chat */}
@@ -1288,6 +1292,8 @@ const styles = StyleSheet.create({
   headerPeer: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, minWidth: 0 },
   headerText: { flex: 1, minWidth: 0 },
   headerName: { fontSize: 15, fontWeight: '600' },
+  // Own line under the role, small: "останній вхід 12:30".
+  headerLastSeen: { fontSize: 11, marginTop: 1 },
   headerRole: { fontSize: 12, marginTop: 1, textTransform: 'capitalize' },
   folderBtn: {
     flexDirection: 'row',
