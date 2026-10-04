@@ -415,7 +415,7 @@ export default function DmScreen() {
             </Text>
             <Text style={[styles.headerRole, { color: c.mutedForeground }]} numberOfLines={1}>
               {peer?.role?.toLowerCase()}
-              {peerLastSeen ? ` · ${peerLastSeen}` : ''}
+              {peerLastSeen ? ` - ${peerLastSeen}` : ''}
             </Text>
           </View>
         </Pressable>
