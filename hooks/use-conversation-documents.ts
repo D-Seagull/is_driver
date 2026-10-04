@@ -25,6 +25,8 @@ export interface ConversationDocumentFull {
   thumbUrl?: string | null;
   fileName: string;
   fileType: FileDocType;
+  /** Shared by files sent in one message (an album). */
+  batchId?: string | null;
   publicId: string | null;
   isRead: boolean;
   createdAt: string;
@@ -101,6 +103,19 @@ export function useUploadConversationDocs(otherUserId: string) {
         },
       );
       return res.data as ConversationDocumentFull[];
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEY(otherUserId) });
+    },
+  });
+}
+
+/** Deletes the whole album `id` belongs to (just `id` when it isn't in one). */
+export function useDeleteConversationDocAlbum(otherUserId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await api.delete(`/direct-messages/documents/${id}/album`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY(otherUserId) });
