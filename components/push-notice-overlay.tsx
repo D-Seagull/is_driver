@@ -40,6 +40,9 @@ interface Notice {
 
 type Payload = Record<string, unknown> | undefined;
 
+// Re-asks come 20 min apart, so two within this window are one question.
+const DEPART_COOLDOWN_MS = 2 * 60 * 1000;
+
 /**
  * Identity of ONE question. Copies of it (push + socket, a push delivered
  * twice, the banner button + the modal) share the key; a re-ask 20 min later
@@ -82,6 +85,10 @@ export function PushNoticeOverlay() {
   const seenRef = useRef(new Set<string>());
   // Banner responses already handled (a cold start may replay the last one).
   const handledRef = useRef(new Set<string>());
+  // When "heading to loading?" was last put up per trip. A second copy within
+  // DEPART_COOLDOWN_MS is a duplicate whatever its number says (the server
+  // also refuses to ask twice; this is the safety net).
+  const departShownRef = useRef(new Map<string, number>());
 
   const refresh = useCallback(() => {
     qc.invalidateQueries({ queryKey: truckKeys.mine() });
@@ -111,6 +118,9 @@ export function PushNoticeOverlay() {
       if (n.kind === 'depart' && n.tripId) {
         const st = knownStatus(n.tripId);
         if (st && st !== 'ACCEPTED' && st !== 'ASSIGNED') return; // on its way
+        const last = departShownRef.current.get(n.tripId);
+        if (last && Date.now() - last < DEPART_COOLDOWN_MS) return;
+        departShownRef.current.set(n.tripId, Date.now());
       }
       const key = questionKey(n);
       if (key) {
