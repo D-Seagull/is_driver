@@ -8,6 +8,9 @@ interface PresenceState {
   onlineIds: Set<string>;
   /** Offline but seen within the last week → amber "away" instead of grey. */
   awayIds: Set<string>;
+  /** When a user went offline while we watched (ms) — fresher than the
+   *  lastSeenAt the API returned before they left. */
+  offlineAt: Map<string, number>;
   setSnapshot: (ids: string[], awayIds: string[]) => void;
   setUserOnline: (id: string, online: boolean, away?: boolean) => void;
 }
@@ -23,21 +26,25 @@ interface PresenceState {
 const usePresenceStore = create<PresenceState>((set) => ({
   onlineIds: new Set<string>(),
   awayIds: new Set<string>(),
+  offlineAt: new Map<string, number>(),
   setSnapshot: (ids, awayIds) =>
     set({ onlineIds: new Set(ids), awayIds: new Set(awayIds) }),
   setUserOnline: (id, online, away = false) =>
     set((state) => {
       const nextOnline = new Set(state.onlineIds);
       const nextAway = new Set(state.awayIds);
+      const nextOfflineAt = new Map(state.offlineAt);
       if (online) {
         nextOnline.add(id);
         nextAway.delete(id);
+        nextOfflineAt.delete(id);
       } else {
+        if (state.onlineIds.has(id)) nextOfflineAt.set(id, Date.now());
         nextOnline.delete(id);
         if (away) nextAway.add(id);
         else nextAway.delete(id);
       }
-      return { onlineIds: nextOnline, awayIds: nextAway };
+      return { onlineIds: nextOnline, awayIds: nextAway, offlineAt: nextOfflineAt };
     }),
 }));
 
@@ -103,4 +110,21 @@ export function useUserPresence(
     if (s.awayIds.has(userId)) return 'away';
     return 'offline';
   });
+}
+
+/**
+ * When the user was last in the app: the moment we saw them go offline, else
+ * the server's `lastSeenAt`. null while they are online or nothing is known.
+ */
+export function useLastSeen(
+  userId: string | null | undefined,
+  serverLastSeen: string | null | undefined,
+): Date | null {
+  const online = useIsUserOnline(userId);
+  const seenLeaving = usePresenceStore((s) =>
+    typeof userId === 'string' ? s.offlineAt.get(userId) : undefined,
+  );
+  if (online) return null;
+  if (seenLeaving) return new Date(seenLeaving);
+  return serverLastSeen ? new Date(serverLastSeen) : null;
 }

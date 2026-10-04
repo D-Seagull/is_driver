@@ -10,6 +10,8 @@ export interface ManagerProfile {
   isActive: boolean;
   status?: string | null;
   statusUntil?: string | null;
+  /** Last time they had a live connection — "останній вхід 12:30". */
+  lastSeenAt?: string | null;
   /** Present in the GET /users/:id payload — used by the chat mini card. */
   language?: string | null;
   teamlead?: { id: string; firstName: string; lastName: string | null } | null;

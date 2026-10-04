@@ -17,6 +17,7 @@ import { Image as ExpoImage } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { StatusDot } from '@/components/status-dot';
+import { LastSeen } from '@/components/last-seen';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
@@ -137,6 +138,10 @@ export default function ManagerScreen() {
             <Text style={[styles.name, { color: c.foreground }]}>
               {displayName}
             </Text>
+            <LastSeen
+              user={managerId ? { id: managerId, lastSeenAt: profile.lastSeenAt } : null}
+              style={[styles.ratingMeta, { color: c.mutedForeground }]}
+            />
             <View style={styles.ratingRow}>
               {avg !== null ? (
                 <>

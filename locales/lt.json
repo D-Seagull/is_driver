@@ -1,5 +1,9 @@
 {
   "common": {
+    "lastSeen": {
+      "label": "paskutinį kartą programėlėje {{when}}",
+      "yesterday": "vakar {{time}}"
+    },
     "cancel": "Atšaukti",
     "delete": "Ištrinti",
     "save": "Išsaugoti",
