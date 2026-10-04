@@ -1400,7 +1400,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     maxWidth: 240,
   },
-  docFileName: { flex: 1, fontSize: 13, fontWeight: '600' },
+  // flexShrink, not flex: 1 — in a content-sized bubble flex: 1 squeezed the
+  // name to zero width on Android (file cards showed no name).
+  docFileName: { flexShrink: 1, fontSize: 13, fontWeight: '600' },
   docCaption: { fontSize: 13, paddingHorizontal: 6, paddingVertical: 4 },
   albumBubble: { borderRadius: Radius.lg, overflow: 'hidden', width: 240 },
   albumCaption: { fontSize: 14, lineHeight: 18, paddingHorizontal: 10, paddingVertical: 8 },
