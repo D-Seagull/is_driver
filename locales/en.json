@@ -12,6 +12,8 @@
     "loading": "Loading…",
     "messageDeleted": "Message deleted",
     "fileDeleted": "File deleted",
+    "album_one": "Album · {{count}} file",
+    "album_other": "Album · {{count}} files",
     "file": "File",
     "error": "Error"
   },

@@ -17,6 +17,9 @@ export interface DriverDocument {
   /** Small preview for bubbles and thumbnails; null for documents and for
    *  photos uploaded before previews existed. Galleries use signedUrl. */
   thumbUrl?: string | null;
+  /** Files sent together in one message share it (an album); null otherwise. */
+  batchId?: string | null;
+  caption?: string | null;
   reactions?: MessageReactionRow[];
   uploader?: { id: string; firstName: string; lastName: string | null; role: string };
   trip?: {
@@ -45,6 +48,11 @@ export async function fetchDocumentDownloadUrl(id: string): Promise<string> {
 
 export async function deleteDocument(id: string): Promise<void> {
   await api.delete(`/documents/${id}`);
+}
+
+/** Deletes the whole album `id` belongs to (just `id` when it isn't in one). */
+export async function deleteDocumentAlbum(id: string): Promise<void> {
+  await api.delete(`/documents/${id}/album`);
 }
 
 export interface UploadFileLocal {

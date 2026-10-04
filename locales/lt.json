@@ -12,6 +12,10 @@
     "loading": "Įkeliama…",
     "messageDeleted": "Žinutė ištrinta",
     "fileDeleted": "Failas ištrintas",
+    "album_one": "Albumas · {{count}} failas",
+    "album_few": "Albumas · {{count}} failai",
+    "album_many": "Albumas · {{count}} failo",
+    "album_other": "Albumas · {{count}} failų",
     "file": "Failas",
     "error": "Klaida"
   },

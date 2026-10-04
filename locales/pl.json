@@ -12,6 +12,10 @@
     "loading": "Ładowanie…",
     "messageDeleted": "Wiadomość usunięta",
     "fileDeleted": "Plik usunięty",
+    "album_one": "Album · {{count}} plik",
+    "album_few": "Album · {{count}} pliki",
+    "album_many": "Album · {{count}} plików",
+    "album_other": "Album · {{count}} pliku",
     "file": "Plik",
     "error": "Błąd"
   },

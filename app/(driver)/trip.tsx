@@ -1,5 +1,7 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { compressPhotos, PICKER_QUALITY } from "@/lib/compress-photo";
+import { albumSizes, groupAlbums } from "@/lib/albums";
+import { AlbumGrid } from "@/components/album-grid";
 import { EDIT_WINDOW_MS } from "@/lib/constants";
 import { fullName, formatStopWindow } from "@/lib/format";
 import { roleBadgeIcon } from "@/lib/roles";
@@ -282,7 +284,12 @@ function TripWithChat({
     () =>
       tripDocs
         .filter((d) => d.fileType === "PHOTO" && !d.deletedAt && d.signedUrl)
-        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+        // id breaks ties so an album flips in the same order as its grid.
+        .sort(
+          (a, b) =>
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime() ||
+            a.id.localeCompare(b.id),
+        )
         .map((d) => ({ id: d.id, uri: d.signedUrl, thumbUri: d.thumbUrl, fileName: d.fileName })),
     [tripDocs],
   );
@@ -297,14 +304,21 @@ function TripWithChat({
   const isCompanyActive = user?.company?.isActive !== false;
 
   // Unified timeline: messages + documents sorted by createdAt.
+  // Files sent in one message (same batchId) are one "album" item: `data`
+  // is its first file (position, reactions, ✓✓), `docs` all of them.
   type TimelineItem =
     | { kind: "msg"; data: ChatMessage }
-    | { kind: "doc"; data: DriverDocument };
+    | { kind: "doc"; data: DriverDocument }
+    | { kind: "album"; data: DriverDocument; docs: DriverDocument[] };
 
   const timeline: TimelineItem[] = useMemo(() => {
     const items: TimelineItem[] = [
       ...messages.map((m) => ({ kind: "msg" as const, data: m })),
-      ...tripDocs.map((d) => ({ kind: "doc" as const, data: d })),
+      ...groupAlbums(tripDocs).map((g): TimelineItem =>
+        g.length > 1
+          ? { kind: "album", data: g[0], docs: g }
+          : { kind: "doc", data: g[0] },
+      ),
     ];
     items.sort(
       (a, b) =>
@@ -313,6 +327,16 @@ function TripWithChat({
     );
     return items;
   }, [messages, tripDocs]);
+
+  // A quoted file that belongs to an album reads "Album · N files".
+  const albumSize = useMemo(() => albumSizes(tripDocs), [tripDocs]);
+  const docLabel = useCallback(
+    (d: { fileName: string; batchId?: string | null }) => {
+      const count = d.batchId ? albumSize.get(d.batchId) : undefined;
+      return count ? t("common.album", { count }) : d.fileName;
+    },
+    [albumSize, t],
+  );
 
   // Keep the latest timeline in a ref so scrollToMessage can stay referentially
   // stable (empty deps) — otherwise it changes every render and busts memo on
@@ -325,7 +349,11 @@ function TripWithChat({
   const [cardUserId, setCardUserId] = useState<string | null>(null);
   const scrollToMessage = useCallback((targetId?: string | null) => {
     if (!targetId) return;
-    const index = timelineRef.current.findIndex((it) => it.data.id === targetId);
+    const index = timelineRef.current.findIndex(
+      (it) =>
+        it.data.id === targetId ||
+        (it.kind === "album" && it.docs.some((d) => d.id === targetId)),
+    );
     if (index < 0) return; // original is older than the loaded page
     listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
     setHighlightId(targetId);
@@ -536,10 +564,23 @@ function TripWithChat({
             onLongPress={handleMsgLongPress}
             onReplyJump={scrollToMessage}
             onOpenUser={setCardUserId}
+            docLabel={docLabel}
           />
         );
       }
       const isMe = item.data.uploadedBy === user?.id;
+      if (item.kind === "album") {
+        return (
+          <AlbumBubble
+            docs={item.docs}
+            isMe={isMe}
+            currentUserId={user?.id}
+            highlighted={item.docs.some((d) => d.id === highlightId)}
+            onOpen={handleOpenDoc}
+            onLongPress={handleDocLongPress}
+          />
+        );
+      }
       return (
         <DocBubble
           doc={item.data}
@@ -558,6 +599,7 @@ function TripWithChat({
       handleDocLongPress,
       handleOpenDoc,
       scrollToMessage,
+      docLabel,
     ],
   );
 
@@ -1022,7 +1064,7 @@ function TripWithChat({
                     id: d.id,
                     targetType: "doc",
                     senderName: d.uploader ? fullName(d.uploader) : null,
-                    content: d.fileName,
+                    content: docLabel(d),
                     isDeleted: false,
                   });
                   setEditing(null);
@@ -1094,6 +1136,7 @@ const MessageBubble = memo(function MessageBubble({
   onLongPress,
   onReplyJump,
   onOpenUser,
+  docLabel,
 }: {
   message: ChatMessage;
   isMe: boolean;
@@ -1102,6 +1145,7 @@ const MessageBubble = memo(function MessageBubble({
   onLongPress?: (m: ChatMessage) => void;
   onReplyJump: (targetId: string) => void;
   onOpenUser?: (userId: string) => void;
+  docLabel: (d: { fileName: string; batchId?: string | null }) => string;
 }) {
   const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? "light"];
@@ -1205,7 +1249,7 @@ const MessageBubble = memo(function MessageBubble({
                   <MessageQuote
                     kind="doc"
                     senderName={fullName(message.replyToDocument.uploader)}
-                    fileName={message.replyToDocument.fileName}
+                    fileName={docLabel(message.replyToDocument)}
                     content=""
                     isDeleted={!!message.replyToDocument.deletedAt}
                     onPress={() => onReplyJump(message.replyToDocument!.id)}
@@ -1584,6 +1628,160 @@ const DocBubble = memo(function DocBubble({
               ]}
             >
               {doc.isRead ? "✓✓" : "✓"}
+            </Text>
+          )}
+        </View>
+      </View>
+    </View>
+  );
+});
+
+// ─── Album bubble (several files sent in one message) ───────────────────────
+
+/**
+ * Photo grid (+N), the other files under it, the caption once. Reactions and
+ * ✓✓ belong to the first file; long press opens the album's actions (reply,
+ * delete the whole album). Tapping a photo opens the gallery at it.
+ */
+const AlbumBubble = memo(function AlbumBubble({
+  docs,
+  isMe,
+  currentUserId,
+  highlighted,
+  onOpen,
+  onLongPress,
+}: {
+  docs: DriverDocument[];
+  isMe: boolean;
+  currentUserId?: string;
+  highlighted?: boolean;
+  onOpen: (d: DriverDocument) => void;
+  onLongPress?: (d: DriverDocument) => void;
+}) {
+  const { t } = useTranslation();
+  const c = Colors[useColorScheme() ?? "light"];
+  const lead = docs[0];
+  // Files can also be deleted one by one from the Documents screen.
+  const live = docs.filter((d) => !d.deletedAt && d.signedUrl);
+  const photos = live.filter((d) => d.fileType === "PHOTO");
+  const files = live.filter((d) => d.fileType !== "PHOTO");
+  const caption = lead.caption?.trim();
+  const time = formatTime(lead.createdAt, { hour: "2-digit", minute: "2-digit" });
+  const isManager = lead.uploader?.role !== "DRIVER";
+  const roleIcon = roleBadgeIcon(lead.uploader?.role);
+  const press = onLongPress ? () => onLongPress(lead) : undefined;
+  const fg = isMe ? "#fff" : c.foreground;
+  const sidekick = (
+    <MessageReactionsCluster
+      type="TRIP_DOC"
+      targetId={lead.id}
+      reactions={lead.reactions ?? []}
+      currentUserId={currentUserId}
+    />
+  );
+
+  return (
+    <View
+      style={[
+        styles.bubbleRow,
+        isMe ? styles.bubbleRowMe : styles.bubbleRowOther,
+      ]}
+    >
+      {!isMe && (
+        <View
+          style={[
+            styles.avatar,
+            { backgroundColor: isManager ? c.primary : c.muted },
+          ]}
+        >
+          <Ionicons
+            name={roleIcon}
+            size={12}
+            color={isManager ? "#fff" : c.mutedForeground}
+          />
+        </View>
+      )}
+      <View style={styles.bubbleCol}>
+        {!isMe && (
+          <Text style={[styles.bubbleSender, { color: c.mutedForeground }]}>
+            {fullName(lead.uploader) ||
+              (isManager ? t("nav.manager") : t("nav.driverFallback"))}
+          </Text>
+        )}
+        <View style={[styles.bubbleInlineRow, styles.bubbleInlineRowDoc]}>
+          {isMe && live.length > 0 && sidekick}
+          <View
+            style={[
+              styles.albumBubble,
+              {
+                backgroundColor: isMe ? c.primary : c.card,
+                borderWidth: highlighted ? 2 : StyleSheet.hairlineWidth,
+                borderColor: highlighted ? c.primary : c.border,
+              },
+            ]}
+          >
+            {live.length === 0 ? (
+              <Pressable onLongPress={press} delayLongPress={350}>
+                <Text style={[styles.albumDeleted, { color: isMe ? "rgba(255,255,255,0.8)" : c.mutedForeground }]}>
+                  {t("common.fileDeleted")}
+                </Text>
+              </Pressable>
+            ) : (
+              <>
+                <AlbumGrid
+                  photos={photos.map((p) => ({ id: p.id, uri: p.thumbUrl || p.signedUrl }))}
+                  onOpen={(id) => {
+                    const p = photos.find((x) => x.id === id);
+                    if (p) onOpen(p);
+                  }}
+                  onLongPress={press}
+                />
+                {files.map((d) => (
+                  <Pressable
+                    key={d.id}
+                    onPress={() => onOpen(d)}
+                    onLongPress={press}
+                    delayLongPress={350}
+                    style={styles.docBubble}
+                  >
+                    <Ionicons name="document-text-outline" size={20} color={fg} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.docFileName, { color: fg }]} numberOfLines={2}>
+                        {d.fileName}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.docFileMeta,
+                          { color: isMe ? "rgba(255,255,255,0.7)" : c.mutedForeground },
+                        ]}
+                      >
+                        {d.fileName.split(".").pop()?.toUpperCase() ?? "FILE"}
+                      </Text>
+                    </View>
+                  </Pressable>
+                ))}
+                {!!caption && (
+                  <Pressable onLongPress={press} delayLongPress={350}>
+                    <Text style={[styles.albumCaption, { color: fg }]}>{caption}</Text>
+                  </Pressable>
+                )}
+              </>
+            )}
+          </View>
+          {!isMe && live.length > 0 && sidekick}
+        </View>
+        <View style={styles.bubbleMetaRow}>
+          <Text style={[styles.bubbleTime, { color: c.mutedForeground }]}>
+            {time}
+          </Text>
+          {isMe && live.length > 0 && (
+            <Text
+              style={[
+                styles.bubbleTick,
+                { color: lead.isRead ? c.primary : c.mutedForeground },
+              ]}
+            >
+              {lead.isRead ? "✓✓" : "✓"}
             </Text>
           )}
         </View>
@@ -2261,4 +2459,11 @@ const styles = StyleSheet.create({
   },
   docFileName: { fontSize: 13, fontWeight: "600" },
   docFileMeta: { fontSize: 10, marginTop: 2 },
+  albumBubble: {
+    borderRadius: Radius.md,
+    overflow: "hidden",
+    width: 240,
+  },
+  albumCaption: { fontSize: 14, paddingHorizontal: 10, paddingVertical: 8 },
+  albumDeleted: { fontSize: 12, fontStyle: "italic", paddingHorizontal: 10, paddingVertical: 6 },
 });

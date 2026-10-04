@@ -12,6 +12,10 @@
     "loading": "Завантаження…",
     "messageDeleted": "Повідомлення видалено",
     "fileDeleted": "Файл видалено",
+    "album_one": "Альбом · {{count}} файл",
+    "album_few": "Альбом · {{count}} файли",
+    "album_many": "Альбом · {{count}} файлів",
+    "album_other": "Альбом · {{count}} файлу",
     "file": "Файл",
     "error": "Помилка"
   },

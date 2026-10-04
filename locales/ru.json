@@ -12,6 +12,10 @@
     "loading": "Загрузка…",
     "messageDeleted": "Сообщение удалено",
     "fileDeleted": "Файл удалён",
+    "album_one": "Альбом · {{count}} файл",
+    "album_few": "Альбом · {{count}} файла",
+    "album_many": "Альбом · {{count}} файлов",
+    "album_other": "Альбом · {{count}} файла",
     "file": "Файл",
     "error": "Ошибка"
   },
