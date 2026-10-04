@@ -1,4 +1,8 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { openRemoteFile, readableFileName } from "@/lib/open-file";
+import { compressPhotos, PICKER_QUALITY } from "@/lib/compress-photo";
+import { albumSizes, groupAlbums } from "@/lib/albums";
+import { AlbumGrid } from "@/components/album-grid";
 import { EDIT_WINDOW_MS } from "@/lib/constants";
 import { fullName, formatStopWindow } from "@/lib/format";
 import { roleBadgeIcon } from "@/lib/roles";
@@ -9,7 +13,6 @@ import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 import * as Linking from "expo-linking";
 import { router, Stack, useLocalSearchParams } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -47,6 +50,7 @@ import { StatusPicker } from "@/components/status-picker";
 import { Colors, Radius, Spacing } from "@/constants/theme";
 import { TripStatus } from "@/constants/trip-status";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { PhotoGallery } from "@/components/photo-gallery";
 import { useComposerBottomPadding } from "@/hooks/use-composer-bottom-padding";
 import { useTripDocuments, useUploadDocuments } from "@/hooks/use-documents";
 import { NotificationBell } from "@/components/notification-bell";
@@ -274,6 +278,21 @@ function TripWithChat({
   // `useTripChat` itself owns the `reaction_changed` listener since trip
   // messages live in its local state (not React Query). No extra hook needed.
   const { data: tripDocs = [] } = useTripDocuments(trip.id);
+  // Every photo of this trip, oldest first (timeline order) — the gallery
+  // flips through all of them, starting at the one tapped.
+  const galleryPhotos = useMemo(
+    () =>
+      tripDocs
+        .filter((d) => d.fileType === "PHOTO" && !d.deletedAt && d.signedUrl)
+        // id breaks ties so an album flips in the same order as its grid.
+        .sort(
+          (a, b) =>
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime() ||
+            a.id.localeCompare(b.id),
+        )
+        .map((d) => ({ id: d.id, uri: d.signedUrl, thumbUri: d.thumbUrl, fileName: d.fileName })),
+    [tripDocs],
+  );
   const upload = useUploadDocuments();
 
   // Privacy: only the trip's current driver can write messages. Old drivers
@@ -285,14 +304,21 @@ function TripWithChat({
   const isCompanyActive = user?.company?.isActive !== false;
 
   // Unified timeline: messages + documents sorted by createdAt.
+  // Files sent in one message (same batchId) are one "album" item: `data`
+  // is its first file (position, reactions, ✓✓), `docs` all of them.
   type TimelineItem =
     | { kind: "msg"; data: ChatMessage }
-    | { kind: "doc"; data: DriverDocument };
+    | { kind: "doc"; data: DriverDocument }
+    | { kind: "album"; data: DriverDocument; docs: DriverDocument[] };
 
   const timeline: TimelineItem[] = useMemo(() => {
     const items: TimelineItem[] = [
       ...messages.map((m) => ({ kind: "msg" as const, data: m })),
-      ...tripDocs.map((d) => ({ kind: "doc" as const, data: d })),
+      ...groupAlbums(tripDocs).map((g): TimelineItem =>
+        g.length > 1
+          ? { kind: "album", data: g[0], docs: g }
+          : { kind: "doc", data: g[0] },
+      ),
     ];
     items.sort(
       (a, b) =>
@@ -301,6 +327,16 @@ function TripWithChat({
     );
     return items;
   }, [messages, tripDocs]);
+
+  // A quoted file that belongs to an album reads "Album · N files".
+  const albumSize = useMemo(() => albumSizes(tripDocs), [tripDocs]);
+  const docLabel = useCallback(
+    (d: { fileName: string; batchId?: string | null }) => {
+      const count = d.batchId ? albumSize.get(d.batchId) : undefined;
+      return count ? t("common.album", { count }) : d.fileName;
+    },
+    [albumSize, t],
+  );
 
   // Keep the latest timeline in a ref so scrollToMessage can stay referentially
   // stable (empty deps) — otherwise it changes every render and busts memo on
@@ -313,7 +349,11 @@ function TripWithChat({
   const [cardUserId, setCardUserId] = useState<string | null>(null);
   const scrollToMessage = useCallback((targetId?: string | null) => {
     if (!targetId) return;
-    const index = timelineRef.current.findIndex((it) => it.data.id === targetId);
+    const index = timelineRef.current.findIndex(
+      (it) =>
+        it.data.id === targetId ||
+        (it.kind === "album" && it.docs.some((d) => d.id === targetId)),
+    );
     if (index < 0) return; // original is older than the loaded page
     listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
     setHighlightId(targetId);
@@ -415,6 +455,8 @@ function TripWithChat({
 
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [docsOpen, setDocsOpen] = useState(false);
+  // Index into `galleryPhotos` of the photo open in the gallery, or null.
+  const [galleryIndex, setGalleryIndex] = useState<number | null>(null);
 
   // ── Upload flow ─────────────────────────────────────────────────────────
   const pickAndUpload = async (source: "camera" | "gallery" | "document") => {
@@ -423,27 +465,19 @@ function TripWithChat({
       if (source === "camera") {
         const perm = await ImagePicker.requestCameraPermissionsAsync();
         if (!perm.granted) return;
-        const r = await ImagePicker.launchCameraAsync({ quality: 0.8 });
+        const r = await ImagePicker.launchCameraAsync({ quality: PICKER_QUALITY });
         if (r.canceled) return;
-        files = r.assets.map((a) => ({
-          uri: a.uri,
-          name: a.fileName ?? `photo-${Date.now()}.jpg`,
-          mimeType: a.mimeType ?? "image/jpeg",
-        }));
+        files = await compressPhotos(r.assets);
       } else if (source === "gallery") {
         const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!perm.granted) return;
         const r = await ImagePicker.launchImageLibraryAsync({
           mediaTypes: ["images"],
           allowsMultipleSelection: true,
-          quality: 0.8,
+          quality: PICKER_QUALITY,
         });
         if (r.canceled) return;
-        files = r.assets.map((a) => ({
-          uri: a.uri,
-          name: a.fileName ?? `photo-${Date.now()}.jpg`,
-          mimeType: a.mimeType ?? "image/jpeg",
-        }));
+        files = await compressPhotos(r.assets);
       } else {
         const r = await DocumentPicker.getDocumentAsync({
           multiple: true,
@@ -453,7 +487,7 @@ function TripWithChat({
         if (r.canceled) return;
         files = r.assets.map((a) => ({
           uri: a.uri,
-          name: a.name,
+          name: readableFileName(a.name),
           mimeType: a.mimeType ?? "application/octet-stream",
         }));
       }
@@ -476,13 +510,26 @@ function TripWithChat({
 
   const handleOpenDoc = useCallback(
     async (doc: DriverDocument) => {
+      // Photos open in the gallery (swipe / zoom); other files in the browser.
+      const i = galleryPhotos.findIndex((p) => p.id === doc.id);
+      if (i >= 0) {
+        if (docsOpen) {
+          // From the documents folder: iOS won't show a Modal while another
+          // one is still closing — close it, then open.
+          setDocsOpen(false);
+          setTimeout(() => setGalleryIndex(i), 400);
+        } else {
+          setGalleryIndex(i);
+        }
+        return;
+      }
       try {
-        await WebBrowser.openBrowserAsync(doc.signedUrl);
+        await openRemoteFile(doc);
       } catch (e) {
         Alert.alert(t("documents.cannotOpen"), (e as Error).message);
       }
     },
-    [t],
+    [t, galleryPhotos, docsOpen],
   );
 
   // Stable long-press handlers so memoized bubbles don't re-render every time
@@ -517,10 +564,23 @@ function TripWithChat({
             onLongPress={handleMsgLongPress}
             onReplyJump={scrollToMessage}
             onOpenUser={setCardUserId}
+            docLabel={docLabel}
           />
         );
       }
       const isMe = item.data.uploadedBy === user?.id;
+      if (item.kind === "album") {
+        return (
+          <AlbumBubble
+            docs={item.docs}
+            isMe={isMe}
+            currentUserId={user?.id}
+            highlighted={item.docs.some((d) => d.id === highlightId)}
+            onOpen={handleOpenDoc}
+            onLongPress={handleDocLongPress}
+          />
+        );
+      }
       return (
         <DocBubble
           doc={item.data}
@@ -539,6 +599,7 @@ function TripWithChat({
       handleDocLongPress,
       handleOpenDoc,
       scrollToMessage,
+      docLabel,
     ],
   );
 
@@ -619,7 +680,7 @@ function TripWithChat({
               color={c.mutedForeground}
             />
             <Text style={[styles.chatLabelText, { color: c.mutedForeground }]}>
-              {tripDocs.length}
+              {tripDocs.filter((d) => !d.deletedAt && d.signedUrl).length}
             </Text>
           </Pressable>
         </View>
@@ -1003,7 +1064,7 @@ function TripWithChat({
                     id: d.id,
                     targetType: "doc",
                     senderName: d.uploader ? fullName(d.uploader) : null,
-                    content: d.fileName,
+                    content: docLabel(d),
                     isDeleted: false,
                   });
                   setEditing(null);
@@ -1023,6 +1084,13 @@ function TripWithChat({
         onUpload={showUploadSheet}
         uploading={upload.isPending}
         onOpenDoc={handleOpenDoc}
+      />
+
+      {/* Full-screen photo gallery: swipe, pinch / double-tap zoom */}
+      <PhotoGallery
+        photos={galleryPhotos}
+        startIndex={galleryIndex}
+        onClose={() => setGalleryIndex(null)}
       />
     </View>
   );
@@ -1068,6 +1136,7 @@ const MessageBubble = memo(function MessageBubble({
   onLongPress,
   onReplyJump,
   onOpenUser,
+  docLabel,
 }: {
   message: ChatMessage;
   isMe: boolean;
@@ -1076,6 +1145,7 @@ const MessageBubble = memo(function MessageBubble({
   onLongPress?: (m: ChatMessage) => void;
   onReplyJump: (targetId: string) => void;
   onOpenUser?: (userId: string) => void;
+  docLabel: (d: { fileName: string; batchId?: string | null }) => string;
 }) {
   const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? "light"];
@@ -1179,7 +1249,7 @@ const MessageBubble = memo(function MessageBubble({
                   <MessageQuote
                     kind="doc"
                     senderName={fullName(message.replyToDocument.uploader)}
-                    fileName={message.replyToDocument.fileName}
+                    fileName={docLabel(message.replyToDocument)}
                     content=""
                     isDeleted={!!message.replyToDocument.deletedAt}
                     onPress={() => onReplyJump(message.replyToDocument!.id)}
@@ -1259,11 +1329,13 @@ function TripDocsModal({
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<DocTab>("ALL");
 
-  const photos = docs.filter((d) => d.fileType === "PHOTO");
-  const documents = docs.filter((d) => d.fileType === "DOCUMENT");
-  const filtered = tab === "ALL" ? docs : tab === "PHOTO" ? photos : documents;
+  // Deleted files (incl. ones gone from storage) can't be opened — hide them.
+  const live = docs.filter((d) => !d.deletedAt && d.signedUrl);
+  const photos = live.filter((d) => d.fileType === "PHOTO");
+  const documents = live.filter((d) => d.fileType === "DOCUMENT");
+  const filtered = tab === "ALL" ? live : tab === "PHOTO" ? photos : documents;
   const counts = {
-    ALL: docs.length,
+    ALL: live.length,
     PHOTO: photos.length,
     DOCUMENT: documents.length,
   };
@@ -1381,7 +1453,7 @@ function TripDocsModal({
               >
                 {item.fileType === "PHOTO" ? (
                   <Image
-                    source={{ uri: item.signedUrl }}
+                    source={{ uri: item.thumbUrl || item.signedUrl }}
                     style={styles.docRowThumb}
                   />
                 ) : (
@@ -1458,6 +1530,25 @@ const DocBubble = memo(function DocBubble({
     />
   );
 
+  // Deleted (or gone from storage — then signedUrl is ""): a plain
+  // "File deleted" label, like the DM / group chats and the web.
+  if (doc.deletedAt || !doc.signedUrl) {
+    return (
+      <View
+        style={[
+          styles.bubbleRow,
+          isMe ? styles.bubbleRowMe : styles.bubbleRowOther,
+        ]}
+      >
+        <View style={[styles.docDeleted, { backgroundColor: c.muted }]}>
+          <Text style={[styles.docDeletedText, { color: c.mutedForeground }]}>
+            {t("common.fileDeleted")}
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View
       style={[
@@ -1499,7 +1590,7 @@ const DocBubble = memo(function DocBubble({
           }
         >
           {isPhoto ? (
-            <Image source={{ uri: doc.signedUrl }} style={styles.docThumb} />
+            <Image source={{ uri: doc.thumbUrl || doc.signedUrl }} style={styles.docThumb} />
           ) : (
             <View
               style={[
@@ -1556,6 +1647,160 @@ const DocBubble = memo(function DocBubble({
               ]}
             >
               {doc.isRead ? "✓✓" : "✓"}
+            </Text>
+          )}
+        </View>
+      </View>
+    </View>
+  );
+});
+
+// ─── Album bubble (several files sent in one message) ───────────────────────
+
+/**
+ * Photo grid (+N), the other files under it, the caption once. Reactions and
+ * ✓✓ belong to the first file; long press opens the album's actions (reply,
+ * delete the whole album). Tapping a photo opens the gallery at it.
+ */
+const AlbumBubble = memo(function AlbumBubble({
+  docs,
+  isMe,
+  currentUserId,
+  highlighted,
+  onOpen,
+  onLongPress,
+}: {
+  docs: DriverDocument[];
+  isMe: boolean;
+  currentUserId?: string;
+  highlighted?: boolean;
+  onOpen: (d: DriverDocument) => void;
+  onLongPress?: (d: DriverDocument) => void;
+}) {
+  const { t } = useTranslation();
+  const c = Colors[useColorScheme() ?? "light"];
+  const lead = docs[0];
+  // Files can also be deleted one by one from the Documents screen.
+  const live = docs.filter((d) => !d.deletedAt && d.signedUrl);
+  const photos = live.filter((d) => d.fileType === "PHOTO");
+  const files = live.filter((d) => d.fileType !== "PHOTO");
+  const caption = lead.caption?.trim();
+  const time = formatTime(lead.createdAt, { hour: "2-digit", minute: "2-digit" });
+  const isManager = lead.uploader?.role !== "DRIVER";
+  const roleIcon = roleBadgeIcon(lead.uploader?.role);
+  const press = onLongPress ? () => onLongPress(lead) : undefined;
+  const fg = isMe ? "#fff" : c.foreground;
+  const sidekick = (
+    <MessageReactionsCluster
+      type="TRIP_DOC"
+      targetId={lead.id}
+      reactions={lead.reactions ?? []}
+      currentUserId={currentUserId}
+    />
+  );
+
+  return (
+    <View
+      style={[
+        styles.bubbleRow,
+        isMe ? styles.bubbleRowMe : styles.bubbleRowOther,
+      ]}
+    >
+      {!isMe && (
+        <View
+          style={[
+            styles.avatar,
+            { backgroundColor: isManager ? c.primary : c.muted },
+          ]}
+        >
+          <Ionicons
+            name={roleIcon}
+            size={12}
+            color={isManager ? "#fff" : c.mutedForeground}
+          />
+        </View>
+      )}
+      <View style={styles.bubbleCol}>
+        {!isMe && (
+          <Text style={[styles.bubbleSender, { color: c.mutedForeground }]}>
+            {fullName(lead.uploader) ||
+              (isManager ? t("nav.manager") : t("nav.driverFallback"))}
+          </Text>
+        )}
+        <View style={[styles.bubbleInlineRow, styles.bubbleInlineRowDoc]}>
+          {isMe && live.length > 0 && sidekick}
+          <View
+            style={[
+              styles.albumBubble,
+              {
+                backgroundColor: isMe ? c.primary : c.card,
+                borderWidth: highlighted ? 2 : StyleSheet.hairlineWidth,
+                borderColor: highlighted ? c.primary : c.border,
+              },
+            ]}
+          >
+            {live.length === 0 ? (
+              <Pressable onLongPress={press} delayLongPress={350}>
+                <Text style={[styles.albumDeleted, { color: isMe ? "rgba(255,255,255,0.8)" : c.mutedForeground }]}>
+                  {t("common.fileDeleted")}
+                </Text>
+              </Pressable>
+            ) : (
+              <>
+                <AlbumGrid
+                  photos={photos.map((p) => ({ id: p.id, uri: p.thumbUrl || p.signedUrl }))}
+                  onOpen={(id) => {
+                    const p = photos.find((x) => x.id === id);
+                    if (p) onOpen(p);
+                  }}
+                  onLongPress={press}
+                />
+                {files.map((d) => (
+                  <Pressable
+                    key={d.id}
+                    onPress={() => onOpen(d)}
+                    onLongPress={press}
+                    delayLongPress={350}
+                    style={styles.docBubble}
+                  >
+                    <Ionicons name="document-text-outline" size={20} color={fg} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.docFileName, { color: fg }]} numberOfLines={2}>
+                        {d.fileName}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.docFileMeta,
+                          { color: isMe ? "rgba(255,255,255,0.7)" : c.mutedForeground },
+                        ]}
+                      >
+                        {d.fileName.split(".").pop()?.toUpperCase() ?? "FILE"}
+                      </Text>
+                    </View>
+                  </Pressable>
+                ))}
+                {!!caption && (
+                  <Pressable onLongPress={press} delayLongPress={350}>
+                    <Text style={[styles.albumCaption, { color: fg }]}>{caption}</Text>
+                  </Pressable>
+                )}
+              </>
+            )}
+          </View>
+          {!isMe && live.length > 0 && sidekick}
+        </View>
+        <View style={styles.bubbleMetaRow}>
+          <Text style={[styles.bubbleTime, { color: c.mutedForeground }]}>
+            {time}
+          </Text>
+          {isMe && live.length > 0 && (
+            <Text
+              style={[
+                styles.bubbleTick,
+                { color: lead.isRead ? c.primary : c.mutedForeground },
+              ]}
+            >
+              {lead.isRead ? "✓✓" : "✓"}
             </Text>
           )}
         </View>
@@ -2233,4 +2478,13 @@ const styles = StyleSheet.create({
   },
   docFileName: { fontSize: 13, fontWeight: "600" },
   docFileMeta: { fontSize: 10, marginTop: 2 },
+  docDeleted: { borderRadius: Radius.lg, paddingHorizontal: 10, paddingVertical: 4 },
+  docDeletedText: { fontSize: 12, fontStyle: "italic" },
+  albumBubble: {
+    borderRadius: Radius.md,
+    overflow: "hidden",
+    width: 240,
+  },
+  albumCaption: { fontSize: 14, paddingHorizontal: 10, paddingVertical: 8 },
+  albumDeleted: { fontSize: 12, fontStyle: "italic", paddingHorizontal: 10, paddingVertical: 6 },
 });

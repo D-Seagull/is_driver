@@ -96,3 +96,34 @@ api.interceptors.response.use(
     return Promise.reject(error);
   },
 );
+
+// TEMP (2026-10-04) — diagnosing "Network Error" on some Android PDF uploads.
+// Logs every failed multipart request with what was in it; remove once found.
+api.interceptors.response.use(undefined, async (error) => {
+  const data = error?.config?.data as { getParts?: () => Record<string, unknown>[] } | undefined;
+  if (data && typeof data.getParts === 'function') {
+    const files = await Promise.all(
+      data.getParts().filter((p) => typeof p.uri === 'string').map(async (p) => {
+        let size: number | null = null;
+        let exists: boolean | null = null;
+        try {
+          const { File } = await import('expo-file-system');
+          const f = new File(p.uri as string);
+          exists = f.exists;
+          size = exists ? f.size : null;
+        } catch {
+          // size is best-effort
+        }
+        return { name: p.name, type: p.type, uri: p.uri, exists, size };
+      }),
+    );
+    console.warn('[upload] failed', {
+      url: error?.config?.url,
+      code: error?.code,
+      message: error?.message,
+      status: error?.response?.status ?? null,
+      files,
+    });
+  }
+  return Promise.reject(error);
+});

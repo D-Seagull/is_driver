@@ -12,6 +12,10 @@
     "loading": "Įkeliama…",
     "messageDeleted": "Žinutė ištrinta",
     "fileDeleted": "Failas ištrintas",
+    "album_one": "Albumas · {{count}} failas",
+    "album_few": "Albumas · {{count}} failai",
+    "album_many": "Albumas · {{count}} failo",
+    "album_other": "Albumas · {{count}} failų",
     "file": "Failas",
     "error": "Klaida"
   },
@@ -369,5 +373,14 @@
     "body": "Atsisiųsta nauja programėlės versija. Paleisti iš naujo dabar, kad ji būtų pritaikyta?",
     "later": "Vėliau",
     "restart": "Paleisti iš naujo"
+  },
+  "gallery": {
+    "save": "Išsaugoti",
+    "saved": "Išsaugota",
+    "share": "Bendrinti",
+    "saveFailed": "Nepavyko išsaugoti nuotraukos",
+    "shareFailed": "Nepavyko pasidalinti nuotrauka",
+    "permissionTitle": "Nėra prieigos prie galerijos",
+    "permissionBody": "Leiskite išsaugoti nuotraukas telefono nustatymuose."
   }
 }

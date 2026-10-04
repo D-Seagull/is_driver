@@ -18,8 +18,13 @@ export interface GroupDocumentFull {
   uploadedBy: string;
   fileUrl: string;
   signedUrl: string;
+  /** Small preview for bubbles and thumbnails; null for documents and for
+   *  photos uploaded before previews existed. Galleries use signedUrl. */
+  thumbUrl?: string | null;
   fileName: string;
   fileType: FileDocType;
+  /** Shared by files sent in one message (an album). */
+  batchId?: string | null;
   publicId: string | null;
   isRead: boolean;
   createdAt: string;
@@ -88,6 +93,19 @@ export function useUploadGroupDocs(groupId: string) {
         },
       );
       return res.data as GroupDocumentFull[];
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEY(groupId) });
+    },
+  });
+}
+
+/** Deletes the whole album `id` belongs to (just `id` when it isn't in one). */
+export function useDeleteGroupDocAlbum(groupId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await api.delete(`/group-messages/documents/${id}/album`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY(groupId) });

@@ -5,7 +5,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 const PAGE_SIZE = 50;
 
 import { documentKeys } from '@/hooks/use-documents';
-import { deleteDocument, DriverDocument } from '@/lib/documents-api';
+import {
+  deleteDocument,
+  deleteDocumentAlbum,
+  DriverDocument,
+} from '@/lib/documents-api';
 import { deleteTripMessage, editTripMessage, fetchTripMessages } from '@/lib/trips-api';
 import { getSocket } from '@/lib/socket';
 import { useAppActive } from '@/hooks/use-app-active';
@@ -43,6 +47,8 @@ export interface ChatMessage {
     fileName: string;
     fileType: 'PHOTO' | 'DOCUMENT';
     deletedAt: string | null;
+    /** Set when the quoted file is part of an album. */
+    batchId?: string | null;
     uploader: { id: string; firstName: string; lastName: string | null };
   } | null;
   reactions?: { id: string; userId: string; emoji: string }[];
@@ -481,13 +487,18 @@ export function useTripChat(
     }
   };
 
+  // An album (batchId) goes as a whole — it is one message.
   const removeDocument = async (documentId: string) => {
     if (!tripId) return;
-    qc.setQueryData<DriverDocument[]>(documentKeys.trip(tripId), (old = []) =>
-      old.filter((d) => d.id !== documentId),
-    );
+    let batchId: string | null = null;
+    qc.setQueryData<DriverDocument[]>(documentKeys.trip(tripId), (old = []) => {
+      batchId = old.find((d) => d.id === documentId)?.batchId ?? null;
+      return old.filter(
+        (d) => d.id !== documentId && (!batchId || d.batchId !== batchId),
+      );
+    });
     try {
-      await deleteDocument(documentId);
+      await (batchId ? deleteDocumentAlbum(documentId) : deleteDocument(documentId));
       qc.invalidateQueries({ queryKey: documentKeys.all });
     } catch (e) {
       console.warn('[chat] deleteDocument failed', e);

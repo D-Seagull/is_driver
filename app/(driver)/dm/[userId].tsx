@@ -4,9 +4,9 @@ import * as Clipboard from 'expo-clipboard';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { openRemoteFile, readableFileName } from '@/lib/open-file';
 import { fullName } from "@/lib/format";
 import {
   ActivityIndicator,
@@ -37,6 +37,7 @@ import { UserCardSheet } from '@/components/user-card-sheet';
 import { MessageQuote } from '@/components/message-quote';
 import { MessageReactionsCluster } from '@/components/message-reactions';
 import { Colors, Radius, Spacing } from '@/constants/theme';
+import { PhotoGallery } from '@/components/photo-gallery';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAppActive } from '@/hooks/use-app-active';
 import { useComposerBottomPadding } from '@/hooks/use-composer-bottom-padding';
@@ -45,6 +46,7 @@ import {
   useConversationDocuments,
   useConversationDocsSocketSync,
   useDeleteConversationDoc,
+  useDeleteConversationDocAlbum,
   useUploadConversationDocs,
   type ConversationDocumentFull,
 } from '@/hooks/use-conversation-documents';
@@ -59,6 +61,9 @@ import {
 import { useChatTyping } from '@/hooks/use-chat-typing';
 import { useReactionsSocketSync } from '@/hooks/use-message-reactions';
 import { TypingIndicator } from '@/components/typing-indicator';
+import { albumSizes, groupAlbums } from '@/lib/albums';
+import { compressPhotos, PICKER_QUALITY } from '@/lib/compress-photo';
+import { AlbumGrid } from '@/components/album-grid';
 import { EDIT_WINDOW_MS } from '@/lib/constants';
 import { formatDate, formatTime } from '@/lib/format-date';
 import { getSocket } from '@/lib/socket';
@@ -77,7 +82,9 @@ type EditingState = { id: string; original: string };
 // Messages + documents share one time-ordered timeline.
 type TimelineItem =
   | { kind: 'msg'; data: DirectMessage; ts: number }
-  | { kind: 'doc'; data: ConversationDocumentFull; ts: number };
+  | { kind: 'doc'; data: ConversationDocumentFull; ts: number }
+  // Files sent in one message: `data` is the first, `docs` all of them.
+  | { kind: 'album'; data: ConversationDocumentFull; docs: ConversationDocumentFull[]; ts: number };
 
 export default function DmScreen() {
   const { t } = useTranslation();
@@ -119,10 +126,26 @@ export default function DmScreen() {
   const { data: messages = [], isLoading } = useDirectMessages(peerId);
   const { loadOlder, loadingOlder, hasMore } = useLoadOlderDirectMessages(peerId);
   const { data: documents = [] } = useConversationDocuments(peerId);
+  // Every photo of this chat, oldest first (timeline order) — the gallery
+  // flips through all of them, starting at the one tapped.
+  const galleryPhotos = useMemo(
+    () =>
+      documents
+        .filter((d) => d.fileType === 'PHOTO' && !d.deletedAt && d.signedUrl)
+        // id breaks ties so an album flips in the same order as its grid.
+        .sort(
+          (a, b) =>
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime() ||
+            a.id.localeCompare(b.id),
+        )
+        .map((d) => ({ id: d.id, uri: d.signedUrl, thumbUri: d.thumbUrl, fileName: d.fileName })),
+    [documents],
+  );
   const deleteMsg = useDeleteDirectMessage();
   const editMsg = useEditDirectMessage(peerId);
   const uploadDocs = useUploadConversationDocs(peerId);
   const deleteDoc = useDeleteConversationDoc(peerId);
+  const deleteAlbum = useDeleteConversationDocAlbum(peerId);
 
   // ─── Realtime ──────────────────────────────────────────────────────
   useChatEvents({ dmOtherUserId: peerId, myUserId: myId });
@@ -161,7 +184,8 @@ export default function DmScreen() {
   const [editing, setEditing] = useState<EditingState | null>(null);
 
   // Photo viewer + documents folder overlays.
-  const [viewerUri, setViewerUri] = useState<string | null>(null);
+  // Index into `galleryPhotos` of the photo open in the gallery, or null.
+  const [galleryIndex, setGalleryIndex] = useState<number | null>(null);
   const [folderOpen, setFolderOpen] = useState(false);
 
   // ─── Long-press actions sheet ──────────────────────────────────────
@@ -182,14 +206,25 @@ export default function DmScreen() {
         data: m,
         ts: new Date(m.createdAt).getTime(),
       })),
-      ...documents.map((d) => ({
-        kind: 'doc' as const,
-        data: d,
-        ts: new Date(d.createdAt).getTime(),
-      })),
+      ...groupAlbums(documents).map((g): TimelineItem => {
+        const ts = new Date(g[0].createdAt).getTime();
+        return g.length > 1
+          ? { kind: 'album', data: g[0], docs: g, ts }
+          : { kind: 'doc', data: g[0], ts };
+      }),
     ];
     return items.sort((a, b) => b.ts - a.ts);
   }, [messages, documents]);
+
+  // A quoted file that belongs to an album reads "Album · N files".
+  const albumSize = useMemo(() => albumSizes(documents), [documents]);
+  const docLabel = useCallback(
+    (d: { fileName: string; batchId?: string | null }) => {
+      const count = d.batchId ? albumSize.get(d.batchId) : undefined;
+      return count ? t('common.album', { count }) : d.fileName;
+    },
+    [albumSize, t],
+  );
 
   // ─── Jump to a replied-to message/document ─────────────────────────
   const [highlightId, setHighlightId] = useState<string | null>(null);
@@ -197,7 +232,11 @@ export default function DmScreen() {
   const scrollToMessage = useCallback(
     (targetId?: string | null) => {
       if (!targetId) return;
-      const index = data.findIndex((it) => it.data.id === targetId);
+      const index = data.findIndex(
+        (it) =>
+          it.data.id === targetId ||
+          (it.kind === 'album' && it.docs.some((d) => d.id === targetId)),
+      );
       if (index < 0) return; // original is older than the loaded page
       listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
       setHighlightId(targetId);
@@ -216,12 +255,12 @@ export default function DmScreen() {
       if (source === 'camera') {
         const perm = await ImagePicker.requestCameraPermissionsAsync();
         if (!perm.granted) return;
-        const r = await ImagePicker.launchCameraAsync({ quality: 0.8 });
+        const r = await ImagePicker.launchCameraAsync({ quality: PICKER_QUALITY });
         if (r.canceled) return;
-        files = r.assets.map((a) => ({
-          uri: a.uri,
-          name: a.fileName ?? `photo-${Date.now()}.jpg`,
-          type: a.mimeType ?? 'image/jpeg',
+        files = (await compressPhotos(r.assets)).map((p) => ({
+          uri: p.uri,
+          name: p.name,
+          type: p.mimeType,
         }));
       } else if (source === 'gallery') {
         const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -229,13 +268,13 @@ export default function DmScreen() {
         const r = await ImagePicker.launchImageLibraryAsync({
           mediaTypes: ['images'],
           allowsMultipleSelection: true,
-          quality: 0.8,
+          quality: PICKER_QUALITY,
         });
         if (r.canceled) return;
-        files = r.assets.map((a) => ({
-          uri: a.uri,
-          name: a.fileName ?? `photo-${Date.now()}.jpg`,
-          type: a.mimeType ?? 'image/jpeg',
+        files = (await compressPhotos(r.assets)).map((p) => ({
+          uri: p.uri,
+          name: p.name,
+          type: p.mimeType,
         }));
       } else {
         const r = await DocumentPicker.getDocumentAsync({
@@ -246,7 +285,7 @@ export default function DmScreen() {
         if (r.canceled) return;
         files = r.assets.map((a) => ({
           uri: a.uri,
-          name: a.name,
+          name: readableFileName(a.name),
           type: a.mimeType ?? 'application/octet-stream',
         }));
       }
@@ -269,16 +308,25 @@ export default function DmScreen() {
   const openDoc = useCallback(
     async (doc: ConversationDocumentFull) => {
       if (doc.fileType === 'PHOTO') {
-        setViewerUri(doc.signedUrl);
+        const i = galleryPhotos.findIndex((p) => p.id === doc.id);
+        if (i < 0) return;
+        if (folderOpen) {
+          // From the documents folder: iOS won't show a Modal while
+          // another one is still closing — close it, then open.
+          setFolderOpen(false);
+          setTimeout(() => setGalleryIndex(i), 400);
+        } else {
+          setGalleryIndex(i);
+        }
         return;
       }
       try {
-        await WebBrowser.openBrowserAsync(doc.signedUrl);
+        await openRemoteFile(doc);
       } catch (e) {
         Alert.alert(t('documents.cannotOpen'), (e as Error).message);
       }
     },
-    [t],
+    [t, galleryPhotos, folderOpen],
   );
 
   // Stable per-list callbacks so the memoized bubbles don't re-render on every
@@ -424,6 +472,16 @@ export default function DmScreen() {
                 highlighted={item.data.id === highlightId}
                 onLongPress={handleMsgLongPress}
                 onReplyJump={scrollToMessage}
+                docLabel={docLabel}
+              />
+            ) : item.kind === 'album' ? (
+              <AlbumBubble
+                docs={item.docs}
+                isOwn={item.data.uploadedBy === myId}
+                myId={myId}
+                highlighted={item.docs.some((d) => d.id === highlightId)}
+                onOpen={openDoc}
+                onLongPress={handleDocLongPress}
               />
             ) : (
               <DocBubble
@@ -608,7 +666,7 @@ export default function DmScreen() {
                   id: d.id,
                   targetType: 'doc',
                   senderName: fullName(d.uploader) || null,
-                  content: d.caption || d.fileName,
+                  content: d.caption || docLabel(d),
                   isDeleted: false,
                 });
                 setEditing(null);
@@ -616,7 +674,9 @@ export default function DmScreen() {
             : undefined,
           onDelete:
             docSheetFor && docSheetFor.uploadedBy === myId
-              ? () => deleteDoc.mutate(docSheetFor.id)
+              ? () =>
+                  // An album is one message — it goes as a whole.
+                  (docSheetFor.batchId ? deleteAlbum : deleteDoc).mutate(docSheetFor.id)
               : undefined,
         }}
       />
@@ -631,30 +691,12 @@ export default function DmScreen() {
         onClose={() => setFolderOpen(false)}
       />
 
-      {/* Full-screen photo viewer */}
-      <Modal
-        visible={!!viewerUri}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setViewerUri(null)}
-      >
-        <Pressable style={styles.viewerBackdrop} onPress={() => setViewerUri(null)}>
-          {viewerUri && (
-            <Image
-              source={{ uri: viewerUri }}
-              style={styles.viewerImage}
-              resizeMode="contain"
-            />
-          )}
-          <Pressable
-            onPress={() => setViewerUri(null)}
-            hitSlop={10}
-            style={[styles.viewerClose, { top: insets.top + Spacing.md }]}
-          >
-            <Ionicons name="close" size={30} color="#fff" />
-          </Pressable>
-        </Pressable>
-      </Modal>
+      {/* Full-screen photo gallery: swipe, pinch / double-tap zoom */}
+      <PhotoGallery
+        photos={galleryPhotos}
+        startIndex={galleryIndex}
+        onClose={() => setGalleryIndex(null)}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -752,6 +794,7 @@ const MessageBubble = memo(function MessageBubble({
   highlighted,
   onLongPress,
   onReplyJump,
+  docLabel,
 }: {
   msg: DirectMessage;
   isOwn: boolean;
@@ -759,6 +802,7 @@ const MessageBubble = memo(function MessageBubble({
   highlighted?: boolean;
   onLongPress: (m: DirectMessage) => void;
   onReplyJump: (targetId: string) => void;
+  docLabel: (d: { fileName: string; batchId?: string | null }) => string;
 }) {
   const { t } = useTranslation();
   const scheme = useColorScheme() ?? 'light';
@@ -805,7 +849,7 @@ const MessageBubble = memo(function MessageBubble({
         <MessageQuote
           kind="doc"
           senderName={fullName(msg.replyToDocument.uploader)}
-          fileName={msg.replyToDocument.fileName}
+          fileName={docLabel(msg.replyToDocument)}
           content=""
           isDeleted={!!msg.replyToDocument.deletedAt}
           onPress={() => onReplyJump(msg.replyToDocument!.id)}
@@ -864,6 +908,111 @@ const MessageBubble = memo(function MessageBubble({
             {msg.isRead ? '✓✓' : '✓'}
           </Text>
         )}
+      </View>
+    </View>
+  );
+});
+
+// ─── Album bubble (several files sent in one message) ─────────────────────
+
+/**
+ * Photo grid (+N), the other files under it, the caption once. Reactions
+ * belong to the first file; long press opens the album's actions (reply,
+ * delete the whole album). Tapping a photo opens the gallery at it.
+ */
+const AlbumBubble = memo(function AlbumBubble({
+  docs,
+  isOwn,
+  myId,
+  highlighted,
+  onOpen,
+  onLongPress,
+}: {
+  docs: ConversationDocumentFull[];
+  isOwn: boolean;
+  myId: string;
+  highlighted?: boolean;
+  onOpen: (d: ConversationDocumentFull) => void;
+  onLongPress: (d: ConversationDocumentFull) => void;
+}) {
+  const { t } = useTranslation();
+  const scheme = useColorScheme() ?? 'light';
+  const c = Colors[scheme];
+  const lead = docs[0];
+  // Files can also be deleted one by one from the documents folder.
+  const live = docs.filter((d) => !d.deletedAt && d.signedUrl);
+  const photos = live.filter((d) => d.fileType === 'PHOTO');
+  const files = live.filter((d) => d.fileType !== 'PHOTO');
+  const caption = lead.caption?.trim();
+  const time = formatTime(lead.createdAt, { hour: '2-digit', minute: '2-digit' });
+  const fg = isOwn ? c.primaryForeground : c.foreground;
+  const press = () => onLongPress(lead);
+
+
+  if (live.length === 0) {
+    return (
+      <View style={[styles.outerCol, isOwn && styles.outerColOwn]}>
+        <View style={[styles.bubble, styles.bubbleDeleted]}>
+          <Text style={[styles.bubbleText, { color: c.mutedForeground, fontStyle: 'italic', fontSize: 12 }]}>
+            {t('common.fileDeleted')}
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  const sidekick = (
+    <MessageReactionsCluster
+      type="DM_DOC"
+      targetId={lead.id}
+      reactions={lead.reactions ?? []}
+      currentUserId={myId}
+    />
+  );
+
+  return (
+    <View style={[styles.outerCol, isOwn && styles.outerColOwn]}>
+      <View style={[styles.bubbleRow, styles.bubbleRowDoc]}>
+        {isOwn && sidekick}
+        <View
+          style={[
+            styles.albumBubble,
+            { backgroundColor: isOwn ? c.primary : c.muted },
+            highlighted && { borderWidth: 2, borderColor: c.primary },
+          ]}
+        >
+          <AlbumGrid
+            photos={photos.map((p) => ({ id: p.id, uri: p.thumbUrl || p.signedUrl }))}
+            onOpen={(id) => {
+              const p = photos.find((x) => x.id === id);
+              if (p) onOpen(p);
+            }}
+            onLongPress={press}
+          />
+          {files.map((d) => (
+            <Pressable
+              key={d.id}
+              onPress={() => onOpen(d)}
+              onLongPress={press}
+              delayLongPress={400}
+              style={styles.docFileRow}
+            >
+              <Ionicons name="document-text" size={22} color={fg} />
+              <Text style={[styles.docFileName, { color: fg }]} numberOfLines={2}>
+                {d.fileName}
+              </Text>
+            </Pressable>
+          ))}
+          {!!caption && (
+            <Pressable onLongPress={press} delayLongPress={400}>
+              <Text style={[styles.albumCaption, { color: fg }]}>{caption}</Text>
+            </Pressable>
+          )}
+        </View>
+        {!isOwn && sidekick}
+      </View>
+      <View style={[styles.meta, isOwn && styles.metaOwn]}>
+        <Text style={[styles.metaText, { color: c.mutedForeground }]}>{time}</Text>
       </View>
     </View>
   );
@@ -928,7 +1077,7 @@ const DocBubble = memo(function DocBubble({
         ]}
       >
         {isPhoto ? (
-          <Image source={{ uri: doc.signedUrl }} style={styles.docThumb} />
+          <Image source={{ uri: doc.thumbUrl || doc.signedUrl }} style={styles.docThumb} />
         ) : (
           <View style={styles.docFileRow}>
             <Ionicons
@@ -1087,7 +1236,7 @@ function DocsFolderModal({
                 ]}
               >
                 {item.fileType === 'PHOTO' ? (
-                  <Image source={{ uri: item.signedUrl }} style={styles.docRowThumb} />
+                  <Image source={{ uri: item.thumbUrl || item.signedUrl }} style={styles.docRowThumb} />
                 ) : (
                   <View
                     style={[
@@ -1161,8 +1310,12 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     maxWidth: 240,
   },
-  docFileName: { flex: 1, fontSize: 13, fontWeight: '600' },
+  // flexShrink, not flex: 1 — in a content-sized bubble flex: 1 squeezed the
+  // name to zero width on Android (file cards showed no name).
+  docFileName: { flexShrink: 1, fontSize: 13, fontWeight: '600' },
   docCaption: { fontSize: 13, paddingHorizontal: 6, paddingVertical: 4 },
+  albumBubble: { borderRadius: Radius.lg, overflow: 'hidden', width: 240 },
+  albumCaption: { fontSize: 14, lineHeight: 18, paddingHorizontal: 10, paddingVertical: 8 },
 
   // Photo viewer
   viewerBackdrop: {

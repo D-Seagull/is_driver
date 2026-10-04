@@ -66,10 +66,13 @@ export function getSocket(token?: string): Socket {
       // token if the provider throws.
       // `client: 'mobile'` → the backend lets only a phone app on screen hold
       // back chat pushes (an open web tab / desktop must not silence them).
+      // `pulse: true` → this app sends the 15 s foreground pulse
+      // (use-app-state-presence), so the server may let a stale
+      // "on screen" flag expire instead of swallowing chat pushes.
       auth: (cb) => {
         Promise.resolve(getAuthToken())
-          .then((tok) => cb({ token: tok ?? token ?? '', client: 'mobile' }))
-          .catch(() => cb({ token: token ?? '', client: 'mobile' }));
+          .then((tok) => cb({ token: tok ?? token ?? '', client: 'mobile', pulse: true }))
+          .catch(() => cb({ token: token ?? '', client: 'mobile', pulse: true }));
       },
       // polling first → upgrades to WebSocket automatically.
       // This avoids Android WebSocket handshake failures.

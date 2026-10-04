@@ -4,9 +4,9 @@ import type { DrawerNavigationProp } from 'expo-router/drawer';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { Stack } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { openRemoteFile, readableFileName } from '@/lib/open-file';
 import { fullName } from "@/lib/format";
 import {
   ActivityIndicator,
@@ -27,6 +27,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NotificationBell } from '@/components/notification-bell';
 import { ScreenPlaceholder } from '@/components/screen-placeholder';
 import { Colors, Radius, Spacing } from '@/constants/theme';
+import { PhotoGallery } from '@/components/photo-gallery';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   useDeleteDocument,
@@ -36,6 +37,7 @@ import {
 import { useActiveTrip } from '@/hooks/use-trips';
 import { useDriverTruck } from '@/hooks/use-truck';
 import { DriverDocument, UploadFileLocal } from '@/lib/documents-api';
+import { compressPhotos, PICKER_QUALITY } from '@/lib/compress-photo';
 import { formatDate } from '@/lib/format-date';
 import { useUser } from '@/store/auth';
 
@@ -74,6 +76,8 @@ export default function DocumentsScreen() {
     if (!docs) return [];
     const map = new Map<string, FolderGroup>();
     for (const d of docs) {
+      // Deleted files (incl. ones gone from storage) can't be opened.
+      if (d.deletedAt || !d.signedUrl) continue;
       const tripId = d.tripId;
       const existing = map.get(tripId);
       if (existing) {
@@ -128,27 +132,19 @@ export default function DocumentsScreen() {
       if (source === 'camera') {
         const perm = await ImagePicker.requestCameraPermissionsAsync();
         if (!perm.granted) return;
-        const r = await ImagePicker.launchCameraAsync({ quality: 0.8 });
+        const r = await ImagePicker.launchCameraAsync({ quality: PICKER_QUALITY });
         if (r.canceled) return;
-        files = r.assets.map((a) => ({
-          uri: a.uri,
-          name: a.fileName ?? `photo-${Date.now()}.jpg`,
-          mimeType: a.mimeType ?? 'image/jpeg',
-        }));
+        files = await compressPhotos(r.assets);
       } else if (source === 'gallery') {
         const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!perm.granted) return;
         const r = await ImagePicker.launchImageLibraryAsync({
           mediaTypes: ['images'],
           allowsMultipleSelection: true,
-          quality: 0.8,
+          quality: PICKER_QUALITY,
         });
         if (r.canceled) return;
-        files = r.assets.map((a) => ({
-          uri: a.uri,
-          name: a.fileName ?? `photo-${Date.now()}.jpg`,
-          mimeType: a.mimeType ?? 'image/jpeg',
-        }));
+        files = await compressPhotos(r.assets);
       } else {
         const r = await DocumentPicker.getDocumentAsync({
           multiple: true,
@@ -158,7 +154,7 @@ export default function DocumentsScreen() {
         if (r.canceled) return;
         files = r.assets.map((a) => ({
           uri: a.uri,
-          name: a.name,
+          name: readableFileName(a.name),
           mimeType: a.mimeType ?? 'application/octet-stream',
         }));
       }
@@ -380,9 +376,27 @@ function FolderModal({
     return folder.docs.filter((d) => d.fileType === tab);
   }, [folder, tab]);
 
+  // This folder's photos, oldest first — the gallery flips through them.
+  const galleryPhotos = useMemo(
+    () =>
+      (folder?.docs ?? [])
+        .filter((d) => d.fileType === 'PHOTO')
+        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+        .map((d) => ({ id: d.id, uri: d.signedUrl, thumbUri: d.thumbUrl, fileName: d.fileName })),
+    [folder],
+  );
+  const [galleryIndex, setGalleryIndex] = useState<number | null>(null);
+
   const handleOpenDoc = async (doc: DriverDocument) => {
+    // Photos open in the gallery (inside this sheet, so closing it comes
+    // back here); other files in the browser.
+    const i = galleryPhotos.findIndex((p) => p.id === doc.id);
+    if (i >= 0) {
+      setGalleryIndex(i);
+      return;
+    }
     try {
-      await WebBrowser.openBrowserAsync(doc.signedUrl);
+      await openRemoteFile(doc);
     } catch (e) {
       Alert.alert(t('documents.cannotOpen'), (e as Error).message);
     }
@@ -516,6 +530,13 @@ function FolderModal({
           />
         )}
       </View>
+      {/* Gallery inside this sheet — a Modal opened from within another one
+          shows on top on iOS too; closing it returns to the folder. */}
+      <PhotoGallery
+        photos={galleryPhotos}
+        startIndex={galleryIndex}
+        onClose={() => setGalleryIndex(null)}
+      />
     </Modal>
   );
 }
@@ -555,7 +576,7 @@ function DocCard({
       ]}
     >
       {isPhoto ? (
-        <Image source={{ uri: doc.signedUrl }} style={styles.thumb} />
+        <Image source={{ uri: doc.thumbUrl || doc.signedUrl }} style={styles.thumb} />
       ) : (
         <View style={[styles.thumb, { backgroundColor: c.muted, alignItems: 'center', justifyContent: 'center' }]}>
           <Ionicons name="document-text-outline" size={24} color={c.mutedForeground} />
