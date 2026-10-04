@@ -37,6 +37,7 @@ import {
 import { useActiveTrip } from '@/hooks/use-trips';
 import { useDriverTruck } from '@/hooks/use-truck';
 import { DriverDocument, UploadFileLocal } from '@/lib/documents-api';
+import { compressPhotos, PICKER_QUALITY } from '@/lib/compress-photo';
 import { formatDate } from '@/lib/format-date';
 import { useUser } from '@/store/auth';
 
@@ -131,27 +132,19 @@ export default function DocumentsScreen() {
       if (source === 'camera') {
         const perm = await ImagePicker.requestCameraPermissionsAsync();
         if (!perm.granted) return;
-        const r = await ImagePicker.launchCameraAsync({ quality: 0.8 });
+        const r = await ImagePicker.launchCameraAsync({ quality: PICKER_QUALITY });
         if (r.canceled) return;
-        files = r.assets.map((a) => ({
-          uri: a.uri,
-          name: a.fileName ?? `photo-${Date.now()}.jpg`,
-          mimeType: a.mimeType ?? 'image/jpeg',
-        }));
+        files = await compressPhotos(r.assets);
       } else if (source === 'gallery') {
         const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!perm.granted) return;
         const r = await ImagePicker.launchImageLibraryAsync({
           mediaTypes: ['images'],
           allowsMultipleSelection: true,
-          quality: 0.8,
+          quality: PICKER_QUALITY,
         });
         if (r.canceled) return;
-        files = r.assets.map((a) => ({
-          uri: a.uri,
-          name: a.fileName ?? `photo-${Date.now()}.jpg`,
-          mimeType: a.mimeType ?? 'image/jpeg',
-        }));
+        files = await compressPhotos(r.assets);
       } else {
         const r = await DocumentPicker.getDocumentAsync({
           multiple: true,
@@ -389,7 +382,7 @@ function FolderModal({
       (folder?.docs ?? [])
         .filter((d) => d.fileType === 'PHOTO')
         .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-        .map((d) => ({ id: d.id, uri: d.signedUrl, fileName: d.fileName })),
+        .map((d) => ({ id: d.id, uri: d.signedUrl, thumbUri: d.thumbUrl, fileName: d.fileName })),
     [folder],
   );
   const [galleryIndex, setGalleryIndex] = useState<number | null>(null);
