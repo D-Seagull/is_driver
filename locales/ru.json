@@ -1,5 +1,9 @@
 {
   "common": {
+    "lastSeen": {
+      "label": "последний вход {{when}}",
+      "yesterday": "вчера {{time}}"
+    },
     "cancel": "Отмена",
     "delete": "Удалить",
     "save": "Сохранить",

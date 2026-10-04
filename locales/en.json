@@ -1,5 +1,9 @@
 {
   "common": {
+    "lastSeen": {
+      "label": "last in the app {{when}}",
+      "yesterday": "yesterday {{time}}"
+    },
     "cancel": "Cancel",
     "delete": "Delete",
     "save": "Save",

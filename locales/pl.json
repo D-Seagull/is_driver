@@ -1,5 +1,9 @@
 {
   "common": {
+    "lastSeen": {
+      "label": "ostatnio w aplikacji {{when}}",
+      "yesterday": "wczoraj {{time}}"
+    },
     "cancel": "Anuluj",
     "delete": "Usuń",
     "save": "Zapisz",
