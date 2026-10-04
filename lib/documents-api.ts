@@ -14,6 +14,9 @@ export interface DriverDocument {
    *  `signedUrl` is ""). Such files can't be shown or opened. */
   deletedAt?: string | null;
   signedUrl: string;
+  /** Small preview for bubbles and thumbnails; null for documents and for
+   *  photos uploaded before previews existed. Galleries use signedUrl. */
+  thumbUrl?: string | null;
   reactions?: MessageReactionRow[];
   uploader?: { id: string; firstName: string; lastName: string | null; role: string };
   trip?: {

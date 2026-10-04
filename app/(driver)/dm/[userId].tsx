@@ -931,7 +931,7 @@ const DocBubble = memo(function DocBubble({
         ]}
       >
         {isPhoto ? (
-          <Image source={{ uri: doc.signedUrl }} style={styles.docThumb} />
+          <Image source={{ uri: doc.thumbUrl || doc.signedUrl }} style={styles.docThumb} />
         ) : (
           <View style={styles.docFileRow}>
             <Ionicons
@@ -1090,7 +1090,7 @@ function DocsFolderModal({
                 ]}
               >
                 {item.fileType === 'PHOTO' ? (
-                  <Image source={{ uri: item.signedUrl }} style={styles.docRowThumb} />
+                  <Image source={{ uri: item.thumbUrl || item.signedUrl }} style={styles.docRowThumb} />
                 ) : (
                   <View
                     style={[

@@ -583,7 +583,7 @@ function DocCard({
       ]}
     >
       {isPhoto ? (
-        <Image source={{ uri: doc.signedUrl }} style={styles.thumb} />
+        <Image source={{ uri: doc.thumbUrl || doc.signedUrl }} style={styles.thumb} />
       ) : (
         <View style={[styles.thumb, { backgroundColor: c.muted, alignItems: 'center', justifyContent: 'center' }]}>
           <Ionicons name="document-text-outline" size={24} color={c.mutedForeground} />
