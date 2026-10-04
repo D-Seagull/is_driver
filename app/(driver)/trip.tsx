@@ -1,4 +1,5 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { compressPhotos, PICKER_QUALITY } from "@/lib/compress-photo";
 import { EDIT_WINDOW_MS } from "@/lib/constants";
 import { fullName, formatStopWindow } from "@/lib/format";
 import { roleBadgeIcon } from "@/lib/roles";
@@ -282,7 +283,7 @@ function TripWithChat({
       tripDocs
         .filter((d) => d.fileType === "PHOTO" && !d.deletedAt && d.signedUrl)
         .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-        .map((d) => ({ id: d.id, uri: d.signedUrl, fileName: d.fileName })),
+        .map((d) => ({ id: d.id, uri: d.signedUrl, thumbUri: d.thumbUrl, fileName: d.fileName })),
     [tripDocs],
   );
   const upload = useUploadDocuments();
@@ -436,27 +437,19 @@ function TripWithChat({
       if (source === "camera") {
         const perm = await ImagePicker.requestCameraPermissionsAsync();
         if (!perm.granted) return;
-        const r = await ImagePicker.launchCameraAsync({ quality: 0.8 });
+        const r = await ImagePicker.launchCameraAsync({ quality: PICKER_QUALITY });
         if (r.canceled) return;
-        files = r.assets.map((a) => ({
-          uri: a.uri,
-          name: a.fileName ?? `photo-${Date.now()}.jpg`,
-          mimeType: a.mimeType ?? "image/jpeg",
-        }));
+        files = await compressPhotos(r.assets);
       } else if (source === "gallery") {
         const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!perm.granted) return;
         const r = await ImagePicker.launchImageLibraryAsync({
           mediaTypes: ["images"],
           allowsMultipleSelection: true,
-          quality: 0.8,
+          quality: PICKER_QUALITY,
         });
         if (r.canceled) return;
-        files = r.assets.map((a) => ({
-          uri: a.uri,
-          name: a.fileName ?? `photo-${Date.now()}.jpg`,
-          mimeType: a.mimeType ?? "image/jpeg",
-        }));
+        files = await compressPhotos(r.assets);
       } else {
         const r = await DocumentPicker.getDocumentAsync({
           multiple: true,

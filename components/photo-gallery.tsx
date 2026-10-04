@@ -35,6 +35,9 @@ import { Spacing } from '@/constants/theme';
 export interface GalleryPhoto {
   id: string;
   uri: string;
+  /** Small preview (already cached from the chat) — shown instantly while the
+   *  full photo loads. Absent for photos uploaded before previews existed. */
+  thumbUri?: string | null;
   /** Original name — keeps the right extension when saving / sharing. */
   fileName?: string;
 }
@@ -106,7 +109,13 @@ export function PhotoGallery({
 
   const renderItem = useCallback(
     ({ item }: { item: GalleryPhoto }) => (
-      <ZoomablePhoto uri={item.uri} width={width} height={height} onZoomChange={setZoomed} />
+      <ZoomablePhoto
+        uri={item.uri}
+        thumbUri={item.thumbUri}
+        width={width}
+        height={height}
+        onZoomChange={setZoomed}
+      />
     ),
     [width, height],
   );
@@ -282,11 +291,13 @@ function GalleryControls({
  */
 function ZoomablePhoto({
   uri,
+  thumbUri,
   width,
   height,
   onZoomChange,
 }: {
   uri: string;
+  thumbUri?: string | null;
   width: number;
   height: number;
   onZoomChange: (zoomed: boolean) => void;
@@ -393,7 +404,16 @@ function ZoomablePhoto({
     <GestureDetector gesture={gesture}>
       <View style={{ width, height }}>
         <Animated.View style={[StyleSheet.absoluteFill, animatedStyle]}>
-          <Image source={{ uri }} style={StyleSheet.absoluteFill} contentFit="contain" />
+          {/* Same box and fit for preview and photo, so nothing jumps when the
+              full one fades in over it. */}
+          <Image
+            source={{ uri }}
+            placeholder={thumbUri ? { uri: thumbUri } : undefined}
+            placeholderContentFit="contain"
+            transition={150}
+            style={StyleSheet.absoluteFill}
+            contentFit="contain"
+          />
         </Animated.View>
       </View>
     </GestureDetector>
