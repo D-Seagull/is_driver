@@ -1,5 +1,6 @@
 import { api } from './api';
 import { MOCK_AUTH } from './config';
+import { withNetworkRetry } from './net-retry';
 
 export interface DriverTruckSummary {
   id: string;
@@ -134,7 +135,9 @@ export async function requestOtp(phone: string): Promise<void> {
   }
   try {
     console.log('[auth-api] requestOtp →', { phone });
-    const res = await api.post('/auth/driver/request-otp', { phone });
+    const res = await withNetworkRetry(() =>
+      api.post('/auth/driver/request-otp', { phone }),
+    );
     console.log('[auth-api] requestOtp ✓', res.status, res.data);
   } catch (err) {
     console.warn('[auth-api] requestOtp ✗', err);
@@ -179,11 +182,13 @@ export async function verifyOtp(phone: string, code: string): Promise<AuthResult
     // Backend returns { access_token, refresh_token, user }. We expose the
     // access token as `token` throughout the app for symmetry with the auth
     // store / api interceptor; `refreshToken` is kept for silent re-auth.
-    const { data } = await api.post<{
-      access_token: string;
-      refresh_token: string;
-      user: AuthUser;
-    }>('/auth/driver/verify-otp', { phone, code });
+    const { data } = await withNetworkRetry(() =>
+      api.post<{
+        access_token: string;
+        refresh_token: string;
+        user: AuthUser;
+      }>('/auth/driver/verify-otp', { phone, code }),
+    );
     console.log('[auth-api] verifyOtp ✓', { userId: data.user?.id });
     return {
       token: data.access_token,
