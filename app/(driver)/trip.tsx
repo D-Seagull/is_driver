@@ -30,6 +30,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -241,6 +242,9 @@ function TripWithChat({
   const [msgSheetFor, setMsgSheetFor] = useState<ChatMessage | null>(null);
   const [docSheetFor, setDocSheetFor] = useState<DriverDocument | null>(null);
   const [newMsgCount, setNewMsgCount] = useState(0);
+  // Round jump-to-latest button, shown when scrolled up with no new-message
+  // pill already offering the same jump.
+  const [showScrollDown, setShowScrollDown] = useState(false);
   const listRef = useRef<FlatList>(null);
   // True while the list is scrolled within ~80px of the bottom. Used to
   // suppress auto-scroll when the user has scrolled up to read history.
@@ -719,6 +723,7 @@ function TripWithChat({
                 (contentOffset.y + layoutMeasurement.height);
               const wasNearBottom = nearBottomRef.current;
               nearBottomRef.current = distanceFromBottom < 80;
+              setShowScrollDown(distanceFromBottom > 240);
               if (!wasNearBottom && nearBottomRef.current) {
                 // User scrolled back to bottom — dismiss pill and ack messages
                 setNewMsgCount(0);
@@ -803,6 +808,22 @@ function TripWithChat({
           >
             <Ionicons name="chevron-down" size={16} color="#fff" />
             <Text style={styles.scrollDownText}>{t("trip.newCount", { count: newMsgCount })}</Text>
+          </Pressable>
+        )}
+        {showScrollDown && newMsgCount === 0 && (
+          <Pressable
+            style={[
+              styles.jumpDownFab,
+              { backgroundColor: c.card, borderColor: c.border },
+            ]}
+            onPress={() => {
+              setShowScrollDown(false);
+              nearBottomRef.current = true;
+              listRef.current?.scrollToEnd({ animated: true });
+            }}
+            hitSlop={8}
+          >
+            <Ionicons name="chevron-down" size={22} color={c.foreground} />
           </Pressable>
         )}
       </View>
@@ -945,6 +966,17 @@ function TripWithChat({
             ) : (
               <Ionicons name="attach" size={22} color={c.mutedForeground} />
             )}
+          </Pressable>
+          <Pressable
+            onPress={() => void pickAndUpload("camera")}
+            disabled={upload.isPending}
+            hitSlop={6}
+            style={({ pressed }) => [
+              styles.iconBtn,
+              { opacity: pressed || upload.isPending ? 0.5 : 1 },
+            ]}
+          >
+            <Ionicons name="camera-outline" size={22} color={c.mutedForeground} />
           </Pressable>
           <Pressable
             onPress={() => {
@@ -1823,6 +1855,9 @@ function TripInfoCard({
   const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? "light"];
   const [collapsed, setCollapsed] = useState(true);
+  // Cap the expanded stops list so a trip with many stops scrolls inside the
+  // card instead of pushing the chat off-screen.
+  const { height: windowHeight } = useWindowDimensions();
 
   return (
     <View
@@ -1861,7 +1896,12 @@ function TripInfoCard({
       </Pressable>
 
       {!collapsed && (
-        <>
+        <ScrollView
+          style={{ maxHeight: Math.round(windowHeight * 0.5) }}
+          contentContainerStyle={{ paddingBottom: 4 }}
+          showsVerticalScrollIndicator
+          nestedScrollEnabled
+        >
           {trip.stops.length > 0 && <StopsBlock stops={trip.stops} />}
           {trip.notes ? (
             <View style={[styles.notes, { borderTopColor: c.border }]}>
@@ -1870,7 +1910,7 @@ function TripInfoCard({
               </Text>
             </View>
           ) : null}
-        </>
+        </ScrollView>
       )}
     </View>
   );
@@ -2274,6 +2314,22 @@ const styles = StyleSheet.create({
   // to full content height, overflows the parent, and its scroll area swallows
   // all taps to the inputWrap below it (iOS) or pushes input off screen (Android)
   messageListFlex: { flex: 1 },
+  jumpDownFab: {
+    position: "absolute",
+    right: 16,
+    bottom: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
   scrollDownBtn: {
     position: "absolute",
     alignSelf: "center",
