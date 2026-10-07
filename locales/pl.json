@@ -107,7 +107,7 @@
     },
     "errors": {
       "server": "Błąd serwera ({{status}})",
-      "cannotReach": "Brak połączenia z serwerem. Sprawdź, czy backend działa, a EXPO_PUBLIC_API_URL jest poprawny.",
+      "cannotReach": "Nie można się połączyć. Sprawdź połączenie i spróbuj ponownie za chwilę.",
       "sendFailed": "Nie udało się wysłać kodu.",
       "invalidCode": "Nieprawidłowy kod.",
       "driverOnly": "Ta aplikacja jest tylko dla kierowców. Zaloguj się na konto kierowcy."

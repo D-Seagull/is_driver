@@ -172,6 +172,9 @@ export default function GroupChatScreen() {
 
   // ─── List — messages + documents merged into one timeline ──────────
   const listRef = useRef<FlatList<TimelineItem>>(null);
+  // Jump-to-latest button: inverted list → offset 0 is the newest; scrolling
+  // up to older messages grows contentOffset.y past the threshold.
+  const [showScrollDown, setShowScrollDown] = useState(false);
   const data = useMemo<TimelineItem[]>(() => {
     const items: TimelineItem[] = [
       ...messages.map((m) => ({
@@ -396,6 +399,7 @@ export default function GroupChatScreen() {
       </View>
 
       {/* Messages */}
+      <View style={{ flex: 1 }}>
       {isLoading ? (
         <View style={styles.center}>
           <ActivityIndicator color={c.primary} />
@@ -410,6 +414,10 @@ export default function GroupChatScreen() {
           windowSize={11}
           removeClippedSubviews
           inverted
+          onScroll={(e) =>
+            setShowScrollDown(e.nativeEvent.contentOffset.y > 200)
+          }
+          scrollEventThrottle={16}
           contentContainerStyle={{ paddingVertical: Spacing.sm }}
           onScrollToIndexFailed={() => {}}
           // Tap on a message gap dismisses the keyboard; a scroll drag too.
@@ -461,6 +469,21 @@ export default function GroupChatScreen() {
           }
         />
       )}
+      {showScrollDown && (
+        <Pressable
+          onPress={() =>
+            listRef.current?.scrollToOffset({ offset: 0, animated: true })
+          }
+          hitSlop={8}
+          style={[
+            styles.scrollDownBtn,
+            { backgroundColor: c.card, borderColor: c.border },
+          ]}
+        >
+          <Ionicons name="chevron-down" size={22} color={c.foreground} />
+        </Pressable>
+      )}
+      </View>
 
       {/* Reply banner */}
       {replyingTo && !editing && (
@@ -519,21 +542,34 @@ export default function GroupChatScreen() {
           ]}
         >
           {!editing && (
-            <Pressable
-              onPress={showAttachSheet}
-              disabled={uploadDocs.isPending}
-              hitSlop={6}
-              style={({ pressed }) => [
-                styles.attachBtn,
-                { opacity: pressed || uploadDocs.isPending ? 0.5 : 1 },
-              ]}
-            >
-              {uploadDocs.isPending ? (
-                <ActivityIndicator size="small" color={c.mutedForeground} />
-              ) : (
-                <Ionicons name="attach" size={24} color={c.mutedForeground} />
-              )}
-            </Pressable>
+            <>
+              <Pressable
+                onPress={showAttachSheet}
+                disabled={uploadDocs.isPending}
+                hitSlop={6}
+                style={({ pressed }) => [
+                  styles.attachBtn,
+                  { opacity: pressed || uploadDocs.isPending ? 0.5 : 1 },
+                ]}
+              >
+                {uploadDocs.isPending ? (
+                  <ActivityIndicator size="small" color={c.mutedForeground} />
+                ) : (
+                  <Ionicons name="attach" size={24} color={c.mutedForeground} />
+                )}
+              </Pressable>
+              <Pressable
+                onPress={() => void pickAndUpload('camera')}
+                disabled={uploadDocs.isPending}
+                hitSlop={6}
+                style={({ pressed }) => [
+                  styles.attachBtn,
+                  { opacity: pressed || uploadDocs.isPending ? 0.5 : 1 },
+                ]}
+              >
+                <Ionicons name="camera-outline" size={24} color={c.mutedForeground} />
+              </Pressable>
+            </>
           )}
           <Pressable
             onPress={() => {
@@ -1243,6 +1279,22 @@ const DocBubble = memo(function DocBubble({
 const styles = StyleSheet.create({
   root: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  scrollDownBtn: {
+    position: 'absolute',
+    right: 16,
+    bottom: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
 
   // Header
   header: {
