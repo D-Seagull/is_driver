@@ -78,11 +78,12 @@ api.interceptors.response.use(
 
     if (status === 401 && getToken() && original && !original._retried && !isAuthCall) {
       original._retried = true;
-      let newToken: string | null = null;
+      let newToken: string | null;
       try {
         newToken = await refreshOnce();
       } catch {
-        newToken = null;
+        // Server unreachable: fail just this request, keep the session.
+        return Promise.reject(error);
       }
       if (newToken) {
         // Retry the original request with the fresh access token.
@@ -90,7 +91,7 @@ api.interceptors.response.use(
         original.headers.Authorization = `Bearer ${newToken}`;
         return api(original);
       }
-      // Refresh failed → the session is dead.
+      // The server rejected the refresh → the session is dead.
       onUnauthorized();
     }
     return Promise.reject(error);
