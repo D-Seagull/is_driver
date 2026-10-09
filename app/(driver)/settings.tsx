@@ -48,7 +48,7 @@ const LANGUAGE_LABELS: Partial<Record<DriverLanguage, string>> = {
 };
 
 export default function DriverSettingsScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const c = Colors[useColorScheme() ?? 'light'];
   const insets = useSafeAreaInsets();
   // Shorter phones (e.g. Xiaomi Mi 9 SE) can't fit the whole settings page —
@@ -558,7 +558,7 @@ export default function DriverSettingsScreen() {
             what they are reading. */}
         <View style={styles.legalRow}>
           <Pressable
-            onPress={() => WebBrowser.openBrowserAsync(PRIVACY_URL)}
+            onPress={() => WebBrowser.openBrowserAsync(`${PRIVACY_URL}?lang=${i18n.language}`)}
             hitSlop={8}
           >
             <Text style={[styles.legalLink, { color: c.mutedForeground }]}>
@@ -567,7 +567,7 @@ export default function DriverSettingsScreen() {
           </Pressable>
           <Text style={[styles.legalLink, { color: c.mutedForeground }]}>·</Text>
           <Pressable
-            onPress={() => WebBrowser.openBrowserAsync(TERMS_URL)}
+            onPress={() => WebBrowser.openBrowserAsync(`${TERMS_URL}?lang=${i18n.language}`)}
             hitSlop={8}
           >
             <Text style={[styles.legalLink, { color: c.mutedForeground }]}>

@@ -9,6 +9,7 @@ import {
 } from 'zustand/middleware';
 
 import { configureApiAuth } from '@/lib/api';
+import { isSessionRejected, SessionUnreachableError } from '@/lib/session-errors';
 import {
   AuthUser,
   fetchMe,
@@ -210,8 +211,15 @@ export const useAuthStore = create<AuthState>()(
             return;
           }
           set({ user, isLoading: false });
-        } catch {
-          set({ user: null, token: null, refreshToken: null, isLoading: false });
+        } catch (err) {
+          // No signal / server waking up: keep the saved session and open the
+          // app with it — requests retry once the network is back. Only the
+          // server rejecting the session (401 / 403) sends the user to login.
+          if (isSessionRejected(err)) {
+            set({ user: null, token: null, refreshToken: null, isLoading: false });
+          } else {
+            set({ isLoading: false });
+          }
         }
       },
 
@@ -231,9 +239,12 @@ export const useAuthStore = create<AuthState>()(
             }
             set({ user, token, refreshToken });
             return token;
-          } catch {
-            // Refresh token rejected (expired / revoked / already rotated) —
-            // the session is dead; clear it so the app bounces to login.
+          } catch (err) {
+            // Server unreachable — the refresh token is still good: keep the
+            // session and let the caller fail just this request.
+            if (!isSessionRejected(err)) throw new SessionUnreachableError();
+            // Refresh token rejected (expired / revoked) — the session is
+            // dead; clear it so the app bounces to login.
             set({ user: null, token: null, refreshToken: null });
             return null;
           }
@@ -288,7 +299,9 @@ configureSocketAuth(async () => {
   const s = useAuthStore.getState();
   if (accessTokenFresh(s.token)) return s.token;
   if (!s.refreshToken) return s.token;
-  await s.refresh();
+  // Offline: hand over what we have; the socket can't connect anyway and
+  // asks again on the next attempt.
+  await s.refresh().catch(() => undefined);
   return useAuthStore.getState().token;
 });
 

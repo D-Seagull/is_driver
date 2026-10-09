@@ -3,9 +3,7 @@
     "name": "is-driver",
     "slug": "is-driver",
     "version": "1.0.0",
-    "runtimeVersion": {
-      "policy": "fingerprint"
-    },
+    "runtimeVersion": { "policy": "appVersion" },
     "updates": {
       "url": "https://u.expo.dev/8bb837ef-9e50-4f36-b896-35fcd5e3920f"
     },
@@ -60,9 +58,7 @@
         {
           "icon": "./assets/images/notification-icon.png",
           "color": "#1E7AFD",
-          "sounds": [
-            "./assets/sounds/push_message.mp3"
-          ]
+          "sounds": ["./assets/sounds/push_message.mp3"]
         }
       ],
       "expo-asset",
@@ -78,9 +74,7 @@
           "photosPermission": "Додатку потрібен доступ до фотографій, щоб прикріплювати зображення в чат і документи та встановлювати аватар.",
           "savePhotosPermission": "Додатку потрібен доступ до фотографій, щоб зберігати фото з чату у вашу галерею.",
           "isAccessMediaLocationEnabled": false,
-          "granularPermissions": [
-            "photo"
-          ]
+          "granularPermissions": ["photo"]
         }
       ]
     ],
