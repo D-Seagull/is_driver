@@ -610,7 +610,13 @@ function TripWithChat({
   return (
     <View style={{ flex: 1 }}>
       {/* Trip info — collapses to make room for chat */}
-      <TripInfoCard trip={trip} onRefresh={onRefresh} refreshing={refreshing} />
+      <TripInfoCard
+        trip={trip}
+        onRefresh={onRefresh}
+        refreshing={refreshing}
+        docsCount={tripDocs.filter((d) => !d.deletedAt && d.signedUrl).length}
+        onOpenDocs={() => setDocsOpen(true)}
+      />
 
       {/* Pre-assigned upcoming trip — transient heads-up that auto-fades a
           few seconds after it appears (order stays in the Trips list). */}
@@ -669,24 +675,6 @@ function TripWithChat({
           >
             {connected ? t("trip.online") : t("trip.connecting")}
           </Text>
-          <View style={{ flex: 1 }} />
-          <Pressable
-            onPress={() => setDocsOpen(true)}
-            hitSlop={6}
-            style={({ pressed }) => [
-              styles.folderBtn,
-              { opacity: pressed ? 0.6 : 1 },
-            ]}
-          >
-            <Ionicons
-              name="folder-outline"
-              size={16}
-              color={c.mutedForeground}
-            />
-            <Text style={[styles.chatLabelText, { color: c.mutedForeground }]}>
-              {tripDocs.filter((d) => !d.deletedAt && d.signedUrl).length}
-            </Text>
-          </Pressable>
         </View>
 
         {/* Timeline (messages + docs) */}
@@ -1847,10 +1835,15 @@ function TripInfoCard({
   trip,
   onRefresh,
   refreshing,
+  docsCount,
+  onOpenDocs,
 }: {
   trip: Trip;
   onRefresh: () => void;
   refreshing: boolean;
+  /** Trip files — the folder sits on the header row, next to the arrow. */
+  docsCount: number;
+  onOpenDocs: () => void;
 }) {
   const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? "light"];
@@ -1886,6 +1879,20 @@ function TripInfoCard({
             </Text>
           ) : null}
         </View>
+        {/* Own press target: opens the trip files, doesn't fold the card. */}
+        <Pressable
+          onPress={onOpenDocs}
+          hitSlop={8}
+          style={({ pressed }) => [
+            styles.folderBtn,
+            { opacity: pressed ? 0.6 : 1 },
+          ]}
+        >
+          <Ionicons name="folder-outline" size={18} color={c.mutedForeground} />
+          <Text style={[styles.folderCount, { color: c.mutedForeground }]}>
+            {docsCount}
+          </Text>
+        </Pressable>
         <View style={[styles.collapseBtn, { backgroundColor: c.primary + "1A", borderColor: c.primary + "40" }]}>
           <Ionicons
             name={collapsed ? "chevron-down" : "chevron-up"}
@@ -2484,6 +2491,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
+  folderCount: { fontSize: 13, fontWeight: "600" },
   // TripDocsModal
   docsHeader: {
     flexDirection: "row",
