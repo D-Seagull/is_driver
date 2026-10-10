@@ -64,17 +64,10 @@ export async function openRemoteFile(doc: {
     return;
   }
 
-  // Logged step by step: on a phone this is the only trace of where it stops.
   const file = await toLocalFile(doc.id, doc.signedUrl, doc.fileName);
   const type = mimeOf(doc.fileName);
   const launcher = loadIntentLauncher();
   const contentUri = file.contentUri;
-  console.log('[open-file]', doc.fileName, {
-    size: file.size,
-    type,
-    launcher: !!launcher,
-    contentUri,
-  });
   if (launcher && contentUri) {
     try {
       await launcher.startActivityAsync('android.intent.action.VIEW', {
