@@ -159,6 +159,7 @@
   },
   "chat": {
     "typingOne": "is typing",
+    "quotedNotFound": "Message not found — it may have been deleted.",
     "typingMany": "are typing",
     "editingMessage": "Editing message",
     "replyTo": "Reply to {{name}}",
@@ -381,5 +382,9 @@
     "shareFailed": "Couldn't share the photo",
     "permissionTitle": "No access to the gallery",
     "permissionBody": "Allow saving photos in the phone's settings."
+  },
+  "call": {
+    "phone": "Phone",
+    "viberMissing": "Viber is not installed on this phone."
   }
 }

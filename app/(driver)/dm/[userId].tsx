@@ -7,6 +7,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { openRemoteFile, readableFileName } from '@/lib/open-file';
+import { revealInList, retryScrollToIndex } from '@/lib/reveal-in-list';
 import { fullName } from "@/lib/format";
 import {
   ActivityIndicator,
@@ -26,7 +27,7 @@ import EmojiPicker from 'rn-emoji-keyboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 // Stable KeyboardAvoidingView for new arch + edge-to-edge (RN's built-in one
 // lets the input jump). Requires <KeyboardProvider> in app/_layout.tsx.
-import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
+import { KeyboardPaddingView } from '@/components/keyboard-padding-view';
 
 import { ChatAvatar } from '@/components/chat-avatar';
 import { ChatBackground } from '@/components/chat-background';
@@ -235,23 +236,42 @@ export default function DmScreen() {
   // ─── Jump to a replied-to message/document ─────────────────────────
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [cardOpen, setCardOpen] = useState(false);
+  // Latest list / loader in refs so the jump can read them after awaiting.
+  const dataRef = useRef(data);
+  const loadOlderRef = useRef(loadOlder);
+  useEffect(() => {
+    dataRef.current = data;
+    loadOlderRef.current = loadOlder;
+  });
+  const scrollRetries = useRef(0);
+  const onScrollToIndexFailed = useCallback(
+    (info: { index: number; averageItemLength: number }) =>
+      retryScrollToIndex(listRef.current, info, scrollRetries),
+    [],
+  );
   const scrollToMessage = useCallback(
     (targetId?: string | null) => {
       if (!targetId) return;
-      const index = data.findIndex(
-        (it) =>
+      // Older than the loaded pages → load back until it's there.
+      void revealInList({
+        items: () => dataRef.current,
+        matches: (it) =>
           it.data.id === targetId ||
           (it.kind === 'album' && it.docs.some((d) => d.id === targetId)),
-      );
-      if (index < 0) return; // original is older than the loaded page
-      listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
-      setHighlightId(targetId);
-      setTimeout(
-        () => setHighlightId((h) => (h === targetId ? null : h)),
-        1500,
-      );
+        scrollTo: (index) => {
+          listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
+          setHighlightId(targetId);
+          setTimeout(
+            () => setHighlightId((h) => (h === targetId ? null : h)),
+            1500,
+          );
+        },
+        loadOlder: () => loadOlderRef.current(),
+      }).then((found) => {
+        if (!found) Alert.alert('', t('chat.quotedNotFound'));
+      });
     },
-    [data],
+    [t],
   );
 
   // ─── Attach flow ───────────────────────────────────────────────────
@@ -380,11 +400,7 @@ export default function DmScreen() {
   const peerName = fullName(peer) || t('nav.chatFallback');
 
   return (
-    <KeyboardAvoidingView
-      behavior="padding"
-      keyboardVerticalOffset={0}
-      style={[styles.root, { backgroundColor: c.background }]}
-    >
+    <KeyboardPaddingView style={[styles.root, { backgroundColor: c.background }]}>
       <ChatBackground />
       {/* Header */}
       <View
@@ -461,7 +477,7 @@ export default function DmScreen() {
           }
           scrollEventThrottle={16}
           contentContainerStyle={{ paddingVertical: Spacing.sm }}
-          onScrollToIndexFailed={() => {}}
+          onScrollToIndexFailed={onScrollToIndexFailed}
           // Tap on a message gap dismisses the keyboard; a scroll drag too.
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
@@ -741,7 +757,7 @@ export default function DmScreen() {
         startIndex={galleryIndex}
         onClose={() => setGalleryIndex(null)}
       />
-    </KeyboardAvoidingView>
+    </KeyboardPaddingView>
   );
 }
 

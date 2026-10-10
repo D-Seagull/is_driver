@@ -194,38 +194,54 @@ export function useLoadOlderGroupMessages(groupId: string) {
     loadingRef.current = false;
   }, [groupId]);
 
-  const loadOlder = useCallback(async () => {
-    if (!groupId || loadingRef.current || !hasMore) return;
-    const current =
-      qc.getQueryData<GroupMessage[]>(groupKeys.messages(groupId)) ?? [];
-    if (current.length === 0) return;
-    const oldest = current.reduce((a, b) =>
-      new Date(a.createdAt).getTime() <= new Date(b.createdAt).getTime() ? a : b,
-    );
-    loadingRef.current = true;
-    setLoadingOlder(true);
-    try {
-      const res = await api.get<GroupMessage[]>(`/group-messages/${groupId}`, {
-        params: { before: oldest.createdAt, take: GROUP_PAGE_SIZE },
-      });
-      const older = res.data ?? [];
-      if (older.length > 0) {
-        qc.setQueryData<GroupMessage[]>(
-          groupKeys.messages(groupId),
-          (prev = []) => {
-            const seen = new Set(prev.map((m) => m.id));
-            const fresh = older.filter((m) => !seen.has(m.id));
-            return fresh.length ? [...fresh, ...prev] : prev;
-          },
-        );
+  // Resolves to whether older history may remain. A call while a page is
+  // loading joins that page instead of starting another (a quote jump calls
+  // this in a loop — lib/reveal-in-list).
+  const olderInFlight = useRef<Promise<boolean> | null>(null);
+  const loadOlder = useCallback((): Promise<boolean> => {
+    if (olderInFlight.current) return olderInFlight.current;
+    if (!groupId || !hasMore) return Promise.resolve(false);
+    const loadPage = async (): Promise<boolean> => {
+      const current =
+        qc.getQueryData<GroupMessage[]>(groupKeys.messages(groupId)) ?? [];
+      if (current.length === 0) return false;
+      const oldest = current.reduce((a, b) =>
+        new Date(a.createdAt).getTime() <= new Date(b.createdAt).getTime() ? a : b,
+      );
+      loadingRef.current = true;
+      setLoadingOlder(true);
+      try {
+        const res = await api.get<GroupMessage[]>(`/group-messages/${groupId}`, {
+          params: { before: oldest.createdAt, take: GROUP_PAGE_SIZE },
+        });
+        const older = res.data ?? [];
+        if (older.length > 0) {
+          qc.setQueryData<GroupMessage[]>(
+            groupKeys.messages(groupId),
+            (prev = []) => {
+              const seen = new Set(prev.map((m) => m.id));
+              const fresh = older.filter((m) => !seen.has(m.id));
+              return fresh.length ? [...fresh, ...prev] : prev;
+            },
+          );
+        }
+        const more = older.length >= GROUP_PAGE_SIZE;
+        if (!more) setHasMore(false);
+        return more;
+      } catch (e) {
+        console.warn('[group] loadOlder failed', e);
+        return false;
+      } finally {
+        loadingRef.current = false;
+        setLoadingOlder(false);
       }
-      if (older.length < GROUP_PAGE_SIZE) setHasMore(false);
-    } catch (e) {
-      console.warn('[group] loadOlder failed', e);
-    } finally {
-      loadingRef.current = false;
-      setLoadingOlder(false);
-    }
+    };
+    const run = loadPage();
+    olderInFlight.current = run;
+    void run.finally(() => {
+      olderInFlight.current = null;
+    });
+    return run;
   }, [groupId, hasMore, qc]);
 
   return { loadOlder, loadingOlder, hasMore };

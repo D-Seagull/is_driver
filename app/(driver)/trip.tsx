@@ -34,10 +34,10 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-// Stable KeyboardAvoidingView for the new architecture + edge-to-edge, where
-// RN's built-in one (behavior="height") lets the input jump. Requires the
-// <KeyboardProvider> mounted in app/_layout.tsx.
-import { KeyboardAvoidingView } from "react-native-keyboard-controller";
+// Keyboard avoider that can't get stuck lifted (see the component). Requires
+// the <KeyboardProvider> mounted in app/_layout.tsx.
+import { KeyboardPaddingView } from "@/components/keyboard-padding-view";
+import { revealInList, retryScrollToIndex } from "@/lib/reveal-in-list";
 import { TypingDots } from "@/components/typing-indicator";
 import EmojiPicker from "rn-emoji-keyboard";
 
@@ -127,15 +127,10 @@ export default function TripScreen() {
     currentTrip.id !== trip.id;
 
   return (
-    // keyboard-controller's KeyboardAvoidingView (behavior="padding") lifts the
-    // input above the keyboard reliably on both platforms — including Android
-    // under edge-to-edge / new architecture, where RN's built-in "height"
-    // behavior squeezes the layout and makes the input jump.
-    <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: c.background }}
-      behavior="padding"
-      keyboardVerticalOffset={0}
-    >
+    // Lifts the input above the keyboard, frame by frame, on both platforms
+    // (edge-to-edge / new architecture safe) — and drops back when the
+    // keyboard closed while the app was in the background.
+    <KeyboardPaddingView style={{ flex: 1, backgroundColor: c.background }}>
       <ChatBackground variant="trip" />
       <Stack.Screen options={{ headerShown: false }} />
       <TripHeader
@@ -174,7 +169,7 @@ export default function TripScreen() {
           chatLocked={chatLocked}
         />
       )}
-    </KeyboardAvoidingView>
+    </KeyboardPaddingView>
   );
 }
 
@@ -246,17 +241,9 @@ function TripWithChat({
   // pill already offering the same jump.
   const [showScrollDown, setShowScrollDown] = useState(false);
   const listRef = useRef<FlatList>(null);
-  // True while the list is scrolled within ~80px of the bottom. Used to
-  // suppress auto-scroll when the user has scrolled up to read history.
+  // True while the list is within ~80px of the newest message: new messages
+  // then just appear; scrolled further up, they bump the "↓ N new" pill.
   const nearBottomRef = useRef(true);
-  // False until the first scroll-to-bottom completes — so the initial jump
-  // is instant (no visible scroll-from-top animation).
-  const initialScrollDone = useRef(false);
-  // True once the FlatList has fired its first onLayout — i.e. it has been
-  // measured and is ready to accept scrollToEnd commands.  On Android the
-  // layout pass often completes AFTER the data useEffect fires, so we gate
-  // the effect on this flag and let onLayout drive the initial scroll instead.
-  const listLaidOut = useRef(false);
 
   // nearBottomRef must be declared BEFORE useTripChat so the hook receives
   // the real ref object (not undefined due to Babel var-hoisting).
@@ -342,97 +329,62 @@ function TripWithChat({
     [albumSize, t],
   );
 
-  // Keep the latest timeline in a ref so scrollToMessage can stay referentially
-  // stable (empty deps) — otherwise it changes every render and busts memo on
-  // every MessageBubble that receives it as onReplyJump.
-  const timelineRef = useRef(timeline);
-  timelineRef.current = timeline;
+  // The list is inverted (newest at the bottom, like the DM and group chats):
+  // it opens on the latest message by itself — no scroll-to-end chasing the
+  // layout, images or keyboard — and older pages load at its top.
+  const newestFirst = useMemo(() => [...timeline].reverse(), [timeline]);
+
+  // Latest list in a ref so scrollToMessage can stay referentially stable
+  // (empty deps) — otherwise it changes every render and busts memo on every
+  // MessageBubble that receives it as onReplyJump.
+  const newestFirstRef = useRef(newestFirst);
+  const loadOlderRef = useRef(loadOlder);
+  useEffect(() => {
+    newestFirstRef.current = newestFirst;
+    loadOlderRef.current = loadOlder;
+  });
+  const scrollRetries = useRef(0);
+  const onScrollToIndexFailed = useCallback(
+    (info: { index: number; averageItemLength: number }) =>
+      retryScrollToIndex(listRef.current, info, scrollRetries),
+    [],
+  );
 
   // Jump to a replied-to message/document + briefly highlight it.
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [cardUserId, setCardUserId] = useState<string | null>(null);
   const scrollToMessage = useCallback((targetId?: string | null) => {
     if (!targetId) return;
-    const index = timelineRef.current.findIndex(
-      (it) =>
+    // Older than the loaded pages → load back until it's there.
+    void revealInList({
+      items: () => newestFirstRef.current,
+      matches: (it) =>
         it.data.id === targetId ||
         (it.kind === "album" && it.docs.some((d) => d.id === targetId)),
-    );
-    if (index < 0) return; // original is older than the loaded page
-    listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
-    setHighlightId(targetId);
-    setTimeout(() => setHighlightId((h) => (h === targetId ? null : h)), 1500);
-  }, []);
-
-  // When the keyboard opens, snap the message list to the bottom so the last
-  // message stays visible above the input instead of getting hidden behind it.
-  useEffect(() => {
-    const showEvt =
-      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
-    const showSub = Keyboard.addListener(showEvt, () => {
-      if (nearBottomRef.current) {
-        // Two passes — iOS lays out KAV padding asynchronously; without the
-        // second tick the scroll lands above the new bottom.
-        requestAnimationFrame(() =>
-          listRef.current?.scrollToEnd({ animated: true }),
-        );
-        setTimeout(
-          () => listRef.current?.scrollToEnd({ animated: false }),
-          250,
-        );
-      }
+      scrollTo: (index) => {
+        listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
+        setHighlightId(targetId);
+        setTimeout(() => setHighlightId((h) => (h === targetId ? null : h)), 1500);
+      },
+      loadOlder: () => loadOlderRef.current(),
+    }).then((found) => {
+      if (!found) Alert.alert("", t("chat.quotedNotFound"));
     });
-    return () => {
-      showSub.remove();
-    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Auto-scroll when new timeline items arrive (messages OR docs), but only
-  // if the user is already near the bottom.
-  // • First scroll: instant (no visible scroll-from-top animation).
-  // • Subsequent scrolls (new messages): animated glide.
-  // • Android: the FlatList layout pass often completes AFTER this effect fires
-  //   on initial load, so we skip if not yet laid out — onLayout will call
-  //   the initial scroll instead once the list is ready.
-  // Tracks the newest timeline item so a length change from *prepended* older
-  // history (loadOlder) isn't mistaken for a freshly-arrived message.
+  // A new message at the bottom while the reader is scrolled up: bump the
+  // "↓ N new" pill instead of yanking them down. Keyed on the newest item, so
+  // older pages loading at the top don't count.
   const lastNewestIdRef = useRef<string | null>(null);
+  const newestId = timeline[timeline.length - 1]?.data.id ?? null;
   useEffect(() => {
-    if (timeline.length === 0) return;
-    if (!listLaidOut.current) return; // onLayout will handle the first scroll
-    const newestId = timeline[timeline.length - 1]?.data.id ?? null;
-    const isAppend = newestId !== lastNewestIdRef.current;
+    const prev = lastNewestIdRef.current;
     lastNewestIdRef.current = newestId;
-    if (nearBottomRef.current) {
-      // User is at/near the bottom — auto-scroll to new content.
-      const animated = initialScrollDone.current; // false → instant on first load
-      initialScrollDone.current = true;
-      const delay = Platform.OS === "android" ? 150 : 50;
-      const id = setTimeout(
-        () => listRef.current?.scrollToEnd({ animated }),
-        delay,
-      );
-      return () => clearTimeout(id);
-    } else if (initialScrollDone.current && isAppend) {
-      // User has scrolled up to read history — show "↓ N new" pill instead
-      // of yanking them back down (Viber/Telegram pattern). Only for genuinely
-      // new (appended) messages — prepended history must not bump the count.
+    if (prev !== null && newestId !== prev && !nearBottomRef.current) {
       setNewMsgCount((n) => n + 1);
     }
-  }, [timeline.length]);
-
-  // Re-scroll to bottom when the screen regains focus (e.g. user navigated
-  // away to Trips and came back).  Only if already near the bottom so we
-  // don't interrupt manual scroll-up history reading.
-  useEffect(() => {
-    if (!isFocused) return;
-    const id = setTimeout(() => {
-      if (nearBottomRef.current) {
-        listRef.current?.scrollToEnd({ animated: false });
-      }
-    }, 100);
-    return () => clearTimeout(id);
-  }, [isFocused]);
+  }, [newestId]);
 
   const handleSend = () => {
     const trimmed = text.trim();
@@ -455,6 +407,7 @@ function TripWithChat({
     });
     // Sending always pulls the user back down — they clearly want to see it.
     nearBottomRef.current = true;
+    listRef.current?.scrollToOffset({ offset: 0, animated: true });
   };
 
   const [emojiOpen, setEmojiOpen] = useState(false);
@@ -693,7 +646,8 @@ function TripWithChat({
         ) : (
           <FlatList
             ref={listRef}
-            data={timeline}
+            data={newestFirst}
+            inverted
             style={styles.messageListFlex}
             keyExtractor={(item) =>
               item.kind === "msg" ? `m-${item.data.id}` : `d-${item.data.id}`
@@ -704,11 +658,8 @@ function TripWithChat({
             removeClippedSubviews
             contentContainerStyle={styles.messageList}
             onScroll={(e) => {
-              const { contentOffset, contentSize, layoutMeasurement } =
-                e.nativeEvent;
-              const distanceFromBottom =
-                contentSize.height -
-                (contentOffset.y + layoutMeasurement.height);
+              // Inverted: offset 0 is the newest message.
+              const distanceFromBottom = e.nativeEvent.contentOffset.y;
               const wasNearBottom = nearBottomRef.current;
               nearBottomRef.current = distanceFromBottom < 80;
               setShowScrollDown(distanceFromBottom > 240);
@@ -717,54 +668,20 @@ function TripWithChat({
                 setNewMsgCount(0);
                 markReadNow();
               }
-              // Scrolled near the top — pull the previous page of history.
-              // maintainVisibleContentPosition below keeps the viewport anchored
-              // so the prepended messages don't yank the list.
-              if (contentOffset.y < 60 && hasMore && !loadingOlder) {
-                loadOlder();
-              }
             }}
-            maintainVisibleContentPosition={{ minIndexForVisible: 1 }}
-            ListHeaderComponent={
+            // Inverted → the list's "end" is its visual top: pull the
+            // previous page of history; the footer shows its spinner there.
+            onEndReachedThreshold={0.3}
+            onEndReached={() => {
+              if (hasMore && !loadingOlder) void loadOlder();
+            }}
+            ListFooterComponent={
               loadingOlder ? (
                 <View style={{ paddingVertical: Spacing.md }}>
                   <ActivityIndicator size="small" color={c.mutedForeground} />
                 </View>
               ) : null
             }
-            // Called once the FlatList has been measured and is ready to
-            // scroll.  On Android this fires AFTER the data useEffect, so
-            // we do the initial scroll here if it hasn't happened yet.
-            onLayout={() => {
-              if (listLaidOut.current) return;
-              listLaidOut.current = true;
-              if (
-                timeline.length > 0 &&
-                nearBottomRef.current &&
-                !initialScrollDone.current
-              ) {
-                // Extra tick for Android to commit the full render tree
-                setTimeout(
-                  () => {
-                    listRef.current?.scrollToEnd({ animated: false });
-                    initialScrollDone.current = true;
-                  },
-                  Platform.OS === "android" ? 120 : 0,
-                );
-              }
-            }}
-            // Photos in doc bubbles load asynchronously — when the image
-            // loads, contentSize grows AFTER our scrollToEnd already ran,
-            // leaving the doc tucked under the input. Re-scroll whenever
-            // content grows while we're near the bottom.
-            // On Android: wrap in setTimeout to avoid calling during an
-            // active layout pass (causes silent scroll failures).
-            onContentSizeChange={() => {
-              if (!nearBottomRef.current) return;
-              const scroll = () =>
-                listRef.current?.scrollToEnd({ animated: false });
-              Platform.OS === "android" ? setTimeout(scroll, 50) : scroll();
-            }}
             scrollEventThrottle={64}
             // iOS: prevent the list's gesture/inset behavior from swallowing
             // taps to the inputWrap below it. `handled` lets bubble taps still
@@ -775,7 +692,7 @@ function TripWithChat({
             keyboardDismissMode="on-drag"
             automaticallyAdjustContentInsets={false}
             contentInsetAdjustmentBehavior="never"
-            onScrollToIndexFailed={() => {}}
+            onScrollToIndexFailed={onScrollToIndexFailed}
             extraData={highlightId}
             renderItem={renderTimelineItem}
           />
@@ -791,7 +708,7 @@ function TripWithChat({
               nearBottomRef.current = true;
               setNewMsgCount(0);
               markReadNow();
-              listRef.current?.scrollToEnd({ animated: true });
+              listRef.current?.scrollToOffset({ offset: 0, animated: true });
             }}
           >
             <Ionicons name="chevron-down" size={16} color="#fff" />
@@ -807,7 +724,7 @@ function TripWithChat({
             onPress={() => {
               setShowScrollDown(false);
               nearBottomRef.current = true;
-              listRef.current?.scrollToEnd({ animated: true });
+              listRef.current?.scrollToOffset({ offset: 0, animated: true });
             }}
             hitSlop={8}
           >

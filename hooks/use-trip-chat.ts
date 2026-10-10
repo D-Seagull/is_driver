@@ -509,27 +509,40 @@ export function useTripChat(
   // Fetches the page of messages just before the oldest one we hold and
   // prepends it. Guarded by a ref so overlapping scroll events can't fire
   // two concurrent fetches.
-  const loadOlder = useCallback(async () => {
-    if (!tripId || loadingOlderRef.current || !hasMore) return;
+  // Resolves to whether older history may remain. A call while a page is
+  // loading joins that page instead of starting another (a quote jump calls
+  // this in a loop — lib/reveal-in-list).
+  const olderInFlight = useRef<Promise<boolean> | null>(null);
+  const loadOlder = useCallback((): Promise<boolean> => {
+    if (olderInFlight.current) return olderInFlight.current;
+    if (!tripId || !hasMore) return Promise.resolve(false);
     const oldest = messagesRef.current[0];
-    if (!oldest) return;
+    if (!oldest) return Promise.resolve(false);
     loadingOlderRef.current = true;
     setLoadingOlder(true);
-    try {
-      const older: ChatMessage[] = await fetchTripMessages(tripId, {
-        before: oldest.createdAt,
-        take: PAGE_SIZE,
-      });
-      const fresh = older.filter((m) => !seenIds.current.has(m.id));
-      fresh.forEach((m) => seenIds.current.add(m.id));
-      if (fresh.length > 0) setMessages((prev) => [...fresh, ...prev]);
-      if (older.length < PAGE_SIZE) setHasMore(false);
-    } catch (e) {
-      console.warn('[chat] loadOlder failed', e);
-    } finally {
-      loadingOlderRef.current = false;
-      setLoadingOlder(false);
-    }
+    const run = (async () => {
+      try {
+        const older: ChatMessage[] = await fetchTripMessages(tripId, {
+          before: oldest.createdAt,
+          take: PAGE_SIZE,
+        });
+        const fresh = older.filter((m) => !seenIds.current.has(m.id));
+        fresh.forEach((m) => seenIds.current.add(m.id));
+        if (fresh.length > 0) setMessages((prev) => [...fresh, ...prev]);
+        const more = older.length >= PAGE_SIZE;
+        if (!more) setHasMore(false);
+        return more;
+      } catch (e) {
+        console.warn('[chat] loadOlder failed', e);
+        return false;
+      } finally {
+        loadingOlderRef.current = false;
+        olderInFlight.current = null;
+        setLoadingOlder(false);
+      }
+    })();
+    olderInFlight.current = run;
+    return run;
   }, [tripId, hasMore]);
 
   return {
