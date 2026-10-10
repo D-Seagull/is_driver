@@ -72,6 +72,10 @@ export default function RootLayout() {
             <ThemeProvider>
               <NavTheme>
                 <Stack>
+                  {/* Redirect/splash screen — no header, so the route name
+                      "index" never flashes above the spinner before we route
+                      into (auth) or (driver). */}
+                  <Stack.Screen name="index" options={{ headerShown: false }} />
                   <Stack.Screen name="(auth)" options={{ headerShown: false }} />
                   <Stack.Screen name="(driver)" options={{ headerShown: false }} />
                 </Stack>
