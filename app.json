@@ -30,8 +30,7 @@
         "foregroundImage": "./assets/images/adaptive-icon-foreground.png",
         "monochromeImage": "./assets/images/adaptive-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false,
-      "blockedPermissions": ["android.permission.RECORD_AUDIO"]
+      "predictiveBackGestureEnabled": false
     },
     "web": {
       "output": "static",
@@ -56,8 +55,7 @@
       [
         "expo-audio",
         {
-          "microphonePermission": false,
-          "recordAudioAndroid": false,
+          "microphonePermission": "Додатку потрібен доступ до мікрофона, щоб записувати голосові повідомлення в чаті.",
           "enableBackgroundPlayback": false
         }
       ],
