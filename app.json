@@ -24,7 +24,7 @@
     },
     "android": {
       "package": "com.isfleet.isdriver",
-      "versionCode": 0,
+      "versionCode": 1,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundImage": "./assets/images/adaptive-icon-background.png",
@@ -66,9 +66,7 @@
         {
           "icon": "./assets/images/notification-icon.png",
           "color": "#1E7AFD",
-          "sounds": [
-            "./assets/sounds/push_message.mp3"
-          ]
+          "sounds": ["./assets/sounds/push_message.mp3"]
         }
       ],
       "expo-asset",
@@ -84,9 +82,7 @@
           "photosPermission": "Додатку потрібен доступ до фотографій, щоб прикріплювати зображення в чат і документи та встановлювати аватар.",
           "savePhotosPermission": "Додатку потрібен доступ до фотографій, щоб зберігати фото з чату у вашу галерею.",
           "isAccessMediaLocationEnabled": false,
-          "granularPermissions": [
-            "photo"
-          ]
+          "granularPermissions": ["photo"]
         }
       ]
     ],
