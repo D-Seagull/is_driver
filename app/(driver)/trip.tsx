@@ -1913,10 +1913,9 @@ function StopsBlock({ stops }: { stops: Trip["stops"] }) {
                 style={styles.stopAddressWrap}
                 hitSlop={6}
               >
-                <Text
-                  style={[styles.stopAddress, { color: c.foreground }]}
-                  numberOfLines={3}
-                >
+                {/* Whole address, never cut: warehouse, gate and ramp details
+                    often sit at its end. The stops list scrolls if it's long. */}
+                <Text style={[styles.stopAddress, { color: c.foreground }]}>
                   {s.address ?? "—"}
                 </Text>
               </Pressable>
