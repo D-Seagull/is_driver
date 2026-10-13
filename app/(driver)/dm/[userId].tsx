@@ -394,6 +394,9 @@ export default function DmScreen() {
     });
     setText('');
     setReplyingTo(null);
+    // Snap to the newest so the just-sent message isn't hidden under the composer.
+    listRef.current?.scrollToOffset({ offset: 0, animated: true });
+    setShowScrollDown(false);
   };
 
   // ─── Header ────────────────────────────────────────────────────────

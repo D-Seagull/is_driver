@@ -67,7 +67,9 @@ export default function RootLayout() {
         {/* Drives the stable KeyboardAvoidingView used by the chat screens —
             required for react-native-keyboard-controller to work under the
             new architecture + edge-to-edge. */}
-        <KeyboardProvider>
+        {/* Edge-to-edge (SDK 57 default): without these the Android nav-bar
+            inset reads 0 and the chat composer sits on the nav bar. */}
+        <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
           <QueryClientProvider client={queryClient}>
             <ThemeProvider>
               <NavTheme>

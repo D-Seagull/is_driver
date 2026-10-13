@@ -158,6 +158,8 @@
   },
   "sys": {
     "driverAssigned": "Vairuotojas {{name}} priskirtas vilkikui {{plate}}",
+    "memberAdded": "Pridėta: {{name}}",
+    "memberRemoved": "Pašalinta: {{name}}",
     "managerAssigned": "Vadovas {{name}} priskirtas vilkikui {{plate}}"
   },
   "chat": {

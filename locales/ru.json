@@ -158,6 +158,8 @@
   },
   "sys": {
     "driverAssigned": "Водитель {{name}} назначен на грузовик {{plate}}",
+    "memberAdded": "Добавлен: {{name}}",
+    "memberRemoved": "Удалён: {{name}}",
     "managerAssigned": "Менеджер {{name}} назначен на грузовик {{plate}}"
   },
   "chat": {
