@@ -84,7 +84,13 @@ function InfoRow({
         </Text>
       </View>
       {onPress ? (
-        <Ionicons name="call-outline" size={18} color={c.primary} />
+        // On the line of the value (the name / number), not the label above.
+        <Ionicons
+          name="call-outline"
+          size={18}
+          color={c.primary}
+          style={styles.infoAction}
+        />
       ) : null}
     </Pressable>
   );
@@ -383,6 +389,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
   },
   infoValue: { fontSize: 14, marginTop: 2 },
+  infoAction: { alignSelf: "flex-end", marginBottom: 1 },
   managerInfoRow: {
     flexDirection: "row",
     alignItems: "center",

@@ -32,6 +32,7 @@ import {
   uploadAvatar,
 } from '@/lib/auth-api';
 import { fullName, initials } from '@/lib/format';
+import { setAppLanguage } from '@/lib/i18n';
 import { StatusDot } from '@/components/status-dot';
 import { PresenceStatusSheet } from '@/components/presence-status-sheet';
 import { PRIVACY_URL, TERMS_URL } from '@/lib/config';
@@ -91,8 +92,7 @@ export default function DriverSettingsScreen() {
 
   const isProfileDirty =
     firstName.trim() !== (user?.firstName ?? '') ||
-    (lastName.trim() || null) !== (user?.lastName ?? null) ||
-    language !== ((user?.language as DriverLanguage | undefined) ?? 'EN');
+    (lastName.trim() || null) !== (user?.lastName ?? null);
   const canSaveProfile =
     firstName.trim().length >= 1 && isProfileDirty && !savingProfile;
 
@@ -103,7 +103,6 @@ export default function DriverSettingsScreen() {
       const me = await updateMe({
         firstName: firstName.trim(),
         lastName: lastName.trim() || null,
-        language,
       });
       setUser(me);
       setSavedHint(true);
@@ -113,6 +112,23 @@ export default function DriverSettingsScreen() {
       console.warn('[settings] updateMe failed', err);
     } finally {
       setSavingProfile(false);
+    }
+  };
+
+  // Language applies immediately on pick — no Save needed. Switches the UI at
+  // once (setAppLanguage) and persists to the backend in the background.
+  const handleSelectLanguage = async (value: DriverLanguage) => {
+    setLangPickerOpen(false);
+    const current = (user?.language as DriverLanguage | undefined) ?? 'EN';
+    setLanguage(value);
+    if (value === current) return;
+    setAppLanguage(value);
+    try {
+      const me = await updateMe({ language: value });
+      setUser(me);
+    } catch (err) {
+      console.warn('[settings] language update failed', err);
+      Alert.alert(t('common.error'), t('settings.errors.saveProfile'));
     }
   };
 
@@ -616,10 +632,7 @@ export default function DriverSettingsScreen() {
                 return (
                   <Pressable
                     key={value}
-                    onPress={() => {
-                      setLanguage(value);
-                      setLangPickerOpen(false);
-                    }}
+                    onPress={() => void handleSelectLanguage(value)}
                     style={({ pressed }) => [
                       styles.modalItem,
                       {

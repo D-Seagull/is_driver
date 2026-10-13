@@ -24,7 +24,7 @@ import EmojiPicker from 'rn-emoji-keyboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 // Stable KeyboardAvoidingView for new arch + edge-to-edge (RN's built-in one
 // lets the input jump). Requires <KeyboardProvider> in app/_layout.tsx.
-import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
+import { KeyboardPaddingView } from '@/components/keyboard-padding-view';
 
 import { ChatBackground } from '@/components/chat-background';
 import { NotificationBell } from '@/components/notification-bell';
@@ -58,6 +58,8 @@ import { useChatTyping } from '@/hooks/use-chat-typing';
 import { useReactionsSocketSync } from '@/hooks/use-message-reactions';
 import { TypingIndicator } from '@/components/typing-indicator';
 import { openRemoteFile, readableFileName } from '@/lib/open-file';
+import { systemMessageText } from '@/lib/system-message';
+import { revealInList, retryScrollToIndex } from '@/lib/reveal-in-list';
 import { albumSizes, groupAlbums } from '@/lib/albums';
 import { compressPhotos, PICKER_QUALITY } from '@/lib/compress-photo';
 import { AlbumGrid } from '@/components/album-grid';
@@ -206,23 +208,42 @@ export default function GroupChatScreen() {
   // ─── Jump to a replied-to message/document ─────────────────────────
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [cardUserId, setCardUserId] = useState<string | null>(null);
+  // Latest list / loader in refs so the jump can read them after awaiting.
+  const dataRef = useRef(data);
+  const loadOlderRef = useRef(loadOlder);
+  useEffect(() => {
+    dataRef.current = data;
+    loadOlderRef.current = loadOlder;
+  });
+  const scrollRetries = useRef(0);
+  const onScrollToIndexFailed = useCallback(
+    (info: { index: number; averageItemLength: number }) =>
+      retryScrollToIndex(listRef.current, info, scrollRetries),
+    [],
+  );
   const scrollToMessage = useCallback(
     (targetId?: string | null) => {
       if (!targetId) return;
-      const index = data.findIndex(
-        (it) =>
+      // Older than the loaded pages → load back until it's there.
+      void revealInList({
+        items: () => dataRef.current,
+        matches: (it) =>
           it.data.id === targetId ||
           (it.kind === 'album' && it.docs.some((d) => d.id === targetId)),
-      );
-      if (index < 0) return;
-      listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
-      setHighlightId(targetId);
-      setTimeout(
-        () => setHighlightId((h) => (h === targetId ? null : h)),
-        1500,
-      );
+        scrollTo: (index) => {
+          listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
+          setHighlightId(targetId);
+          setTimeout(
+            () => setHighlightId((h) => (h === targetId ? null : h)),
+            1500,
+          );
+        },
+        loadOlder: () => loadOlderRef.current(),
+      }).then((found) => {
+        if (!found) Alert.alert('', t('chat.quotedNotFound'));
+      });
     },
-    [data],
+    [t],
   );
 
   // ─── Attach flow ───────────────────────────────────────────────────
@@ -347,17 +368,16 @@ export default function GroupChatScreen() {
     });
     setText('');
     setReplyingTo(null);
+    // Snap to the newest so the just-sent message isn't hidden under the composer.
+    listRef.current?.scrollToOffset({ offset: 0, animated: true });
+    setShowScrollDown(false);
   };
 
   // ─── Header ────────────────────────────────────────────────────────
   const groupName = name || t('chat.groupFallback');
 
   return (
-    <KeyboardAvoidingView
-      behavior="padding"
-      keyboardVerticalOffset={0}
-      style={[styles.root, { backgroundColor: c.background }]}
-    >
+    <KeyboardPaddingView style={[styles.root, { backgroundColor: c.background }]}>
       <ChatBackground />
       {/* Header */}
       <View
@@ -419,7 +439,7 @@ export default function GroupChatScreen() {
           }
           scrollEventThrottle={16}
           contentContainerStyle={{ paddingVertical: Spacing.sm }}
-          onScrollToIndexFailed={() => {}}
+          onScrollToIndexFailed={onScrollToIndexFailed}
           // Tap on a message gap dismisses the keyboard; a scroll drag too.
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
@@ -696,7 +716,7 @@ export default function GroupChatScreen() {
         startIndex={galleryIndex}
         onClose={() => setGalleryIndex(null)}
       />
-    </KeyboardAvoidingView>
+    </KeyboardPaddingView>
   );
 }
 
@@ -973,7 +993,7 @@ const GroupBubble = memo(function GroupBubble({
     return (
       <View style={styles.systemRow}>
         <Text style={[styles.systemText, { color: c.mutedForeground }]}>
-          {msg.content}
+          {systemMessageText(msg.content, t)}
         </Text>
       </View>
     );

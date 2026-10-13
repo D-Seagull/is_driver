@@ -158,10 +158,13 @@
   },
   "sys": {
     "driverAssigned": "Vairuotojas {{name}} priskirtas vilkikui {{plate}}",
+    "memberAdded": "Pridėta: {{name}}",
+    "memberRemoved": "Pašalinta: {{name}}",
     "managerAssigned": "Vadovas {{name}} priskirtas vilkikui {{plate}}"
   },
   "chat": {
     "typingOne": "rašo",
+    "quotedNotFound": "Žinutė nerasta — galbūt ji ištrinta.",
     "typingMany": "rašo",
     "editingMessage": "Žinutės redagavimas",
     "replyTo": "Atsakymas: {{name}}",
@@ -386,5 +389,9 @@
     "shareFailed": "Nepavyko pasidalinti nuotrauka",
     "permissionTitle": "Nėra prieigos prie galerijos",
     "permissionBody": "Leiskite išsaugoti nuotraukas telefono nustatymuose."
+  },
+  "call": {
+    "phone": "Telefonas",
+    "viberMissing": "Šiame telefone neįdiegtas Viber."
   }
 }

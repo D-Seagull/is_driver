@@ -158,10 +158,13 @@
   },
   "sys": {
     "driverAssigned": "Водитель {{name}} назначен на грузовик {{plate}}",
+    "memberAdded": "Добавлен: {{name}}",
+    "memberRemoved": "Удалён: {{name}}",
     "managerAssigned": "Менеджер {{name}} назначен на грузовик {{plate}}"
   },
   "chat": {
     "typingOne": "печатает",
+    "quotedNotFound": "Сообщение не найдено — возможно, оно удалено.",
     "typingMany": "печатают",
     "editingMessage": "Редактирование сообщения",
     "replyTo": "Ответ: {{name}}",
@@ -386,5 +389,9 @@
     "shareFailed": "Не удалось поделиться фото",
     "permissionTitle": "Нет доступа к галерее",
     "permissionBody": "Разрешите сохранение фото в настройках телефона."
+  },
+  "call": {
+    "phone": "Телефон",
+    "viberMissing": "Viber не установлен на этом телефоне."
   }
 }

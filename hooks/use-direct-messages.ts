@@ -143,39 +143,55 @@ export function useLoadOlderDirectMessages(otherUserId: string) {
     loadingRef.current = false;
   }, [otherUserId]);
 
-  const loadOlder = useCallback(async () => {
-    if (!otherUserId || loadingRef.current || !hasMore) return;
-    const current =
-      qc.getQueryData<DirectMessage[]>(dmKeys.messages(otherUserId)) ?? [];
-    if (current.length === 0) return;
-    const oldest = current.reduce((a, b) =>
-      new Date(a.createdAt).getTime() <= new Date(b.createdAt).getTime() ? a : b,
-    );
-    loadingRef.current = true;
-    setLoadingOlder(true);
-    try {
-      const res = await api.get<DirectMessage[]>(
-        `/direct-messages/${otherUserId}`,
-        { params: { before: oldest.createdAt, take: DM_PAGE_SIZE } },
+  // Resolves to whether older history may remain. A call while a page is
+  // loading joins that page instead of starting another (a quote jump calls
+  // this in a loop — lib/reveal-in-list).
+  const olderInFlight = useRef<Promise<boolean> | null>(null);
+  const loadOlder = useCallback((): Promise<boolean> => {
+    if (olderInFlight.current) return olderInFlight.current;
+    if (!otherUserId || !hasMore) return Promise.resolve(false);
+    const loadPage = async (): Promise<boolean> => {
+      const current =
+        qc.getQueryData<DirectMessage[]>(dmKeys.messages(otherUserId)) ?? [];
+      if (current.length === 0) return false;
+      const oldest = current.reduce((a, b) =>
+        new Date(a.createdAt).getTime() <= new Date(b.createdAt).getTime() ? a : b,
       );
-      const older = res.data ?? [];
-      if (older.length > 0) {
-        qc.setQueryData<DirectMessage[]>(
-          dmKeys.messages(otherUserId),
-          (prev = []) => {
-            const seen = new Set(prev.map((m) => m.id));
-            const fresh = older.filter((m) => !seen.has(m.id));
-            return fresh.length ? [...fresh, ...prev] : prev;
-          },
+      loadingRef.current = true;
+      setLoadingOlder(true);
+      try {
+        const res = await api.get<DirectMessage[]>(
+          `/direct-messages/${otherUserId}`,
+          { params: { before: oldest.createdAt, take: DM_PAGE_SIZE } },
         );
+        const older = res.data ?? [];
+        if (older.length > 0) {
+          qc.setQueryData<DirectMessage[]>(
+            dmKeys.messages(otherUserId),
+            (prev = []) => {
+              const seen = new Set(prev.map((m) => m.id));
+              const fresh = older.filter((m) => !seen.has(m.id));
+              return fresh.length ? [...fresh, ...prev] : prev;
+            },
+          );
+        }
+        const more = older.length >= DM_PAGE_SIZE;
+        if (!more) setHasMore(false);
+        return more;
+      } catch (e) {
+        console.warn('[dm] loadOlder failed', e);
+        return false;
+      } finally {
+        loadingRef.current = false;
+        setLoadingOlder(false);
       }
-      if (older.length < DM_PAGE_SIZE) setHasMore(false);
-    } catch (e) {
-      console.warn('[dm] loadOlder failed', e);
-    } finally {
-      loadingRef.current = false;
-      setLoadingOlder(false);
-    }
+    };
+    const run = loadPage();
+    olderInFlight.current = run;
+    void run.finally(() => {
+      olderInFlight.current = null;
+    });
+    return run;
   }, [otherUserId, hasMore, qc]);
 
   return { loadOlder, loadingOlder, hasMore };

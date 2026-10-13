@@ -158,10 +158,13 @@
   },
   "sys": {
     "driverAssigned": "Kierowca {{name}} przydzielony do ciężarówki {{plate}}",
+    "memberAdded": "Dodano: {{name}}",
+    "memberRemoved": "Usunięto: {{name}}",
     "managerAssigned": "Menedżer {{name}} przydzielony do ciężarówki {{plate}}"
   },
   "chat": {
     "typingOne": "pisze",
+    "quotedNotFound": "Nie znaleziono wiadomości — mogła zostać usunięta.",
     "typingMany": "piszą",
     "editingMessage": "Edycja wiadomości",
     "replyTo": "Odpowiedź: {{name}}",
@@ -386,5 +389,9 @@
     "shareFailed": "Nie udało się udostępnić zdjęcia",
     "permissionTitle": "Brak dostępu do galerii",
     "permissionBody": "Zezwól na zapisywanie zdjęć w ustawieniach telefonu."
+  },
+  "call": {
+    "phone": "Telefon",
+    "viberMissing": "Viber nie jest zainstalowany na tym telefonie."
   }
 }

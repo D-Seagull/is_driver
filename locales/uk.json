@@ -158,10 +158,13 @@
   },
   "sys": {
     "driverAssigned": "До вантажівки {{plate}} призначений водій {{name}}",
+    "memberAdded": "Додано: {{name}}",
+    "memberRemoved": "Вилучено: {{name}}",
     "managerAssigned": "До вантажівки {{plate}} призначений менеджер {{name}}"
   },
   "chat": {
     "typingOne": "набирає",
+    "quotedNotFound": "Повідомлення не знайдено — можливо, його видалено.",
     "typingMany": "набирають",
     "editingMessage": "Редагування повідомлення",
     "replyTo": "Відповідь: {{name}}",
@@ -386,5 +389,9 @@
     "shareFailed": "Не вдалося поділитися фото",
     "permissionTitle": "Немає доступу до галереї",
     "permissionBody": "Дозвольте збереження фото в налаштуваннях телефона."
+  },
+  "call": {
+    "phone": "Телефон",
+    "viberMissing": "Viber не встановлено на цьому телефоні."
   }
 }

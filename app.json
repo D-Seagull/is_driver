@@ -1,9 +1,11 @@
 {
   "expo": {
-    "name": "is-driver",
+    "name": "IS Driver",
     "slug": "is-driver",
     "version": "1.0.0",
-    "runtimeVersion": { "policy": "appVersion" },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "updates": {
       "url": "https://u.expo.dev/8bb837ef-9e50-4f36-b896-35fcd5e3920f"
     },
@@ -21,7 +23,7 @@
       }
     },
     "android": {
-      "package": "com.dseadull.isdriver",
+      "package": "com.isfleet.isdriver",
       "versionCode": 1,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
@@ -52,7 +54,13 @@
       ],
       "@react-native-community/datetimepicker",
       "expo-localization",
-      "expo-audio",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Додатку потрібен доступ до мікрофона, щоб записувати голосові повідомлення в чаті.",
+          "enableBackgroundPlayback": false
+        }
+      ],
       [
         "expo-notifications",
         {
