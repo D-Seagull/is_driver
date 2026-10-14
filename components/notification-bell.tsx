@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -95,7 +95,11 @@ export function NotificationBell({ colors: c }: { colors: ThemeColors }) {
                     key={`trip-${item.tripId}`}
                     style={({ pressed }) => [
                       styles.item,
-                      { borderColor: c.sidebarBorder, backgroundColor: pressed ? c.sidebarAccent : 'transparent' },
+                      {
+                        borderColor: c.sidebarBorder,
+                        borderLeftColor: KIND.trip,
+                        backgroundColor: pressed ? c.sidebarAccent : KIND.trip + '14',
+                      },
                     ]}
                     onPress={() => {
                       setOpen(false);
@@ -110,6 +114,7 @@ export function NotificationBell({ colors: c }: { colors: ThemeColors }) {
                     }}
                   >
                     <View style={styles.itemRow}>
+                      <MaterialCommunityIcons name="truck-outline" size={15} color={KIND.trip} />
                       <Text style={[styles.itemTitle, { color: c.foreground }]} numberOfLines={1}>
                         {item.tripTitle}
                       </Text>
@@ -130,7 +135,11 @@ export function NotificationBell({ colors: c }: { colors: ThemeColors }) {
                     key={`dm-${conv.user.id}`}
                     style={({ pressed }) => [
                       styles.item,
-                      { borderColor: c.sidebarBorder, backgroundColor: pressed ? c.sidebarAccent : 'transparent' },
+                      {
+                        borderColor: c.sidebarBorder,
+                        borderLeftColor: KIND.dm,
+                        backgroundColor: pressed ? c.sidebarAccent : KIND.dm + '14',
+                      },
                     ]}
                     onPress={() => {
                       setOpen(false);
@@ -138,6 +147,7 @@ export function NotificationBell({ colors: c }: { colors: ThemeColors }) {
                     }}
                   >
                     <View style={styles.itemRow}>
+                      <Ionicons name="chatbubble-outline" size={14} color={KIND.dm} />
                       <Text style={[styles.itemTitle, { color: c.foreground }]} numberOfLines={1}>
                         {fullName(conv.user) || t('nav.chatFallback')}
                       </Text>
@@ -160,6 +170,14 @@ export function NotificationBell({ colors: c }: { colors: ThemeColors }) {
     </>
   );
 }
+
+// Each row says where the message is: a coloured stripe, a light tint of the
+// same colour and an icon before the title — trip chat vs direct message at
+// a glance (drivers confused the two).
+const KIND = {
+  trip: '#3B82F6',
+  dm: '#10B981',
+} as const;
 
 const styles = StyleSheet.create({
   bellBtn: {
@@ -203,6 +221,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
+    borderLeftWidth: 3,
     gap: 2,
   },
   itemRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
