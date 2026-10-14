@@ -8,6 +8,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { openRemoteFile, readableFileName } from '@/lib/open-file';
 import { revealInList, retryScrollToIndex } from '@/lib/reveal-in-list';
+import { useFocusMessage } from '@/hooks/use-focus-message';
 import { fullName } from "@/lib/format";
 import {
   ActivityIndicator,
@@ -95,7 +96,10 @@ export default function DmScreen() {
   const insets = useSafeAreaInsets();
   // Safe-area pad when the keyboard is closed, small gap when it's open.
   const composerPad = useComposerBottomPadding();
-  const { userId: peerId } = useLocalSearchParams<{ userId: string }>();
+  const { userId: peerId, messageId: focusMessageId } = useLocalSearchParams<{
+    userId: string;
+    messageId?: string;
+  }>();
   const me = useUser();
   const myId = me?.id ?? '';
 
@@ -272,6 +276,16 @@ export default function DmScreen() {
       });
     },
     [t],
+  );
+
+  // Opened from a push → straight to that message.
+  useFocusMessage(
+    typeof focusMessageId === 'string' ? focusMessageId : undefined,
+    data,
+    (it, id) =>
+      it.data.id === id ||
+      (it.kind === 'album' && it.docs.some((d) => d.id === id)),
+    scrollToMessage,
   );
 
   // ─── Attach flow ───────────────────────────────────────────────────

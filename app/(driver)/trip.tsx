@@ -53,6 +53,7 @@ import { TripStatus } from "@/constants/trip-status";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { PhotoGallery } from "@/components/photo-gallery";
 import { useComposerBottomPadding } from "@/hooks/use-composer-bottom-padding";
+import { useFocusMessage } from "@/hooks/use-focus-message";
 import { useTripDocuments, useUploadDocuments } from "@/hooks/use-documents";
 import { NotificationBell } from "@/components/notification-bell";
 import { ChatMessage, useTripChat } from "@/hooks/use-trip-chat";
@@ -87,7 +88,7 @@ export default function TripScreen() {
 
   // When opened from My Trips list a tripId param is passed → load that
   // specific trip. Otherwise default to the driver's currently active trip.
-  const params = useLocalSearchParams<{ tripId?: string }>();
+  const params = useLocalSearchParams<{ tripId?: string; messageId?: string }>();
   const explicitTripId =
     typeof params.tripId === "string" ? params.tripId : undefined;
 
@@ -167,6 +168,9 @@ export default function TripScreen() {
           refreshing={manualRefreshing}
           isActiveView={!explicitTripId}
           chatLocked={chatLocked}
+          focusMessageId={
+            typeof params.messageId === "string" ? params.messageId : undefined
+          }
         />
       )}
     </KeyboardPaddingView>
@@ -181,12 +185,15 @@ function TripWithChat({
   refreshing,
   isActiveView,
   chatLocked = false,
+  focusMessageId,
 }: {
   trip: Trip;
   onRefresh: () => void;
   refreshing: boolean;
   isActiveView: boolean;
   chatLocked?: boolean;
+  /** From a push tap: scroll to this message and flash it. */
+  focusMessageId?: string;
 }) {
   const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? "light"];
@@ -372,6 +379,16 @@ function TripWithChat({
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Opened from a push → straight to that message.
+  useFocusMessage(
+    focusMessageId,
+    newestFirst,
+    (it, id) =>
+      it.data.id === id ||
+      (it.kind === "album" && it.docs.some((d) => d.id === id)),
+    scrollToMessage,
+  );
 
   // A new message at the bottom while the reader is scrolled up: bump the
   // "↓ N new" pill instead of yanking them down. Keyed on the newest item, so
