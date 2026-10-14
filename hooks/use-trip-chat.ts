@@ -177,8 +177,39 @@ export function useTripChat(
     // Keep the ref up-to-date so markReadNow() always calls the right closure.
     markReadFnRef.current = markRead;
 
+    // Back from the background / a dropped connection: messages sent while
+    // the socket was down are never replayed, so pull the latest page and
+    // merge it in (new ones added, edited / deleted ones refreshed). Without
+    // this a message that arrived as a push only showed up after a restart.
+    // DM and group chats do the same by invalidating their queries.
+    const catchUp = () => {
+      fetchTripMessages(tripId, { take: PAGE_SIZE })
+        .then((latest: ChatMessage[]) => {
+          if (cancelled || latest.length === 0) return;
+          latest.forEach((m) => seenIds.current.add(m.id));
+          setMessages((prev) => {
+            const byId = new Map(prev.map((m) => [m.id, m]));
+            latest.forEach((m) => byId.set(m.id, m));
+            return [...byId.values()].sort(
+              (x, y) =>
+                new Date(x.createdAt).getTime() - new Date(y.createdAt).getTime(),
+            );
+          });
+        })
+        .catch(() => {
+          /* offline again — the next connect retries */
+        });
+      qc.invalidateQueries({ queryKey: documentKeys.all });
+    };
+
+    // The first connect after mount comes with the history load above;
+    // every later one is a reconnect that may have missed messages.
+    let connectedBefore = sock.connected;
+
     const onConnect = () => {
       setConnected(true);
+      if (connectedBefore) catchUp();
+      connectedBefore = true;
       joinRoom(); // re-join after every (re)connect
       // The chat is open (markRead is focus-gated), so mark it read on connect
       // regardless of scroll position. Gating this on nearBottom was flaky on
