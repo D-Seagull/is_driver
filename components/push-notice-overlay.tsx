@@ -21,6 +21,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { tripKeys } from '@/hooks/use-trips';
 import { truckKeys } from '@/hooks/use-truck';
 import { registerTripActionCategories, TRIP_ACTIONS } from '@/lib/push';
+import { openChatFromPush } from '@/lib/push-route';
 import { getSocket } from '@/lib/socket';
 import { answerDepart, updateDriverTripStatus } from '@/lib/trips-api';
 import { Trip } from '@/lib/types';
@@ -294,6 +295,13 @@ export function PushNoticeOverlay() {
           }
           return;
       }
+      // Plain tap on a chat message: open that chat at that message. The
+      // active trip is read from the cache (the Trip tab shows it without an
+      // id). On a cold start the navigator mounts first — next tick.
+      const activeTripId = qc.getQueryData<Trip | null>(tripKeys.active())?.id;
+      setTimeout(() => {
+        openChatFromPush(payload, activeTripId);
+      }, 0);
       // Plain tap: ask the question in-app (plain notices need no modal —
       // the user already saw the banner).
       const next = fromPush(title, body, payload);
@@ -309,7 +317,7 @@ export function PushNoticeOverlay() {
       recvSub.remove();
       respSub.remove();
     };
-  }, [refresh, fromPush, enqueue, settle, accept, depart]);
+  }, [refresh, fromPush, enqueue, settle, accept, depart, qc]);
 
   const onOk = () => {
     const n = notice;
