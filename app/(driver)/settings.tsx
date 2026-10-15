@@ -35,6 +35,7 @@ import { fullName, initials } from '@/lib/format';
 import { setAppLanguage } from '@/lib/i18n';
 import { StatusDot } from '@/components/status-dot';
 import { PresenceStatusSheet } from '@/components/presence-status-sheet';
+import { ReliableNotifications } from '@/components/reliable-notifications';
 import { PRIVACY_URL, TERMS_URL } from '@/lib/config';
 import { useAlertPrefs } from '@/store/alert-prefs';
 import { useAuthStore, useUser } from '@/store/auth';
@@ -517,6 +518,14 @@ export default function DriverSettingsScreen() {
             </View>
           </View>
         </SectionCard>
+
+        {/* ── Reliable notifications (Android) — lock screen, DND for the
+            alarm, battery. Renders nothing on iOS. ─────────────────── */}
+        {Platform.OS === 'android' && (
+          <SectionCard colors={c} compact={compact} title={t('settings.reliable.title')}>
+            <ReliableNotifications colors={c} alarm />
+          </SectionCard>
+        )}
 
         {/* ── Logout block ─────────────────────────────────────────── */}
         <Pressable

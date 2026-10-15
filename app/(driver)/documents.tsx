@@ -29,6 +29,7 @@ import { ScreenPlaceholder } from '@/components/screen-placeholder';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { PhotoGallery } from '@/components/photo-gallery';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useListBottomPadding } from '@/hooks/use-list-bottom-padding';
 import {
   useDeleteDocument,
   useTruckDocuments,
@@ -71,6 +72,7 @@ export default function DocumentsScreen() {
 
   const [openFolder, setOpenFolder] = useState<FolderGroup | null>(null);
   const [query, setQuery] = useState('');
+  const listPad = useListBottomPadding(Spacing.lg);
 
   const folders = useMemo<FolderGroup[]>(() => {
     if (!docs) return [];
@@ -260,7 +262,7 @@ export default function DocumentsScreen() {
             <FlatList
               data={filteredFolders}
               keyExtractor={(f) => f.tripId}
-              contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.sm }}
+              contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.sm, paddingBottom: listPad }}
               refreshControl={
                 <RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} />
               }
@@ -369,6 +371,7 @@ function FolderModal({
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<Tab>('ALL');
   const del = useDeleteDocument();
+  const listPad = useListBottomPadding(Spacing.lg);
 
   const filtered = useMemo(() => {
     if (!folder) return [];
@@ -517,7 +520,7 @@ function FolderModal({
           <FlatList
             data={filtered}
             keyExtractor={(d) => d.id}
-            contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.sm }}
+            contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.sm, paddingBottom: listPad }}
             renderItem={({ item }) => (
               <DocCard
                 doc={item}

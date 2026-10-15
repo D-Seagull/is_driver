@@ -27,6 +27,7 @@
     "searchPlaceholder": "Szukaj po imieniu, telefonie lub pojeździe…",
     "otherContacts": "Inne kontakty",
     "noConversations": "Brak rozmów.",
+    "noMessages": "Brak wiadomości",
     "teamlead": "Kierownik zespołu"
   },
   "groups": {
@@ -89,7 +90,14 @@
       "error": "Nie udało się usunąć konta"
     },
     "privacyPolicy": "Polityka prywatności",
-    "terms": "Regulamin"
+    "terms": "Regulamin",
+    "reliable": {
+      "title": "Niezawodne powiadomienia",
+      "notifications": "Powiadomienia na ekranie blokady",
+      "dnd": "Budzik w trybie „Nie przeszkadzać”",
+      "battery": "Bateria: bez ograniczeń",
+      "hint": "Aby powiadomienia i budzik zawsze docierały: zezwól na ekranie blokady, przyznaj dostęp do trybu „Nie przeszkadzać” i wyłącz oszczędzanie baterii dla IS Driver. Na Xiaomi / Redmi włącz też „Autostart”."
+    }
   },
   "auth": {
     "phone": {
@@ -332,7 +340,11 @@
     "departTitle": "Jedziemy na załadunek?",
     "yes": "Tak",
     "no": "Nie",
-    "ok": "OK"
+    "ok": "OK",
+    "channels": {
+      "chat": "Wiadomości i trasy",
+      "alarm": "Budzik"
+    }
   },
   "status": {
     "ONLINE": "Dostępny",

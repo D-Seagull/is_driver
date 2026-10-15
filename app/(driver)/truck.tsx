@@ -19,6 +19,7 @@ import {
 import { ScreenPlaceholder } from "@/components/screen-placeholder";
 import { Colors, Radius, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useListBottomPadding } from "@/hooks/use-list-bottom-padding";
 import {
   useCreateTruckNote,
   useDeleteTruckNote,
@@ -147,6 +148,7 @@ export default function TruckScreen() {
 
   const { data: truck, isLoading, refetch } = useDriverTruck();
   const [manualRefreshing, setManualRefreshing] = useState(false);
+  const listPad = useListBottomPadding(Spacing.lg);
   const handleManualRefresh = async () => {
     setManualRefreshing(true);
     await refetch();
@@ -218,7 +220,7 @@ export default function TruckScreen() {
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: c.background }}
-      contentContainerStyle={styles.body}
+      contentContainerStyle={[styles.body, { paddingBottom: listPad }]}
       refreshControl={
         <RefreshControl
           refreshing={manualRefreshing}

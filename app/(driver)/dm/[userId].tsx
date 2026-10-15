@@ -44,6 +44,7 @@ import { PhotoGallery } from '@/components/photo-gallery';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAppActive } from '@/hooks/use-app-active';
 import { useComposerBottomPadding } from '@/hooks/use-composer-bottom-padding';
+import { useListBottomPadding } from '@/hooks/use-list-bottom-padding';
 import { useChatEvents } from '@/hooks/use-chat-events';
 import {
   useConversationDocuments,
@@ -1208,6 +1209,7 @@ function DocsFolderModal({
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
   const insets = useSafeAreaInsets();
+  const listPad = useListBottomPadding(Spacing.lg);
   const [tab, setTab] = useState<DocTab>('ALL');
 
   const photos = docs.filter((d) => d.fileType === 'PHOTO');
@@ -1298,7 +1300,7 @@ function DocsFolderModal({
           <FlatList
             data={filtered}
             keyExtractor={(d) => d.id}
-            contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.sm }}
+            contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.sm, paddingBottom: listPad }}
             renderItem={({ item }) => (
               <Pressable
                 onPress={() => onOpen(item)}

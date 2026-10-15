@@ -53,6 +53,7 @@ import { TripStatus } from "@/constants/trip-status";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { PhotoGallery } from "@/components/photo-gallery";
 import { useComposerBottomPadding } from "@/hooks/use-composer-bottom-padding";
+import { useListBottomPadding } from "@/hooks/use-list-bottom-padding";
 import { useFocusMessage } from "@/hooks/use-focus-message";
 import { useTripDocuments, useUploadDocuments } from "@/hooks/use-documents";
 import { NotificationBell } from "@/components/notification-bell";
@@ -1281,6 +1282,7 @@ function TripDocsModal({
   const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? "light"];
   const insets = useSafeAreaInsets();
+  const listPad = useListBottomPadding(Spacing.lg);
   const [tab, setTab] = useState<DocTab>("ALL");
 
   // Deleted files (incl. ones gone from storage) can't be opened — hide them.
@@ -1391,7 +1393,7 @@ function TripDocsModal({
           <FlatList
             data={filtered}
             keyExtractor={(d) => d.id}
-            contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.sm }}
+            contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.sm, paddingBottom: listPad }}
             renderItem={({ item }) => (
               <Pressable
                 onPress={() => onOpenDoc(item)}

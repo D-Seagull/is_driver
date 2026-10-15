@@ -21,6 +21,7 @@ import { ScreenPlaceholder } from '@/components/screen-placeholder';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useCompanyUsers, type CompanyUser } from '@/hooks/use-company-users';
+import { useListBottomPadding } from '@/hooks/use-list-bottom-padding';
 import { useConversations, type Conversation, useHideConversation } from '@/hooks/use-direct-messages';
 import { useDriverGroups, type DriverGroup } from '@/hooks/use-groups';
 import { type DriverUserStatus } from '@/lib/auth-api';
@@ -111,6 +112,7 @@ function ChatTab() {
   const { data: companyUsers } = useCompanyUsers();
   const [query, setQuery] = useState('');
   const [visibleDir, setVisibleDir] = useState(DIR_PAGE);
+  const listPad = useListBottomPadding();
 
   // Reset pagination whenever the search changes so results start from the top.
   const onQueryChange = (value: string) => {
@@ -243,6 +245,7 @@ function ChatTab() {
               </Text>
             )
           }
+          contentContainerStyle={{ paddingBottom: listPad }}
           onEndReachedThreshold={0.5}
           onEndReached={() => {
             if (visibleDir < directory.length) {
@@ -269,9 +272,11 @@ function DirectoryRow({ user }: { user: CompanyUser }) {
   const c = Colors[scheme];
   const isManagerTier = user.role !== 'DRIVER';
   const roleLabel = user.role === 'TEAMLEAD' ? t('chatDir.teamlead') : t('nav.manager');
+  // Drivers: show the truck plate when assigned; never the phone number.
+  // Without a truck there's nothing to chat about yet → "no messages".
   const subtitle = isManagerTier
     ? roleLabel
-    : user.currentTruck?.plate || user.phone || t('nav.driverFallback');
+    : user.currentTruck?.plate || t('chatDir.noMessages');
 
   return (
     <Pressable
@@ -399,6 +404,7 @@ function GroupsTab() {
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
   const { data: groups, isLoading } = useDriverGroups();
+  const listPad = useListBottomPadding();
 
   if (isLoading) {
     return (
@@ -431,6 +437,7 @@ function GroupsTab() {
       ItemSeparatorComponent={() => (
         <View style={[styles.sep, { backgroundColor: c.border }]} />
       )}
+      contentContainerStyle={{ paddingBottom: listPad }}
     />
   );
 }

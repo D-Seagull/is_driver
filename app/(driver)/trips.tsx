@@ -19,6 +19,7 @@ import { StatusBadge } from '@/components/status-picker';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useDriverUnread } from '@/hooks/use-driver-unread';
+import { useListBottomPadding } from '@/hooks/use-list-bottom-padding';
 import { useActiveTrip, useMyTrips } from '@/hooks/use-trips';
 import { formatDate } from '@/lib/format-date';
 import { Trip } from '@/lib/types';
@@ -38,6 +39,7 @@ export default function TripsScreen() {
   const tripUnread = unreadData?.tripUnread ?? {};
   const [query, setQuery] = useState('');
   const [manualRefreshing, setManualRefreshing] = useState(false);
+  const listPad = useListBottomPadding(Spacing.lg);
 
   const handleManualRefresh = async () => {
     setManualRefreshing(true);
@@ -145,7 +147,7 @@ export default function TripsScreen() {
         <FlatList
           data={rows}
           keyExtractor={(row) => (row.kind === 'header' ? `h:${row.key}` : row.trip.id)}
-          contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.sm }}
+          contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.sm, paddingBottom: listPad }}
           refreshControl={
             <RefreshControl refreshing={manualRefreshing} onRefresh={handleManualRefresh} />
           }
