@@ -337,6 +337,7 @@
   },
   "push": {
     "noticeTitle": "Powiadomienie",
+    "newTripTitle": "Nowy załadunek",
     "departTitle": "Jedziemy na załadunek?",
     "yes": "Tak",
     "no": "Nie",

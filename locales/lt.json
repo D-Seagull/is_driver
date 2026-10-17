@@ -337,6 +337,7 @@
   },
   "push": {
     "noticeTitle": "Pranešimas",
+    "newTripTitle": "Naujas pakrovimas",
     "departTitle": "Vykstame į pakrovimą?",
     "yes": "Taip",
     "no": "Ne",

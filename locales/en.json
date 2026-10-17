@@ -332,6 +332,7 @@
   },
   "push": {
     "noticeTitle": "Notification",
+    "newTripTitle": "New loading",
     "departTitle": "Heading to loading?",
     "yes": "Yes",
     "no": "No",

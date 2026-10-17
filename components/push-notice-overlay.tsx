@@ -1,5 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import Constants from 'expo-constants';
+import { router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -18,11 +19,12 @@ const Notifications: NotificationsModule | null = isExpoGoAndroid
 
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { tripKeys } from '@/hooks/use-trips';
+import { tripKeys, useMyTrips } from '@/hooks/use-trips';
 import { truckKeys } from '@/hooks/use-truck';
 import { registerTripActionCategories, TRIP_ACTIONS } from '@/lib/push';
 import { openChatFromPush } from '@/lib/push-route';
 import { getSocket } from '@/lib/socket';
+import { onAcceptTripAsk, tripAskBody } from '@/lib/trip-ask';
 import { answerDepart, updateDriverTripStatus } from '@/lib/trips-api';
 import { Trip } from '@/lib/types';
 import { playAlarmSound } from '@/lib/sounds';
@@ -37,6 +39,8 @@ interface Notice {
   tripId?: string;
   /** Which ask of "heading to loading?" this is (1st, 2nd, 3rd). */
   promptNo?: number;
+  /** Open the trip once the driver taps OK (next-trip hand-off). */
+  openOnAccept?: boolean;
 }
 
 type Payload = Record<string, unknown> | undefined;
@@ -72,6 +76,12 @@ const promptNoOf = (data: Payload) =>
  * Every question is asked ONCE: copies of it are dropped (see `questionKey`),
  * answering on the banner removes it from the modal queue, and answering in
  * the modal clears its banner from the notification tray.
+ *
+ * While the app is open the backend sends no push at all — the news comes as
+ * the `notice` socket event and lands here the same way. A trip still waiting
+ * for its OK (ASSIGNED) is asked from the trips data too, so the question
+ * survives a notice lost while the phone was locking. The next-trip hand-off
+ * (NextTripOverlay) asks through this queue as well — one window per trip.
  */
 export function PushNoticeOverlay() {
   const { t } = useTranslation();
@@ -125,7 +135,19 @@ export function PushNoticeOverlay() {
       }
       const key = questionKey(n);
       if (key) {
-        if (seenRef.current.has(key)) return;
+        if (seenRef.current.has(key)) {
+          // Already asked — just carry an "open it after OK" wish over.
+          if (n.openOnAccept) {
+            setQueue((q) =>
+              q.map((x) =>
+                x.kind === 'newTrip' && x.tripId === n.tripId
+                  ? { ...x, openOnAccept: true }
+                  : x,
+              ),
+            );
+          }
+          return;
+        }
         seenRef.current.add(key);
       }
       setQueue((q) =>
@@ -171,6 +193,9 @@ export function PushNoticeOverlay() {
         await updateDriverTripStatus(tripId, 'ACCEPTED');
       } catch (e) {
         acceptedRef.current.delete(tripId);
+        // Not accepted after all — let the question come back.
+        const key = questionKey({ kind: 'newTrip', tripId });
+        if (key) seenRef.current.delete(key);
         console.warn('[push] failed to ACCEPT trip', e);
       }
       refresh();
@@ -241,11 +266,56 @@ export function PushNoticeOverlay() {
         promptNo: p.promptNo,
       });
     };
+    // While the app is open the backend sends news as `notice` instead of a
+    // push (a banner over the open app was the doubled window).
+    const onNotice = (n: { title?: string; body?: string; data?: Payload }) => {
+      refresh();
+      const next = fromPush(n.title ?? null, n.body ?? null, n.data);
+      if (next) enqueue(next);
+    };
     socket.on('departPrompt', onPrompt);
+    socket.on('notice', onNotice);
     return () => {
       socket.off('departPrompt', onPrompt);
+      socket.off('notice', onNotice);
     };
-  }, [token, enqueue, t]);
+  }, [token, enqueue, t, refresh, fromPush]);
+
+  // A trip waiting for its OK is asked from the data as well — oldest first,
+  // the order the backend makes them current. Covers a notice that never
+  // arrived (phone locked the second it was sent) and an ignored banner.
+  const { data: myTrips } = useMyTrips();
+  useEffect(() => {
+    const waiting = (myTrips ?? [])
+      .filter((trip) => trip.status === 'ASSIGNED')
+      .sort(
+        (a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      );
+    for (const trip of waiting) {
+      enqueue({
+        kind: 'newTrip',
+        title: t('push.newTripTitle'),
+        body: tripAskBody(trip, t),
+        tripId: trip.id,
+      });
+    }
+  }, [myTrips, enqueue, t]);
+
+  // The next-trip hand-off asks through the same queue (see lib/trip-ask).
+  useEffect(
+    () =>
+      onAcceptTripAsk((a) =>
+        enqueue({
+          kind: 'newTrip',
+          title: a.title,
+          body: a.body,
+          tripId: a.tripId,
+          openOnAccept: a.openOnAccept,
+        }),
+      ),
+    [enqueue],
+  );
 
   useEffect(() => {
     // Notifications module is missing only in Android Expo Go.
@@ -323,8 +393,13 @@ export function PushNoticeOverlay() {
     const n = notice;
     close();
     if (n?.kind === 'newTrip' && n.tripId) {
+      const tripId = n.tripId;
       settle(n); // also clears its banner from the tray
-      void accept(n.tripId);
+      void accept(tripId).then(() => {
+        if (n.openOnAccept) {
+          router.push({ pathname: '/(driver)/trip', params: { tripId } });
+        }
+      });
     }
   };
 
