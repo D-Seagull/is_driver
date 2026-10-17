@@ -11,6 +11,7 @@ import {
   Modal,
   Platform,
   Pressable,
+  // eslint-disable-next-line no-restricted-imports -- the screen container reserves the Android nav bar (tuned to fit without scrolling)
   ScrollView,
   StyleSheet,
   Switch,

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import {
   Modal,
   Pressable,
+  // eslint-disable-next-line no-restricted-imports -- height-capped dropdown, not a screen list
   ScrollView,
   StyleSheet,
   Text,

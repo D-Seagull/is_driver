@@ -6,7 +6,6 @@ import {
   ActivityIndicator,
   Modal,
   Pressable,
-  ScrollView,
   StyleSheet,
   Switch,
   Text,
@@ -14,11 +13,11 @@ import {
   View,
 } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { StatusDot } from '@/components/status-dot';
 import { LastSeen } from '@/components/last-seen';
 import { Colors, Radius, Spacing } from '@/constants/theme';
+import { InsetScrollView } from '@/components/inset-list';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   useManagerProfile,
@@ -43,7 +42,6 @@ import type { ManagerRating } from '@/lib/manager-api';
 export default function ManagerScreen() {
   const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? 'light'];
-  const insets = useSafeAreaInsets();
   const me = useUser();
   // The driver's manager is the manager of the truck they're currently on
   // (this is what the sidebar row shows and taps through from). Fall back to
@@ -94,11 +92,10 @@ export default function ManagerScreen() {
   const displayName = fullName(profile) || profile.email || t('nav.manager');
 
   return (
-    <ScrollView
+    <InsetScrollView bottomGap={Spacing.lg} insetIOS
       style={{ flex: 1, backgroundColor: c.background }}
       contentContainerStyle={{
         padding: Spacing.lg,
-        paddingBottom: insets.bottom + Spacing.lg,
         gap: Spacing.lg,
       }}
     >
@@ -256,7 +253,7 @@ export default function ManagerScreen() {
         }}
         colors={c}
       />
-    </ScrollView>
+    </InsetScrollView>
   );
 }
 

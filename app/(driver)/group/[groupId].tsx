@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
   BackHandler,
+  // eslint-disable-next-line no-restricted-imports -- inverted chat timeline — the composer owns the bottom inset
   FlatList,
   Image,
   Keyboard,
@@ -32,12 +33,12 @@ import { MessageActionsSheet, type MessageActions } from '@/components/message-a
 import { UserCardSheet } from '@/components/user-card-sheet';
 import { MessageQuote } from '@/components/message-quote';
 import { Colors, Radius, Spacing } from '@/constants/theme';
+import { InsetFlatList } from '@/components/inset-list';
 import { PhotoGallery } from '@/components/photo-gallery';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAppActive } from '@/hooks/use-app-active';
 import { useClearChatNotifications } from '@/hooks/use-clear-chat-notifications';
 import { useComposerBottomPadding } from '@/hooks/use-composer-bottom-padding';
-import { useListBottomPadding } from '@/hooks/use-list-bottom-padding';
 import { useChatEvents, useJoinGroupRoom } from '@/hooks/use-chat-events';
 import {
   useDeleteGroupDoc,
@@ -762,7 +763,6 @@ function DocsFolderModal({
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
   const insets = useSafeAreaInsets();
-  const listPad = useListBottomPadding(Spacing.lg);
   const [tab, setTab] = useState<DocTab>('ALL');
 
   const photos = docs.filter((d) => d.fileType === 'PHOTO');
@@ -850,10 +850,10 @@ function DocsFolderModal({
             <Text style={{ color: c.mutedForeground }}>{t('documents.nothingHere')}</Text>
           </View>
         ) : (
-          <FlatList
+          <InsetFlatList bottomGap={Spacing.lg}
             data={filtered}
             keyExtractor={(d) => d.id}
-            contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.sm, paddingBottom: listPad }}
+            contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.sm }}
             renderItem={({ item }) => (
               <Pressable
                 onPress={() => onOpen(item)}

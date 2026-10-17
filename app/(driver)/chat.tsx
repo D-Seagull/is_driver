@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next';
 import { fullName } from "@/lib/format";
 import {
   ActivityIndicator,
-  FlatList,
   Alert,
   Pressable,
   StyleSheet,
@@ -19,9 +18,9 @@ import { ChatAvatar } from '@/components/chat-avatar';
 import { StatusDot } from '@/components/status-dot';
 import { ScreenPlaceholder } from '@/components/screen-placeholder';
 import { Colors, Radius, Spacing } from '@/constants/theme';
+import { InsetFlatList } from '@/components/inset-list';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useCompanyUsers, type CompanyUser } from '@/hooks/use-company-users';
-import { useListBottomPadding } from '@/hooks/use-list-bottom-padding';
 import { useConversations, type Conversation, useHideConversation } from '@/hooks/use-direct-messages';
 import { useDriverGroups, type DriverGroup } from '@/hooks/use-groups';
 import { type DriverUserStatus } from '@/lib/auth-api';
@@ -112,7 +111,6 @@ function ChatTab() {
   const { data: companyUsers } = useCompanyUsers();
   const [query, setQuery] = useState('');
   const [visibleDir, setVisibleDir] = useState(DIR_PAGE);
-  const listPad = useListBottomPadding();
 
   // Reset pagination whenever the search changes so results start from the top.
   const onQueryChange = (value: string) => {
@@ -225,7 +223,7 @@ function ChatTab() {
           </Text>
         </View>
       ) : (
-        <FlatList
+        <InsetFlatList
           data={rows}
           keyExtractor={(it) =>
             it.type === 'conv'
@@ -245,7 +243,6 @@ function ChatTab() {
               </Text>
             )
           }
-          contentContainerStyle={{ paddingBottom: listPad }}
           onEndReachedThreshold={0.5}
           onEndReached={() => {
             if (visibleDir < directory.length) {
@@ -404,7 +401,6 @@ function GroupsTab() {
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
   const { data: groups, isLoading } = useDriverGroups();
-  const listPad = useListBottomPadding();
 
   if (isLoading) {
     return (
@@ -430,14 +426,13 @@ function GroupsTab() {
   );
 
   return (
-    <FlatList
+    <InsetFlatList
       data={sortedGroups}
       keyExtractor={(g) => g.id}
       renderItem={({ item }) => <GroupRow group={item} />}
       ItemSeparatorComponent={() => (
         <View style={[styles.sep, { backgroundColor: c.border }]} />
       )}
-      contentContainerStyle={{ paddingBottom: listPad }}
     />
   );
 }

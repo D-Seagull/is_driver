@@ -19,6 +19,7 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
+  // eslint-disable-next-line no-restricted-imports -- inverted chat timeline — the composer owns the bottom inset
   FlatList,
   Image,
   Keyboard,
@@ -26,6 +27,7 @@ import {
   Platform,
   Pressable,
   RefreshControl,
+  // eslint-disable-next-line no-restricted-imports -- height-capped stops panel inside the trip header
   ScrollView,
   StyleSheet,
   Text,
@@ -49,12 +51,12 @@ import { MessageQuote } from "@/components/message-quote";
 import { ScreenPlaceholder } from "@/components/screen-placeholder";
 import { StatusPicker } from "@/components/status-picker";
 import { Colors, Radius, Spacing } from "@/constants/theme";
+import { InsetFlatList, InsetScrollView } from "@/components/inset-list";
 import { TripStatus } from "@/constants/trip-status";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { PhotoGallery } from "@/components/photo-gallery";
 import { useClearChatNotifications } from "@/hooks/use-clear-chat-notifications";
 import { useComposerBottomPadding } from "@/hooks/use-composer-bottom-padding";
-import { useListBottomPadding } from "@/hooks/use-list-bottom-padding";
 import { useFocusMessage } from "@/hooks/use-focus-message";
 import { useTripDocuments, useUploadDocuments } from "@/hooks/use-documents";
 import { NotificationBell } from "@/components/notification-bell";
@@ -148,7 +150,7 @@ export default function TripScreen() {
           <ActivityIndicator color={c.primary} />
         </View>
       ) : !trip ? (
-        <ScrollView
+        <InsetScrollView
           contentContainerStyle={{ flexGrow: 1 }}
           refreshControl={
             <RefreshControl
@@ -162,7 +164,7 @@ export default function TripScreen() {
             title={t("trip.noActiveTrip.title")}
             subtitle={t("trip.noActiveTrip.subtitle")}
           />
-        </ScrollView>
+        </InsetScrollView>
       ) : (
         <TripWithChat
           trip={trip}
@@ -1285,7 +1287,6 @@ function TripDocsModal({
   const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? "light"];
   const insets = useSafeAreaInsets();
-  const listPad = useListBottomPadding(Spacing.lg);
   const [tab, setTab] = useState<DocTab>("ALL");
 
   // Deleted files (incl. ones gone from storage) can't be opened — hide them.
@@ -1393,10 +1394,10 @@ function TripDocsModal({
             <Text style={{ color: c.mutedForeground }}>{t("documents.nothingHere")}</Text>
           </View>
         ) : (
-          <FlatList
+          <InsetFlatList bottomGap={Spacing.lg}
             data={filtered}
             keyExtractor={(d) => d.id}
-            contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.sm, paddingBottom: listPad }}
+            contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.sm }}
             renderItem={({ item }) => (
               <Pressable
                 onPress={() => onOpenDoc(item)}

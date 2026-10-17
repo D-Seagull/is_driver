@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-restricted-imports -- type only — helper takes a FlatList ref
 import type { FlatList } from 'react-native';
 
 // Pages loaded at most while looking for a quoted message.
