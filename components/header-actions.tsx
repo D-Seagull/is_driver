@@ -19,30 +19,20 @@ import {
 } from 'react-native';
 
 import { Radius, Spacing, ThemeColors } from '@/constants/theme';
-import { useThemeMode } from '@/hooks/use-theme';
 import { reportBug, type BugScreenshot } from '@/lib/bug-report-api';
 import { NotificationBell } from './notification-bell';
 
 const MAX_SCREENSHOTS = 5;
 
 /**
- * Right-side header cluster shown on every drawer screen: unread bell + theme
- * toggle. The bug-report button lives in the drawer brand row instead (next to
- * the bell there), not in the per-screen header.
+ * Right-side header cluster shown on every drawer screen: the unread bell.
+ * The theme toggle and the bug-report button live in the drawer brand row
+ * instead — in the per-screen header the toggle got in the way (Chat).
  */
 export function HeaderActions({ colors: c }: { colors: ThemeColors }) {
-  const { resolved, toggle } = useThemeMode();
-
   return (
     <View style={styles.row}>
       <NotificationBell colors={c} />
-      <Pressable onPress={toggle} hitSlop={8} style={styles.iconBtn}>
-        <Ionicons
-          name={resolved === 'dark' ? 'sunny-outline' : 'moon-outline'}
-          size={19}
-          color={c.foreground}
-        />
-      </Pressable>
     </View>
   );
 }
