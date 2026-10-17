@@ -1,11 +1,5 @@
 import { useEffect } from 'react';
-import {
-  AppState,
-  useWindowDimensions,
-  type LayoutChangeEvent,
-  type StyleProp,
-  type ViewStyle,
-} from 'react-native';
+import { AppState, type StyleProp, type ViewStyle } from 'react-native';
 import {
   KeyboardController,
   KeyboardEvents,
@@ -18,10 +12,9 @@ import Animated, {
 } from 'react-native-reanimated';
 
 /**
- * The chat screens' keyboard avoider: pads the screen's bottom by however
- * much of it the keyboard covers, following the keyboard frame by frame —
- * same maths as keyboard-controller's KeyboardAvoidingView (behavior
- * "padding"), which it replaces.
+ * The chat screens' keyboard avoider: pads the screen's bottom by the
+ * keyboard's height, following the keyboard frame by frame. It replaces
+ * keyboard-controller's KeyboardAvoidingView (behavior "padding").
  *
  * Why not that one: it only ever learns the keyboard height from animation
  * frames. When the keyboard closes while our window isn't animating — phone
@@ -30,6 +23,14 @@ import Animated, {
  * stayed lifted by a keyboard-sized gap with no keyboard. The plain
  * "keyboard did hide" event does arrive (the composer's own padding was
  * right), so here it, and coming back to the app, snap to the real state.
+ *
+ * The padding IS the keyboard height: the chat roots this wraps run to the
+ * very bottom of the screen (edge-to-edge), so the keyboard covers exactly its
+ * own height of them. Working the overlap out from coordinates broke on
+ * Android — react-native's window height leaves out the nav bar (a phantom
+ * gap under the composer with the keyboard closed) and measureInWindow
+ * ignores the translucent status bar (the open keyboard hid the composer).
+ * Only wrap views that reach the bottom of the screen.
  */
 export function KeyboardPaddingView({
   style,
@@ -38,11 +39,7 @@ export function KeyboardPaddingView({
   style?: StyleProp<ViewStyle>;
   children: React.ReactNode;
 }) {
-  const { height: windowHeight } = useWindowDimensions();
   const keyboardHeight = useSharedValue(0);
-  // Bottom edge of this view in the window — the keyboard only needs to be
-  // avoided where it overlaps us.
-  const bottom = useSharedValue(windowHeight);
 
   useKeyboardHandler(
     {
@@ -84,18 +81,12 @@ export function KeyboardPaddingView({
     };
   }, [keyboardHeight]);
 
-  const onLayout = (e: LayoutChangeEvent) => {
-    const { y, height } = e.nativeEvent.layout;
-    bottom.value = y + height;
-  };
-
-  const padding = useAnimatedStyle(() => {
-    const keyboardTop = windowHeight - keyboardHeight.value;
-    return { paddingBottom: Math.max(bottom.value - keyboardTop, 0) };
-  }, [windowHeight]);
+  const padding = useAnimatedStyle(() => ({
+    paddingBottom: Math.max(keyboardHeight.value, 0),
+  }));
 
   return (
-    <Animated.View style={[style, padding]} onLayout={onLayout}>
+    <Animated.View style={[style, padding]}>
       {children}
     </Animated.View>
   );
