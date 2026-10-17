@@ -27,7 +27,6 @@ import { getSocket } from '@/lib/socket';
 import { onAcceptTripAsk, tripAskBody } from '@/lib/trip-ask';
 import { answerDepart, updateDriverTripStatus } from '@/lib/trips-api';
 import { Trip } from '@/lib/types';
-import { playAlarmSound } from '@/lib/sounds';
 import { useAuthStore } from '@/store/auth';
 
 type NoticeKind = 'info' | 'newTrip' | 'depart';
@@ -327,11 +326,15 @@ export function PushNoticeOverlay() {
     // it explicitly so only the modal remains.
     const recvSub = N.addNotificationReceivedListener((n) => {
       const { title, body, data } = n.request.content;
-      void N.dismissNotificationAsync(n.request.identifier);
       const payload = (data as Payload) ?? undefined;
+      // An alarm keeps its system notification: the `alarm` channel rings on
+      // the ALARM stream (through silent mode, at alarm volume). Dismissing it
+      // like the other pushes cut the ring off after the first buzz, and our
+      // in-app chime plays on the MEDIA stream — silent with media volume down,
+      // so some phones got only the vibration. The heads-up over the modal is
+      // fine for an alarm.
+      if (payload?.type !== 'ALARM') void N.dismissNotificationAsync(n.request.identifier);
       refresh();
-      // Alarm chime — only for ALARM type so other pushes stay quiet.
-      if (payload?.type === 'ALARM') playAlarmSound();
       const next = fromPush(title, body, payload);
       if (next) enqueue(next);
     });
