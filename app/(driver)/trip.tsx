@@ -52,6 +52,7 @@ import { Colors, Radius, Spacing } from "@/constants/theme";
 import { TripStatus } from "@/constants/trip-status";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { PhotoGallery } from "@/components/photo-gallery";
+import { useClearChatNotifications } from "@/hooks/use-clear-chat-notifications";
 import { useComposerBottomPadding } from "@/hooks/use-composer-bottom-padding";
 import { useListBottomPadding } from "@/hooks/use-list-bottom-padding";
 import { useFocusMessage } from "@/hooks/use-focus-message";
@@ -209,6 +210,8 @@ function TripWithChat({
   // Safe-area pad when the keyboard is closed, small gap when it's open.
   const composerPad = useComposerBottomPadding();
   const isFocused = useIsFocused();
+  // Trip chat open on screen → its message banners leave the tray.
+  useClearChatNotifications({ tripId: trip.id }, isFocused);
 
   // The "next trip" strip is a transient heads-up, not a permanent fixture:
   // it fades in when a newly-assigned upcoming order first appears (or when

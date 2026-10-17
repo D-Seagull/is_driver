@@ -43,6 +43,7 @@ import { Colors, Radius, Spacing } from '@/constants/theme';
 import { PhotoGallery } from '@/components/photo-gallery';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAppActive } from '@/hooks/use-app-active';
+import { useClearChatNotifications } from '@/hooks/use-clear-chat-notifications';
 import { useComposerBottomPadding } from '@/hooks/use-composer-bottom-padding';
 import { useListBottomPadding } from '@/hooks/use-list-bottom-padding';
 import { useChatEvents } from '@/hooks/use-chat-events';
@@ -133,6 +134,8 @@ export default function DmScreen() {
   // "останній вхід 12:30" after 15+ min out of the app (null otherwise).
   const peerLastSeen = useLastSeenText(peer);
   const { data: messages = [], isLoading } = useDirectMessages(peerId);
+  // Open on screen → this chat's banners leave the notification tray.
+  useClearChatNotifications(peerId ? { userId: peerId } : null, isFocused, messages.length);
   const { loadOlder, loadingOlder, hasMore } = useLoadOlderDirectMessages(peerId);
   const { data: documents = [] } = useConversationDocuments(peerId);
   // Every photo of this chat, oldest first (timeline order) — the gallery

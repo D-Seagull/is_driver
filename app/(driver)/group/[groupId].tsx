@@ -35,6 +35,7 @@ import { Colors, Radius, Spacing } from '@/constants/theme';
 import { PhotoGallery } from '@/components/photo-gallery';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAppActive } from '@/hooks/use-app-active';
+import { useClearChatNotifications } from '@/hooks/use-clear-chat-notifications';
 import { useComposerBottomPadding } from '@/hooks/use-composer-bottom-padding';
 import { useListBottomPadding } from '@/hooks/use-list-bottom-padding';
 import { useChatEvents, useJoinGroupRoom } from '@/hooks/use-chat-events';
@@ -155,6 +156,8 @@ export default function GroupChatScreen() {
   // Focused AND on screen — no read receipts from a backgrounded app.
   const appActive = useAppActive();
   const isFocused = useIsFocused() && appActive;
+  // Open on screen → this chat's banners leave the notification tray.
+  useClearChatNotifications(groupId ? { groupId } : null, isFocused, messages.length);
   useEffect(() => {
     if (groupId && isFocused) markRead.mutate(groupId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
