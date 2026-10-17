@@ -14,7 +14,8 @@ import { Spacing } from '@/constants/theme';
  *    on Android, which fire after the animation and make the bar jump)
  * This base file is the web / type-resolution fallback: no keyboard tracking.
  */
-export function useComposerBottomPadding(): number {
+// `resync`: see the platform files (re-reads the keyboard state on change).
+export function useComposerBottomPadding(_resync?: unknown): number {
   const insets = useSafeAreaInsets();
   return Math.max(insets.bottom, Spacing.sm);
 }

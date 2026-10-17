@@ -98,7 +98,6 @@ export default function DmScreen() {
   const c = Colors[scheme];
   const insets = useSafeAreaInsets();
   // Safe-area pad when the keyboard is closed, small gap when it's open.
-  const composerPad = useComposerBottomPadding();
   const { userId: peerId, messageId: focusMessageId } = useLocalSearchParams<{
     userId: string;
     messageId?: string;
@@ -195,6 +194,9 @@ export default function DmScreen() {
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [replyingTo, setReplyingTo] = useState<ReplyTarget | null>(null);
   const [editing, setEditing] = useState<EditingState | null>(null);
+  // Re-read the keyboard when the composer's mode changes: Reply / Edit come
+  // from a sheet that can hide the keyboard without telling this window.
+  const composerPad = useComposerBottomPadding(replyingTo?.id ?? editing?.id ?? null);
 
   // Photo viewer + documents folder overlays.
   // Index into `galleryPhotos` of the photo open in the gallery, or null.

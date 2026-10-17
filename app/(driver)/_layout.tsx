@@ -28,6 +28,7 @@ import { NextTripOverlay } from "@/components/next-trip-overlay";
 import { HeaderActions, BugReportButton } from "@/components/header-actions";
 import { PushNoticeOverlay } from "@/components/push-notice-overlay";
 import { Colors, Radius, Spacing, ThemeColors } from "@/constants/theme";
+import { bottomBarPadding } from "@/lib/insets";
 import { useAppStatePresence } from "@/hooks/use-app-state-presence";
 import { useChatAlerts } from "@/hooks/use-chat-alerts";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -524,7 +525,7 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
             borderTopColor: c.sidebarBorder,
             // Push the bottom of the drawer above the Android nav bar
             // (gesture pill / 3-button) and the iOS home indicator.
-            paddingBottom: Math.max(insets.bottom, Spacing.md),
+            paddingBottom: bottomBarPadding(insets, Spacing.md),
           },
         ]}
       >

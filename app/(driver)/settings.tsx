@@ -23,6 +23,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, Radius, Spacing, ThemeColors } from '@/constants/theme';
+import { bottomBarPadding } from '@/lib/insets';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   DriverLanguage,
@@ -626,7 +627,7 @@ export default function DriverSettingsScreen() {
               styles.modalSheet,
               {
                 backgroundColor: c.card,
-                paddingBottom: Math.max(insets.bottom, Spacing.sm) + Spacing.xl,
+                paddingBottom: bottomBarPadding(insets, Spacing.sm) + Spacing.xl,
               },
             ]}
             onPress={(e) => e.stopPropagation()}
