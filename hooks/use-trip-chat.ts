@@ -13,7 +13,7 @@ import {
 import { deleteTripMessage, editTripMessage, fetchTripMessages } from '@/lib/trips-api';
 import { getSocket } from '@/lib/socket';
 import { useAppActive } from '@/hooks/use-app-active';
-import { notifyIncomingMessage } from '@/lib/message-alert';
+import { notifyIncomingMessage, notifyIncomingReaction } from '@/lib/message-alert';
 import { useAuthStore } from '@/store/auth';
 
 import { fullName } from "@/lib/format";
@@ -305,7 +305,17 @@ export function useTripChat(
       targetType: string;
       targetId: string;
       reactions: { id: string; userId: string; emoji: string }[];
+      actorId?: string;
     }) => {
+      // Someone else's reaction rings like in DMs and groups (the actor
+      // already heard the tap on click).
+      if (
+        (payload.targetType === 'TRIP' || payload.targetType === 'TRIP_DOC') &&
+        payload.actorId &&
+        payload.actorId !== myIdRef.current
+      ) {
+        notifyIncomingReaction();
+      }
       if (payload.targetType === 'TRIP') {
         setMessages((prev) =>
           prev.map((m) =>

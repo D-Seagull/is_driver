@@ -1,7 +1,7 @@
 import { AppState } from 'react-native';
 
 import { vibrateMessage } from '@/lib/haptics';
-import { playMessageSound } from '@/lib/sounds';
+import { playMessageSound, playReactionSound } from '@/lib/sounds';
 import { useAlertPrefs } from '@/store/alert-prefs';
 
 // Soft rate-limit so a burst of messages doesn't stack overlapping chimes /
@@ -42,4 +42,25 @@ export function notifyIncomingMessage() {
   const { sound, vibration } = useAlertPrefs.getState();
   if (sound) playMessageSound();
   if (vibration) vibrateMessage();
+}
+
+// Reactions have their own limit: one toggle can reach two listeners at once
+// (the trip-chat hook and an open DM / group screen).
+let lastReactionAt = 0;
+
+/**
+ * Sound for someone else's reaction that just landed — same gates as a
+ * message chime (on screen, not the resume backlog, the Sound toggle).
+ */
+export function notifyIncomingReaction() {
+  const now = Date.now();
+  if (
+    AppState.currentState !== 'active' ||
+    !activeSince ||
+    now - activeSince < RESUME_GRACE_MS
+  )
+    return;
+  if (now - lastReactionAt < RATE_LIMIT_MS) return;
+  lastReactionAt = now;
+  if (useAlertPrefs.getState().sound) playReactionSound();
 }

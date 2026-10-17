@@ -76,11 +76,13 @@ const promptNoOf = (data: Payload) =>
  * answering on the banner removes it from the modal queue, and answering in
  * the modal clears its banner from the notification tray.
  *
- * While the app is open the backend sends no push at all — the news comes as
- * the `notice` socket event and lands here the same way. A trip still waiting
- * for its OK (ASSIGNED) is asked from the trips data too, so the question
- * survives a notice lost while the phone was locking. The next-trip hand-off
- * (NextTripOverlay) asks through this queue as well — one window per trip.
+ * The backend pushes everything; while the app is on screen lib/push.ts keeps
+ * the banner and sound away and the push lands here as a modal. (Servers that
+ * held the push back for an open app sent the `notice` socket event instead —
+ * handled the same way.) A trip still waiting for its OK (ASSIGNED) is asked
+ * from the trips data too, so the question survives a push that never came.
+ * The next-trip hand-off (NextTripOverlay) asks through this queue as well —
+ * one window per trip.
  */
 export function PushNoticeOverlay() {
   const { t } = useTranslation();
@@ -219,7 +221,10 @@ export function PushNoticeOverlay() {
     (title: string | null, body: string | null, data: Payload): Notice | null => {
       const type = data?.type;
       const tripId = typeof data?.tripId === 'string' ? data.tripId : undefined;
-      if (type === 'MESSAGE') return null;
+      // Chat messages show in the chat itself (socket + chime) — no modal.
+      if (type === 'MESSAGE' || type === 'DM_MESSAGE' || type === 'GROUP_MESSAGE') {
+        return null;
+      }
       if (type === 'NEW_TRIP' && tripId) {
         return { kind: 'newTrip', title: title ?? t('push.noticeTitle'), body: body ?? '', tripId };
       }
@@ -265,8 +270,8 @@ export function PushNoticeOverlay() {
         promptNo: p.promptNo,
       });
     };
-    // While the app is open the backend sends news as `notice` instead of a
-    // push (a banner over the open app was the doubled window).
+    // Servers that held the push back while the app was open sent the news
+    // as `notice` instead — still handled, so any server version works.
     const onNotice = (n: { title?: string; body?: string; data?: Payload }) => {
       refresh();
       const next = fromPush(n.title ?? null, n.body ?? null, n.data);

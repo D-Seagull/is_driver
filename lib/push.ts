@@ -1,7 +1,7 @@
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import type { ExpoPushToken } from 'expo-notifications';
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 
 import i18n from './i18n';
 import { registerPushToken, unregisterPushToken } from './push-api';
@@ -20,20 +20,28 @@ if (!isExpoGoAndroid) {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   Notifications = require('expo-notifications') as NotificationsModule;
   /**
-   * Foreground policy: do NOT show the system banner — the app is open and
-   * we display our own modal Alert with the message + OK button instead.
-   * The notification still goes into the system list / center for history.
-   *
-   * Background / closed: this handler doesn't run — the OS shows the regular
-   * banner from the push payload itself, no action buttons.
+   * The backend sends every push; whether it shows is decided here, the
+   * moment it lands — only the phone knows for sure that the app is on screen
+   * (the server's guess lagged, and a locked phone went silent).
+   *  - on screen: no banner, no tray entry, no sound — the app shows it itself
+   *    (PushNoticeOverlay modal, chat chime from the socket);
+   *  - an alarm still rings through its channel;
+   *  - not on screen (iOS `inactive`: tray pulled down, app switcher): the OS
+   *    shows and sounds it as usual.
+   * Background / closed: this handler doesn't run — the OS shows the push.
    */
   Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowBanner: false,
-      shouldShowList: true,
-      shouldPlaySound: true,
-      shouldSetBadge: false,
-    }),
+    handleNotification: async (n) => {
+      const onScreen = AppState.currentState === 'active';
+      const alarm =
+        (n.request.content.data as { type?: unknown } | null)?.type === 'ALARM';
+      return {
+        shouldShowBanner: !onScreen,
+        shouldShowList: !onScreen || alarm,
+        shouldPlaySound: !onScreen || alarm,
+        shouldSetBadge: false,
+      };
+    },
   });
 }
 

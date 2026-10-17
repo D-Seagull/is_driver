@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { api } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
+import { notifyIncomingReaction } from '@/lib/message-alert';
 import { playReactionSound } from '@/lib/sounds';
 
 import { useAuthStore } from '@/store/auth';
@@ -178,7 +179,7 @@ export function useReactionsSocketSync(opts: SyncOptions) {
       const { targetType, targetId, reactions } = p;
       // The actor already heard the tap sound instantly via onMutate — only
       // the OTHER participant should hear it here, off the socket echo.
-      if (p.actorId && p.actorId !== myId) playReactionSound();
+      if (p.actorId && p.actorId !== myId) notifyIncomingReaction();
       switch (targetType) {
         case 'TRIP': {
           if (!tripId) return;
