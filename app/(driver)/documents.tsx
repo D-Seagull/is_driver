@@ -11,12 +11,10 @@ import { fullName } from "@/lib/format";
 import {
   ActivityIndicator,
   Alert,
-  FlatList,
   Image,
   Modal,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -27,6 +25,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NotificationBell } from '@/components/notification-bell';
 import { ScreenPlaceholder } from '@/components/screen-placeholder';
 import { Colors, Radius, Spacing } from '@/constants/theme';
+import { InsetFlatList, InsetScrollView } from '@/components/inset-list';
 import { PhotoGallery } from '@/components/photo-gallery';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
@@ -214,7 +213,7 @@ export default function DocumentsScreen() {
           <ActivityIndicator color={c.primary} />
         </View>
       ) : folders.length === 0 ? (
-        <ScrollView
+        <InsetScrollView
           contentContainerStyle={{ flexGrow: 1 }}
           refreshControl={
             <RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} />
@@ -229,7 +228,7 @@ export default function DocumentsScreen() {
                 : t('documents.empty.subtitleInactive')
             }
           />
-        </ScrollView>
+        </InsetScrollView>
       ) : (
         <View style={{ flex: 1 }}>
           <View style={styles.searchWrap}>
@@ -257,7 +256,7 @@ export default function DocumentsScreen() {
               <Text style={{ color: c.mutedForeground }}>{t('common.noMatches')}</Text>
             </View>
           ) : (
-            <FlatList
+            <InsetFlatList bottomGap={Spacing.lg}
               data={filteredFolders}
               keyExtractor={(f) => f.tripId}
               contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.sm }}
@@ -514,7 +513,7 @@ function FolderModal({
             <Text style={{ color: c.mutedForeground }}>{t('documents.nothingHere')}</Text>
           </View>
         ) : (
-          <FlatList
+          <InsetFlatList bottomGap={Spacing.lg}
             data={filtered}
             keyExtractor={(d) => d.id}
             contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.sm }}

@@ -4,10 +4,8 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
-  FlatList,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -17,6 +15,7 @@ import {
 import { ScreenPlaceholder } from '@/components/screen-placeholder';
 import { StatusBadge } from '@/components/status-picker';
 import { Colors, Radius, Spacing } from '@/constants/theme';
+import { InsetFlatList, InsetScrollView } from '@/components/inset-list';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useDriverUnread } from '@/hooks/use-driver-unread';
 import { useActiveTrip, useMyTrips } from '@/hooks/use-trips';
@@ -116,7 +115,7 @@ export default function TripsScreen() {
           <ActivityIndicator color={c.primary} />
         </View>
       ) : trips.length === 0 ? (
-        <ScrollView
+        <InsetScrollView
           contentContainerStyle={{ flexGrow: 1 }}
           refreshControl={
             <RefreshControl refreshing={manualRefreshing} onRefresh={handleManualRefresh} />
@@ -127,9 +126,9 @@ export default function TripsScreen() {
             title={t('trips.empty.title')}
             subtitle={t('trips.empty.subtitle')}
           />
-        </ScrollView>
+        </InsetScrollView>
       ) : filtered.length === 0 ? (
-        <ScrollView
+        <InsetScrollView
           contentContainerStyle={{ flexGrow: 1 }}
           refreshControl={
             <RefreshControl refreshing={manualRefreshing} onRefresh={handleManualRefresh} />
@@ -140,9 +139,9 @@ export default function TripsScreen() {
             title={t('trips.noMatches.title')}
             subtitle={t('trips.noMatches.subtitle')}
           />
-        </ScrollView>
+        </InsetScrollView>
       ) : (
-        <FlatList
+        <InsetFlatList bottomGap={Spacing.lg}
           data={rows}
           keyExtractor={(row) => (row.kind === 'header' ? `h:${row.key}` : row.trip.id)}
           contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.sm }}

@@ -9,7 +9,6 @@ import {
   Alert,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -18,6 +17,7 @@ import {
 
 import { ScreenPlaceholder } from "@/components/screen-placeholder";
 import { Colors, Radius, Spacing } from "@/constants/theme";
+import { InsetScrollView } from "@/components/inset-list";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   useCreateTruckNote,
@@ -193,7 +193,7 @@ export default function TruckScreen() {
 
   if (!truck) {
     return (
-      <ScrollView
+      <InsetScrollView
         style={{ flex: 1, backgroundColor: c.background }}
         contentContainerStyle={{ flexGrow: 1 }}
         refreshControl={
@@ -208,7 +208,7 @@ export default function TruckScreen() {
           title={t("truck.noTruck.title")}
           subtitle={t("truck.noTruck.subtitle")}
         />
-      </ScrollView>
+      </InsetScrollView>
     );
   }
 
@@ -216,7 +216,7 @@ export default function TruckScreen() {
   const notes = truck.truckNotes ?? [];
 
   return (
-    <ScrollView
+    <InsetScrollView bottomGap={Spacing.lg}
       style={{ flex: 1, backgroundColor: c.background }}
       contentContainerStyle={styles.body}
       refreshControl={
@@ -337,7 +337,7 @@ export default function TruckScreen() {
           ))}
         </View>
       )}
-    </ScrollView>
+    </InsetScrollView>
   );
 }
 

@@ -3,6 +3,7 @@ import * as Device from 'expo-device';
 import type { ExpoPushToken } from 'expo-notifications';
 import { Platform } from 'react-native';
 
+import i18n from './i18n';
 import { registerPushToken, unregisterPushToken } from './push-api';
 
 // Lazy-load expo-notifications. On Android Expo Go SDK 53+ importing it
@@ -35,6 +36,10 @@ if (!isExpoGoAndroid) {
     }),
   });
 }
+
+/** Channels this version creates beyond the original two — reported to the
+ *  backend so it may use them (PushService.channelFor). */
+const ANDROID_CHANNELS = ['chat', 'alarm'];
 
 /**
  * Ask permission, fetch the Expo push token, and register it on the backend.
@@ -84,6 +89,37 @@ export async function registerForPushNotifications(): Promise<string | null> {
       sound: 'push_message.mp3',
       vibrationPattern: [0, 250, 250, 250],
     });
+    // A channel's settings are fixed once it exists on a phone, so the
+    // improved ones are NEW channels; the backend switches to them only for
+    // devices that report having them (ANDROID_CHANNELS below), older app
+    // versions keep getting `messages` / `default`.
+    //
+    // `chat`: every IS Fleet push. MAX importance + public on the lock
+    // screen → pops up and shows in full while locked, and wakes the screen
+    // on phones whose firmware does that for notifications.
+    await Notifications.setNotificationChannelAsync('chat', {
+      name: i18n.t('push.channels.chat'),
+      importance: Notifications.AndroidImportance.MAX,
+      sound: 'push_message.mp3',
+      vibrationPattern: [0, 250, 250, 250],
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+    });
+    // `alarm`: the manager's alarm. Played on the ALARM audio stream, so it
+    // rings on silent and vibrate like the system alarm clock; with "Do not
+    // disturb" access granted (Settings → reliable notifications) it rings
+    // through DND too.
+    await Notifications.setNotificationChannelAsync('alarm', {
+      name: i18n.t('push.channels.alarm'),
+      importance: Notifications.AndroidImportance.MAX,
+      sound: 'is_alarm.mp3',
+      vibrationPattern: [0, 800, 400, 800, 400, 800, 400, 800],
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+      bypassDnd: true,
+      audioAttributes: {
+        usage: Notifications.AndroidAudioUsage.ALARM,
+        contentType: Notifications.AndroidAudioContentType.SONIFICATION,
+      },
+    });
   }
 
   // EAS / Expo project id — required by Expo Push Service.
@@ -113,6 +149,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
         : Platform.OS === 'android'
         ? 'android'
         : 'web',
+      Platform.OS === 'android' ? ANDROID_CHANNELS : [],
     );
     console.log('[push] backend registered token for', Platform.OS);
   } catch (e) {

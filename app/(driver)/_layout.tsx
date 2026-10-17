@@ -16,6 +16,7 @@ import { useTranslation } from "react-i18next";
 import {
   Image,
   Pressable,
+  // eslint-disable-next-line no-restricted-imports -- height-capped bell dropdown, not a screen list
   ScrollView,
   StyleSheet,
   Text,

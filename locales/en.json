@@ -25,6 +25,7 @@
     "searchPlaceholder": "Search name, phone or truck…",
     "otherContacts": "Other contacts",
     "noConversations": "No conversations yet.",
+    "noMessages": "No messages",
     "teamlead": "Teamlead"
   },
   "groups": {
@@ -86,7 +87,14 @@
       "error": "Could not delete the account"
     },
     "privacyPolicy": "Privacy Policy",
-    "terms": "Terms of Service"
+    "terms": "Terms of Service",
+    "reliable": {
+      "title": "Reliable notifications",
+      "notifications": "Notifications on the lock screen",
+      "dnd": "Alarm in Do Not Disturb",
+      "battery": "Battery: no restrictions",
+      "hint": "So notifications and the alarm always get through: allow them on the lock screen, grant Do Not Disturb access and turn off battery saving for IS Driver. On Xiaomi / Redmi also enable “Autostart”."
+    }
   },
   "auth": {
     "phone": {
@@ -324,10 +332,15 @@
   },
   "push": {
     "noticeTitle": "Notification",
+    "newTripTitle": "New loading",
     "departTitle": "Heading to loading?",
     "yes": "Yes",
     "no": "No",
-    "ok": "OK"
+    "ok": "OK",
+    "channels": {
+      "chat": "Messages and trips",
+      "alarm": "Alarm"
+    }
   },
   "status": {
     "ONLINE": "Online",

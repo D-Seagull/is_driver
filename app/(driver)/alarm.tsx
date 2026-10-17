@@ -6,22 +6,22 @@ import { fullName } from "@/lib/format";
 import {
   ActivityIndicator,
   Alert,
+  // eslint-disable-next-line no-restricted-imports -- not scrollable — laid out inside the screen's InsetScrollView
   FlatList,
   KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ScreenPlaceholder } from '@/components/screen-placeholder';
 import { Colors, Radius, Spacing, ThemeColors } from '@/constants/theme';
+import { InsetScrollView } from '@/components/inset-list';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   useCreateAlarm,
@@ -69,7 +69,6 @@ export default function AlarmScreen() {
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
   const user = useUser();
-  const insets = useSafeAreaInsets();
   const { data: alarms = [], isLoading, refetch } = useMyAlarms();
   const createAlarm = useCreateAlarm();
   const updateAlarm = useUpdateAlarm();
@@ -189,10 +188,9 @@ export default function AlarmScreen() {
       style={{ flex: 1, backgroundColor: c.background }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView
+      <InsetScrollView bottomGap={Spacing.lg} insetIOS
         contentContainerStyle={{
           padding: Spacing.lg,
-          paddingBottom: insets.bottom + Spacing.lg,
           gap: Spacing.md,
         }}
         refreshControl={
@@ -485,7 +483,7 @@ export default function AlarmScreen() {
             )}
           />
         )}
-      </ScrollView>
+      </InsetScrollView>
     </KeyboardAvoidingView>
   );
 }

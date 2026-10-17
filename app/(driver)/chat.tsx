@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next';
 import { fullName } from "@/lib/format";
 import {
   ActivityIndicator,
-  FlatList,
   Alert,
   Pressable,
   StyleSheet,
@@ -19,6 +18,7 @@ import { ChatAvatar } from '@/components/chat-avatar';
 import { StatusDot } from '@/components/status-dot';
 import { ScreenPlaceholder } from '@/components/screen-placeholder';
 import { Colors, Radius, Spacing } from '@/constants/theme';
+import { InsetFlatList } from '@/components/inset-list';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useCompanyUsers, type CompanyUser } from '@/hooks/use-company-users';
 import { useConversations, type Conversation, useHideConversation } from '@/hooks/use-direct-messages';
@@ -223,7 +223,7 @@ function ChatTab() {
           </Text>
         </View>
       ) : (
-        <FlatList
+        <InsetFlatList
           data={rows}
           keyExtractor={(it) =>
             it.type === 'conv'
@@ -269,9 +269,11 @@ function DirectoryRow({ user }: { user: CompanyUser }) {
   const c = Colors[scheme];
   const isManagerTier = user.role !== 'DRIVER';
   const roleLabel = user.role === 'TEAMLEAD' ? t('chatDir.teamlead') : t('nav.manager');
+  // Drivers: show the truck plate when assigned; never the phone number.
+  // Without a truck there's nothing to chat about yet → "no messages".
   const subtitle = isManagerTier
     ? roleLabel
-    : user.currentTruck?.plate || user.phone || t('nav.driverFallback');
+    : user.currentTruck?.plate || t('chatDir.noMessages');
 
   return (
     <Pressable
@@ -424,7 +426,7 @@ function GroupsTab() {
   );
 
   return (
-    <FlatList
+    <InsetFlatList
       data={sortedGroups}
       keyExtractor={(g) => g.id}
       renderItem={({ item }) => <GroupRow group={item} />}

@@ -2,7 +2,7 @@
   "expo": {
     "name": "IS Driver",
     "slug": "is-driver",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "runtimeVersion": {
       "policy": "appVersion"
     },
@@ -16,6 +16,9 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.dseadull.isdriver",
+      "entitlements": {
+        "com.apple.developer.usernotifications.time-sensitive": true
+      },
       "infoPlist": {
         "NSCameraUsageDescription": "Додатку потрібен доступ до камери, щоб знімати фото документів і надсилати їх у чат.",
         "NSPhotoLibraryUsageDescription": "Додатку потрібен доступ до фотографій, щоб прикріплювати зображення в чат і документи та встановлювати аватар.",
@@ -24,7 +27,8 @@
     },
     "android": {
       "package": "com.isfleet.isdriver",
-      "versionCode": 1,
+      "permissions": ["android.permission.ACCESS_NOTIFICATION_POLICY"],
+      "versionCode": 2,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundImage": "./assets/images/adaptive-icon-background.png",
@@ -66,7 +70,10 @@
         {
           "icon": "./assets/images/notification-icon.png",
           "color": "#1E7AFD",
-          "sounds": ["./assets/sounds/push_message.mp3"]
+          "sounds": [
+            "./assets/sounds/push_message.mp3",
+            "./assets/sounds/is_alarm.mp3"
+          ]
         }
       ],
       "expo-asset",
@@ -82,7 +89,9 @@
           "photosPermission": "Додатку потрібен доступ до фотографій, щоб прикріплювати зображення в чат і документи та встановлювати аватар.",
           "savePhotosPermission": "Додатку потрібен доступ до фотографій, щоб зберігати фото з чату у вашу галерею.",
           "isAccessMediaLocationEnabled": false,
-          "granularPermissions": ["photo"]
+          "granularPermissions": [
+            "photo"
+          ]
         }
       ]
     ],

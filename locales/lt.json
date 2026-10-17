@@ -27,6 +27,7 @@
     "searchPlaceholder": "Ieškoti pagal vardą, telefoną ar vilkiką…",
     "otherContacts": "Kiti kontaktai",
     "noConversations": "Kol kas nėra pokalbių.",
+    "noMessages": "Žinučių nėra",
     "teamlead": "Komandos vadovas"
   },
   "groups": {
@@ -89,7 +90,14 @@
       "error": "Nepavyko ištrinti paskyros"
     },
     "privacyPolicy": "Privatumo politika",
-    "terms": "Naudojimo sąlygos"
+    "terms": "Naudojimo sąlygos",
+    "reliable": {
+      "title": "Patikimi pranešimai",
+      "notifications": "Pranešimai užrakinimo ekrane",
+      "dnd": "Žadintuvas režimu „Netrukdyti“",
+      "battery": "Baterija: be apribojimų",
+      "hint": "Kad pranešimai ir žadintuvas visada pasiektų: leiskite juos užrakinimo ekrane, suteikite prieigą prie režimo „Netrukdyti“ ir išjunkite baterijos taupymą IS Driver. Xiaomi / Redmi taip pat įjunkite „Automatinis paleidimas“."
+    }
   },
   "auth": {
     "phone": {
@@ -329,10 +337,15 @@
   },
   "push": {
     "noticeTitle": "Pranešimas",
+    "newTripTitle": "Naujas pakrovimas",
     "departTitle": "Vykstame į pakrovimą?",
     "yes": "Taip",
     "no": "Ne",
-    "ok": "OK"
+    "ok": "OK",
+    "channels": {
+      "chat": "Žinutės ir reisai",
+      "alarm": "Žadintuvas"
+    }
   },
   "status": {
     "ONLINE": "Prisijungęs",

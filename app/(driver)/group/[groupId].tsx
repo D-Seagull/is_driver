@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
   BackHandler,
+  // eslint-disable-next-line no-restricted-imports -- inverted chat timeline — the composer owns the bottom inset
   FlatList,
   Image,
   Keyboard,
@@ -32,9 +33,11 @@ import { MessageActionsSheet, type MessageActions } from '@/components/message-a
 import { UserCardSheet } from '@/components/user-card-sheet';
 import { MessageQuote } from '@/components/message-quote';
 import { Colors, Radius, Spacing } from '@/constants/theme';
+import { InsetFlatList } from '@/components/inset-list';
 import { PhotoGallery } from '@/components/photo-gallery';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAppActive } from '@/hooks/use-app-active';
+import { useClearChatNotifications } from '@/hooks/use-clear-chat-notifications';
 import { useComposerBottomPadding } from '@/hooks/use-composer-bottom-padding';
 import { useChatEvents, useJoinGroupRoom } from '@/hooks/use-chat-events';
 import {
@@ -154,6 +157,8 @@ export default function GroupChatScreen() {
   // Focused AND on screen — no read receipts from a backgrounded app.
   const appActive = useAppActive();
   const isFocused = useIsFocused() && appActive;
+  // Open on screen → this chat's banners leave the notification tray.
+  useClearChatNotifications(groupId ? { groupId } : null, isFocused, messages.length);
   useEffect(() => {
     if (groupId && isFocused) markRead.mutate(groupId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -845,7 +850,7 @@ function DocsFolderModal({
             <Text style={{ color: c.mutedForeground }}>{t('documents.nothingHere')}</Text>
           </View>
         ) : (
-          <FlatList
+          <InsetFlatList bottomGap={Spacing.lg}
             data={filtered}
             keyExtractor={(d) => d.id}
             contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.sm }}
