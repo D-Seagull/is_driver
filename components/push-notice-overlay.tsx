@@ -360,15 +360,19 @@ export function PushNoticeOverlay() {
     const recvSub = N.addNotificationReceivedListener((n) => {
       const { title, body, data } = n.request.content;
       const payload = (data as Payload) ?? undefined;
-      // An alarm keeps its system notification: the `alarm` channel rings on
-      // the ALARM stream (through silent mode, at alarm volume). Dismissing it
-      // like the other pushes cut the ring off after the first buzz, and our
-      // in-app chime plays on the MEDIA stream — silent with media volume down,
-      // so some phones got only the vibration. The heads-up over the modal is
-      // fine for an alarm.
-      if (payload?.type !== 'ALARM') void N.dismissNotificationAsync(n.request.identifier);
+      // This listener also runs while the app is alive OFF screen (phone
+      // locked with the app open, app just sent to the background). Only an
+      // app on screen may take the notification away — the modal / chat shows
+      // it then. Dismissing it off screen wiped every banner from a locked
+      // phone; the driver saw the news only after unlocking.
+      // An alarm keeps its system notification even on screen: the `alarm`
+      // channel rings on the ALARM stream (through silent mode, at alarm
+      // volume); dismissing it cut the ring off after the first buzz.
+      const onScreen = AppState.currentState === 'active';
+      const dismiss = onScreen && payload?.type !== 'ALARM';
+      if (dismiss) void N.dismissNotificationAsync(n.request.identifier);
       refresh();
-      qlog(`#${inst} push received`, n.request.identifier, `type=${String(payload?.type)}`, `promptNo=${JSON.stringify(payload?.promptNo)}`, `appState=${AppState.currentState}`);
+      qlog(`#${inst} push received`, n.request.identifier, `type=${String(payload?.type)}`, `promptNo=${JSON.stringify(payload?.promptNo)}`, `appState=${AppState.currentState}`, dismiss ? 'dismissed' : 'kept');
       const next = fromPush(title, body, payload);
       if (next) enqueue(next, 'push:received');
     });

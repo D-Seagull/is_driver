@@ -3,6 +3,7 @@ import * as Device from 'expo-device';
 import type { ExpoPushToken } from 'expo-notifications';
 import { AppState, Platform } from 'react-native';
 
+import { diagLog } from './diag-log';
 import i18n from './i18n';
 import { registerPushToken, unregisterPushToken } from './push-api';
 
@@ -33,8 +34,9 @@ if (!isExpoGoAndroid) {
   Notifications.setNotificationHandler({
     handleNotification: async (n) => {
       const onScreen = AppState.currentState === 'active';
-      const alarm =
-        (n.request.content.data as { type?: unknown } | null)?.type === 'ALARM';
+      const type = (n.request.content.data as { type?: unknown } | null)?.type;
+      const alarm = type === 'ALARM';
+      diagLog(`push handler type=${String(type)} appState=${AppState.currentState} → ${onScreen ? 'hidden (on screen)' : 'shown'}`);
       return {
         shouldShowBanner: !onScreen,
         shouldShowList: !onScreen || alarm,
@@ -43,6 +45,8 @@ if (!isExpoGoAndroid) {
       };
     },
   });
+  // Whether the app counts as "on screen" decides every push above — log it.
+  AppState.addEventListener('change', (s) => diagLog(`appState → ${s}`));
 }
 
 /** Channels this version creates beyond the original two — reported to the
