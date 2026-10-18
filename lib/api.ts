@@ -43,6 +43,10 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  // Server error texts come back in the app's UI language. Android sends no
+  // Accept-Language at all (→ server default UK) and iOS sends the device's,
+  // neither of which is the language picked in the app.
+  if (i18n.language) config.headers['Accept-Language'] = i18n.language;
   const method = (config.method ?? 'get').toLowerCase();
   const isAuthPath = (config.url ?? '').includes('/auth/');
   if (!isAuthPath && !SAFE_METHODS.has(method) && !isCompanyActive()) {
