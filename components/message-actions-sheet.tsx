@@ -10,6 +10,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, Radius, Spacing } from '@/constants/theme';
+import { bottomBarPadding } from '@/lib/insets';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export interface MessageActions {
@@ -63,7 +64,7 @@ export function MessageActionsSheet({ visible, onClose, actions }: Props) {
             {
               backgroundColor: c.card,
               borderColor: c.border,
-              paddingBottom: Math.max(insets.bottom, Spacing.md),
+              paddingBottom: bottomBarPadding(insets, Spacing.md),
             },
           ]}
         >

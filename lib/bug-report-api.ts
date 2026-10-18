@@ -1,6 +1,7 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { api } from './api';
+import { diagTail } from './diag-log';
 
 export interface BugScreenshot {
   uri: string;
@@ -20,6 +21,9 @@ export async function reportBug(
 ): Promise<void> {
   const form = new FormData();
   form.append('description', description);
+  // The app's latest diagnostics (backend caps BugReport.logs at 30000).
+  const logs = await diagTail(29000);
+  if (logs) form.append('logs', logs);
   form.append('appName', 'driver');
   form.append('appVersion', Constants.expoConfig?.version ?? '1.0.0');
   form.append('platform', `${Platform.OS} ${Platform.Version}`);

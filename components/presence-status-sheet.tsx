@@ -12,6 +12,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, Radius, Spacing } from '@/constants/theme';
+import { bottomBarPadding } from '@/lib/insets';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { DriverUserStatus, updateMe } from '@/lib/auth-api';
 import { STATUS_HEX } from '@/lib/status';
@@ -55,7 +56,7 @@ export function PresenceStatusSheet({
   const c = Colors[useColorScheme() ?? 'light'];
   const insets = useSafeAreaInsets();
   // Keep the sheet's last row clear of the Android nav bar (edge-to-edge).
-  const sheetPadBottom = Math.max(insets.bottom, Spacing.sm) + Spacing.xl;
+  const sheetPadBottom = bottomBarPadding(insets, Spacing.sm) + Spacing.xl;
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
 

@@ -27,8 +27,10 @@
     },
     "android": {
       "package": "com.isfleet.isdriver",
-      "permissions": ["android.permission.ACCESS_NOTIFICATION_POLICY"],
-      "versionCode": 2,
+      "permissions": [
+        "android.permission.ACCESS_NOTIFICATION_POLICY"
+      ],
+      "versionCode": 3,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundImage": "./assets/images/adaptive-icon-background.png",

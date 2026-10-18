@@ -210,7 +210,6 @@ function TripWithChat({
     : undefined;
   const insets = useSafeAreaInsets();
   // Safe-area pad when the keyboard is closed, small gap when it's open.
-  const composerPad = useComposerBottomPadding();
   const isFocused = useIsFocused();
   // Trip chat open on screen → its message banners leave the tray.
   useClearChatNotifications({ tripId: trip.id }, isFocused);
@@ -247,6 +246,9 @@ function TripWithChat({
   const [text, setText] = useState("");
   const [replyingTo, setReplyingTo] = useState<TripReplyTarget | null>(null);
   const [editing, setEditing] = useState<{ id: string; original: string } | null>(null);
+  // Re-read the keyboard when the composer's mode changes: Reply / Edit come
+  // from a sheet that can hide the keyboard without telling this window.
+  const composerPad = useComposerBottomPadding(replyingTo?.id ?? editing?.id ?? null);
   const [msgSheetFor, setMsgSheetFor] = useState<ChatMessage | null>(null);
   const [docSheetFor, setDocSheetFor] = useState<DriverDocument | null>(null);
   const [newMsgCount, setNewMsgCount] = useState(0);
@@ -485,7 +487,7 @@ function TripWithChat({
       { text: t("documents.uploadSheet.gallery"), onPress: () => pickAndUpload("gallery") },
       { text: t("documents.uploadSheet.file"), onPress: () => pickAndUpload("document") },
       { text: t("common.cancel"), style: "cancel" },
-    ]);
+    ], { cancelable: true }); // Android: a tap outside closes it
   };
 
   const handleOpenDoc = useCallback(

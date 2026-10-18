@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChatAvatar } from '@/components/chat-avatar';
 import { StatusDot } from '@/components/status-dot';
 import { Colors, Radius, Spacing, type ThemeColors } from '@/constants/theme';
+import { bottomBarPadding } from '@/lib/insets';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { DriverUserStatus } from '@/lib/auth-api';
 import { useManagerProfile } from '@/hooks/use-manager-rating';
@@ -60,7 +61,7 @@ export function UserCardSheet({
             {
               backgroundColor: c.card,
               borderColor: c.border,
-              paddingBottom: Math.max(insets.bottom, Spacing.md) + Spacing.md,
+              paddingBottom: bottomBarPadding(insets, Spacing.md) + Spacing.md,
             },
           ]}
           onPress={(e) => e.stopPropagation()}

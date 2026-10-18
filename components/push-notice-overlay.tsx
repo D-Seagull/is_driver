@@ -3,7 +3,7 @@ import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AppState, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 // In Android Expo Go SDK 53+ importing expo-notifications THROWS at module
 // load time via DevicePushTokenAutoRegistration.fx.js. iOS Expo Go still
@@ -26,8 +26,8 @@ import { openChatFromPush } from '@/lib/push-route';
 import { getSocket } from '@/lib/socket';
 import { onAcceptTripAsk, tripAskBody } from '@/lib/trip-ask';
 import { answerDepart, updateDriverTripStatus } from '@/lib/trips-api';
+import { diagLog } from '@/lib/diag-log';
 import { Trip } from '@/lib/types';
-import { playAlarmSound } from '@/lib/sounds';
 import { useAuthStore } from '@/store/auth';
 
 type NoticeKind = 'info' | 'newTrip' | 'depart';
@@ -60,6 +60,12 @@ const questionKey = (n: Pick<Notice, 'kind' | 'tripId' | 'promptNo'>) =>
       ? `depart:${n.tripId}:${n.promptNo ?? ''}`
       : null;
 
+// Diagnostics: every trip question with its source and what the queue
+// decided, plus mounts and answers — attached to bug reports (lib/diag-log).
+// Added to chase duplicate questions on builds (2026-10-18).
+let overlaySeq = 0;
+const qlog = diagLog;
+
 const promptNoOf = (data: Payload) =>
   typeof data?.promptNo === 'number' ? data.promptNo : undefined;
 
@@ -77,11 +83,13 @@ const promptNoOf = (data: Payload) =>
  * answering on the banner removes it from the modal queue, and answering in
  * the modal clears its banner from the notification tray.
  *
- * While the app is open the backend sends no push at all — the news comes as
- * the `notice` socket event and lands here the same way. A trip still waiting
- * for its OK (ASSIGNED) is asked from the trips data too, so the question
- * survives a notice lost while the phone was locking. The next-trip hand-off
- * (NextTripOverlay) asks through this queue as well — one window per trip.
+ * The backend pushes everything; while the app is on screen lib/push.ts keeps
+ * the banner and sound away and the push lands here as a modal. (Servers that
+ * held the push back for an open app sent the `notice` socket event instead —
+ * handled the same way.) A trip still waiting for its OK (ASSIGNED) is asked
+ * from the trips data too, so the question survives a push that never came.
+ * The next-trip hand-off (NextTripOverlay) asks through this queue as well —
+ * one window per trip.
  */
 export function PushNoticeOverlay() {
   const { t } = useTranslation();
@@ -100,6 +108,11 @@ export function PushNoticeOverlay() {
   // DEPART_COOLDOWN_MS is a duplicate whatever its number says (the server
   // also refuses to ask twice; this is the safety net).
   const departShownRef = useRef(new Map<string, number>());
+  const [inst] = useState(() => ++overlaySeq);
+  useEffect(() => {
+    qlog(`#${inst} mount`);
+    return () => qlog(`#${inst} unmount`);
+  }, [inst]);
 
   const refresh = useCallback(() => {
     qc.invalidateQueries({ queryKey: truckKeys.mine() });
@@ -120,22 +133,24 @@ export function PushNoticeOverlay() {
   );
 
   const enqueue = useCallback(
-    (n: Notice) => {
+    (n: Notice, src = '?') => {
+      const tag = `#${inst} ${src} ${n.kind} trip=${n.tripId ?? '-'} no=${n.promptNo ?? '-'}`;
       if (n.kind === 'newTrip' && n.tripId) {
-        if (acceptedRef.current.has(n.tripId)) return;
+        if (acceptedRef.current.has(n.tripId)) return qlog(tag, 'drop: accepted');
         const st = knownStatus(n.tripId);
-        if (st && st !== 'ASSIGNED') return; // already accepted elsewhere
+        if (st && st !== 'ASSIGNED') return qlog(tag, `drop: status ${st}`); // already accepted elsewhere
       }
       if (n.kind === 'depart' && n.tripId) {
         const st = knownStatus(n.tripId);
-        if (st && st !== 'ACCEPTED' && st !== 'ASSIGNED') return; // on its way
+        if (st && st !== 'ACCEPTED' && st !== 'ASSIGNED') return qlog(tag, `drop: status ${st}`); // on its way
         const last = departShownRef.current.get(n.tripId);
-        if (last && Date.now() - last < DEPART_COOLDOWN_MS) return;
+        if (last && Date.now() - last < DEPART_COOLDOWN_MS) return qlog(tag, 'drop: cooldown');
         departShownRef.current.set(n.tripId, Date.now());
       }
       const key = questionKey(n);
       if (key) {
         if (seenRef.current.has(key)) {
+          qlog(tag, 'drop: seen');
           // Already asked — just carry an "open it after OK" wish over.
           if (n.openOnAccept) {
             setQueue((q) =>
@@ -150,6 +165,7 @@ export function PushNoticeOverlay() {
         }
         seenRef.current.add(key);
       }
+      qlog(tag, 'SHOW', `status=${n.tripId ? knownStatus(n.tripId) ?? 'unknown' : '-'}`);
       setQueue((q) =>
         n.kind === 'depart'
           ? // A newer ask for the same trip replaces an older one still queued.
@@ -157,7 +173,7 @@ export function PushNoticeOverlay() {
           : [...q, n],
       );
     },
-    [knownStatus],
+    [knownStatus, inst],
   );
 
   /** The question was answered (anywhere): drop its copies and banners. */
@@ -183,12 +199,21 @@ export function PushNoticeOverlay() {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    qlog(
+      `#${inst} modal`,
+      notice ? `${notice.kind} trip=${notice.tripId ?? '-'} no=${notice.promptNo ?? '-'}` : 'closed',
+      `queue=${queue.length}`,
+    );
+  }, [notice, queue.length, inst]);
+
   const close = () => setQueue((q) => q.slice(1));
 
   const accept = useCallback(
     async (tripId: string) => {
-      if (acceptedRef.current.has(tripId)) return;
+      if (acceptedRef.current.has(tripId)) return qlog(`#${inst} accept skip (already)`, tripId);
       acceptedRef.current.add(tripId);
+      qlog(`#${inst} accept → ACCEPTED`, tripId);
       try {
         await updateDriverTripStatus(tripId, 'ACCEPTED');
       } catch (e) {
@@ -200,11 +225,12 @@ export function PushNoticeOverlay() {
       }
       refresh();
     },
-    [refresh],
+    [refresh, inst],
   );
 
   const depart = useCallback(
     async (tripId: string, yes: boolean) => {
+      qlog(`#${inst} depart answer`, tripId, yes ? 'YES' : 'NO');
       try {
         await answerDepart(tripId, yes);
       } catch (e) {
@@ -212,7 +238,7 @@ export function PushNoticeOverlay() {
       }
       refresh();
     },
-    [refresh],
+    [refresh, inst],
   );
 
   /** Turn a push payload into a notice (or nothing, for chat messages). */
@@ -220,7 +246,10 @@ export function PushNoticeOverlay() {
     (title: string | null, body: string | null, data: Payload): Notice | null => {
       const type = data?.type;
       const tripId = typeof data?.tripId === 'string' ? data.tripId : undefined;
-      if (type === 'MESSAGE') return null;
+      // Chat messages show in the chat itself (socket + chime) — no modal.
+      if (type === 'MESSAGE' || type === 'DM_MESSAGE' || type === 'GROUP_MESSAGE') {
+        return null;
+      }
       if (type === 'NEW_TRIP' && tripId) {
         return { kind: 'newTrip', title: title ?? t('push.noticeTitle'), body: body ?? '', tripId };
       }
@@ -258,20 +287,23 @@ export function PushNoticeOverlay() {
       body?: string;
       promptNo?: number;
     }) => {
-      enqueue({
-        kind: 'depart',
-        title: t('push.departTitle'),
-        body: p.body ?? p.title ?? '',
-        tripId: p.tripId,
-        promptNo: p.promptNo,
-      });
+      enqueue(
+        {
+          kind: 'depart',
+          title: t('push.departTitle'),
+          body: p.body ?? p.title ?? '',
+          tripId: p.tripId,
+          promptNo: p.promptNo,
+        },
+        `socket:departPrompt(${typeof p.promptNo})`,
+      );
     };
-    // While the app is open the backend sends news as `notice` instead of a
-    // push (a banner over the open app was the doubled window).
+    // Servers that held the push back while the app was open sent the news
+    // as `notice` instead — still handled, so any server version works.
     const onNotice = (n: { title?: string; body?: string; data?: Payload }) => {
       refresh();
       const next = fromPush(n.title ?? null, n.body ?? null, n.data);
-      if (next) enqueue(next);
+      if (next) enqueue(next, 'socket:notice');
     };
     socket.on('departPrompt', onPrompt);
     socket.on('notice', onNotice);
@@ -298,7 +330,7 @@ export function PushNoticeOverlay() {
         title: t('push.newTripTitle'),
         body: tripAskBody(trip, t),
         tripId: trip.id,
-      });
+      }, 'data:ASSIGNED');
     }
   }, [myTrips, enqueue, t]);
 
@@ -312,7 +344,7 @@ export function PushNoticeOverlay() {
           body: a.body,
           tripId: a.tripId,
           openOnAccept: a.openOnAccept,
-        }),
+        }, 'nextTrip'),
       ),
     [enqueue],
   );
@@ -327,18 +359,28 @@ export function PushNoticeOverlay() {
     // it explicitly so only the modal remains.
     const recvSub = N.addNotificationReceivedListener((n) => {
       const { title, body, data } = n.request.content;
-      void N.dismissNotificationAsync(n.request.identifier);
       const payload = (data as Payload) ?? undefined;
+      // This listener also runs while the app is alive OFF screen (phone
+      // locked with the app open, app just sent to the background). Only an
+      // app on screen may take the notification away — the modal / chat shows
+      // it then. Dismissing it off screen wiped every banner from a locked
+      // phone; the driver saw the news only after unlocking.
+      // An alarm keeps its system notification even on screen: the `alarm`
+      // channel rings on the ALARM stream (through silent mode, at alarm
+      // volume); dismissing it cut the ring off after the first buzz.
+      const onScreen = AppState.currentState === 'active';
+      const dismiss = onScreen && payload?.type !== 'ALARM';
+      if (dismiss) void N.dismissNotificationAsync(n.request.identifier);
       refresh();
-      // Alarm chime — only for ALARM type so other pushes stay quiet.
-      if (payload?.type === 'ALARM') playAlarmSound();
+      qlog(`#${inst} push received`, n.request.identifier, `type=${String(payload?.type)}`, `promptNo=${JSON.stringify(payload?.promptNo)}`, `appState=${AppState.currentState}`, dismiss ? 'dismissed' : 'kept');
       const next = fromPush(title, body, payload);
-      if (next) enqueue(next);
+      if (next) enqueue(next, 'push:received');
     });
 
     // Background / closed → the user tapped the banner or one of its buttons.
     const handleResponse = (r: import('expo-notifications').NotificationResponse) => {
       const id = `${r.notification.request.identifier}:${r.actionIdentifier}`;
+      qlog(`#${inst} push response`, id, handledRef.current.has(id) ? 'dup' : 'new');
       if (handledRef.current.has(id)) return;
       handledRef.current.add(id);
       void N.clearLastNotificationResponseAsync?.();
@@ -375,11 +417,12 @@ export function PushNoticeOverlay() {
       // Plain tap: ask the question in-app (plain notices need no modal —
       // the user already saw the banner).
       const next = fromPush(title, body, payload);
-      if (next && next.kind !== 'info') enqueue(next);
+      if (next && next.kind !== 'info') enqueue(next, 'push:tap');
     };
     const respSub = N.addNotificationResponseReceivedListener(handleResponse);
     // Cold start from a banner / button tap.
     void N.getLastNotificationResponseAsync().then((r) => {
+      if (r) qlog(`#${inst} cold-start response replay`);
       if (r) handleResponse(r);
     });
 
@@ -387,7 +430,7 @@ export function PushNoticeOverlay() {
       recvSub.remove();
       respSub.remove();
     };
-  }, [refresh, fromPush, enqueue, settle, accept, depart, qc]);
+  }, [refresh, fromPush, enqueue, settle, accept, depart, qc, inst]);
 
   const onOk = () => {
     const n = notice;

@@ -8,10 +8,19 @@ import { Spacing } from '@/constants/theme';
 const KEYBOARD_GAP = Spacing.sm;
 
 // iOS: `keyboardWill*` fire as the keyboard starts animating, so the padding
-// swap rides along with the KAV lift instead of snapping afterwards.
-export function useComposerBottomPadding(): number {
+// swap rides along with the KAV lift instead of snapping afterwards. `resync`
+// (the composer's mode, e.g. reply / edit target) re-reads the real state, as
+// on Android.
+export function useComposerBottomPadding(resync?: unknown): number {
   const insets = useSafeAreaInsets();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(() => Keyboard.isVisible());
+  // The composer's mode changed → re-read the keyboard right away (state
+  // adjusted during render, React's pattern for "props changed").
+  const [seenResync, setSeenResync] = useState(resync);
+  if (resync !== seenResync) {
+    setSeenResync(resync);
+    setOpen(Keyboard.isVisible());
+  }
 
   useEffect(() => {
     const show = Keyboard.addListener('keyboardWillShow', () => setOpen(true));
@@ -21,6 +30,7 @@ export function useComposerBottomPadding(): number {
       hide.remove();
     };
   }, []);
+
 
   return open ? KEYBOARD_GAP : Math.max(insets.bottom, Spacing.sm);
 }

@@ -53,9 +53,11 @@ function useSyncLanguage() {
   }, [lang]);
 }
 
-export const unstable_settings = {
-  anchor: '(driver)',
-};
+// No `unstable_settings.anchor` here (it came with the Expo template). It
+// mounted a hidden (driver) under `index`; index's <Redirect> then replaced
+// itself with a SECOND (driver), and both stayed mounted — every overlay,
+// socket listener and push handler in that layout ran twice (each trip
+// question popped up twice). The root stack holds one route at a time.
 
 export default function RootLayout() {
   useAppStateRefetch();
