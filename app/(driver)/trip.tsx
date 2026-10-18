@@ -487,7 +487,7 @@ function TripWithChat({
       { text: t("documents.uploadSheet.gallery"), onPress: () => pickAndUpload("gallery") },
       { text: t("documents.uploadSheet.file"), onPress: () => pickAndUpload("document") },
       { text: t("common.cancel"), style: "cancel" },
-    ]);
+    ], { cancelable: true }); // Android: a tap outside closes it
   };
 
   const handleOpenDoc = useCallback(

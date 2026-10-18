@@ -171,7 +171,7 @@ export default function DocumentsScreen() {
       { text: t('documents.uploadSheet.gallery'), onPress: () => pickAndUpload('gallery', tripId) },
       { text: t('documents.uploadSheet.file'), onPress: () => pickAndUpload('document', tripId) },
       { text: t('common.cancel'), style: 'cancel' },
-    ]);
+    ], { cancelable: true }); // Android: a tap outside closes it
   };
 
   // ─── UI ──────────────────────────────────────────────────────────────────
