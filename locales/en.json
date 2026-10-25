@@ -339,7 +339,9 @@
     "ok": "OK",
     "channels": {
       "chat": "Messages and trips",
-      "alarm": "Alarm"
+      "alarm": "Alarm",
+      "other": "Other notifications",
+      "fallback": "Messages (fallback)"
     }
   },
   "status": {

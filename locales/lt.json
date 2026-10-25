@@ -344,7 +344,9 @@
     "ok": "OK",
     "channels": {
       "chat": "Žinutės ir reisai",
-      "alarm": "Žadintuvas"
+      "alarm": "Žadintuvas",
+      "other": "Kiti pranešimai",
+      "fallback": "Žinutės (atsarginis)"
     }
   },
   "status": {
