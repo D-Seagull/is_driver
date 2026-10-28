@@ -85,8 +85,10 @@ export async function registerForPushNotifications(): Promise<string | null> {
 
   // Android needs a default channel before notifications are visible.
   if (Platform.OS === 'android') {
+    // Names are shown in the phone's settings and CAN change after creation
+    // (only importance / sound are fixed), so they follow the app language.
     await Notifications.setNotificationChannelAsync('default', {
-      name: 'default',
+      name: i18n.t('push.channels.other'),
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#FF231F7C',
@@ -96,7 +98,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
     // change once created — hence a new id rather than editing 'default'.
     // The file is bundled via app.json → expo-notifications `sounds`.
     await Notifications.setNotificationChannelAsync('messages', {
-      name: 'Messages',
+      name: i18n.t('push.channels.fallback'),
       importance: Notifications.AndroidImportance.HIGH,
       sound: 'push_message.mp3',
       vibrationPattern: [0, 250, 250, 250],

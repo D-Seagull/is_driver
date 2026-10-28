@@ -344,7 +344,9 @@
     "ok": "OK",
     "channels": {
       "chat": "Wiadomości i trasy",
-      "alarm": "Budzik"
+      "alarm": "Budzik",
+      "other": "Inne powiadomienia",
+      "fallback": "Wiadomości (zapasowy)"
     }
   },
   "status": {

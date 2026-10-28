@@ -30,6 +30,11 @@
       "permissions": [
         "android.permission.ACCESS_NOTIFICATION_POLICY"
       ],
+      "blockedPermissions": [
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED"
+      ],
       "versionCode": 3,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
