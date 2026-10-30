@@ -37,7 +37,14 @@ export default function PhoneScreen() {
     } catch (e) {
       // Surface the real cause so the user can act: bad URL, server down, 400, etc.
       if (axios.isAxiosError(e)) {
-        if (e.response) {
+        if (e.response?.status === 429) {
+          // A code for this phone was issued under a minute ago (SMS, or
+          // one the manager made) — it's still valid, go type it in.
+          router.push({
+            pathname: "/(auth)/otp",
+            params: { phone: phone.trim() },
+          });
+        } else if (e.response) {
           const data = e.response.data as { message?: string | string[] };
           const msg = Array.isArray(data?.message)
             ? data.message[0]
