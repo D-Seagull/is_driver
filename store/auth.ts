@@ -15,6 +15,7 @@ import {
   fetchMe,
   refreshTokens,
   requestOtp,
+  requestOtpViaManager,
   revokeRefreshToken,
   verifyOtp,
 } from '@/lib/auth-api';
@@ -145,6 +146,8 @@ interface AuthState {
   isHydrated: boolean;
 
   requestOtp: (phone: string) => Promise<void>;
+  /** SMS didn't come — email the code to the assigned manager instead. */
+  requestOtpViaManager: (phone: string) => Promise<void>;
   verifyOtp: (phone: string, code: string) => Promise<void>;
   /** Exchange the refresh token for a new access token; null if it failed. */
   refresh: () => Promise<string | null>;
@@ -164,6 +167,10 @@ export const useAuthStore = create<AuthState>()(
 
       requestOtp: async (phone) => {
         await requestOtp(phone);
+      },
+
+      requestOtpViaManager: async (phone) => {
+        await requestOtpViaManager(phone);
       },
 
       verifyOtp: async (phone, code) => {

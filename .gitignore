@@ -48,3 +48,6 @@ app-example
 # generated native folders
 /ios
 /android
+
+# Sentry build plugin (local auth token for source map uploads)
+.env.sentry-build-plugin

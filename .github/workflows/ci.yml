@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      # .npmrc (legacy-peer-deps=true) is committed, so npm ci picks it up.
+      - run: npm ci
+      # expo lint is red today (React Compiler rules such as
+      # set-state-in-effect) — doesn't fail the job until cleaned up; then
+      # drop continue-on-error.
+      - name: Lint
+        run: npm run lint
+        continue-on-error: true
+      - name: Typecheck
+        run: npx tsc --noEmit
+      - name: Unit tests
+        run: npx jest --ci

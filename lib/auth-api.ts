@@ -146,6 +146,21 @@ export async function requestOtp(phone: string): Promise<void> {
 }
 
 /**
+ * Fallback when the SMS doesn't arrive (UA numbers roaming in DE/AT): the
+ * code is emailed to the driver's assigned manager, who dictates it. The
+ * driver types it on the same code screen.
+ */
+export async function requestOtpViaManager(phone: string): Promise<void> {
+  if (MOCK_AUTH) {
+    await wait(FAKE_DELAY);
+    return;
+  }
+  await withNetworkRetry(() =>
+    api.post('/auth/driver/request-otp-manager', { phone }),
+  );
+}
+
+/**
  * Step 2 — driver enters the 6-digit code. Returns user + JWT.
  * Mock accepts code "123456" (or any 6-digit code while MOCK_AUTH is true)
  * and synthesizes a fake driver identity.

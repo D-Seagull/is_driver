@@ -111,7 +111,15 @@
       "subtitleFallback": "jūsų telefoną",
       "mockHint": "Bandomasis režimas — tiks bet kokie 6 skaitmenys (pvz. 123456).",
       "verify": "Patvirtinti",
-      "changePhone": "Keisti telefono numerį"
+      "changePhone": "Keisti telefono numerį",
+      "manager": {
+        "send": "Negavote SMS? Siųsti kodą vadybininkui",
+        "resend": "Siųsti kodą vadybininkui dar kartą",
+        "wait": "Negavote SMS? Po {{seconds}} s galėsite nusiųsti kodą savo vadybininkui.",
+        "sent": "Kodas išsiųstas jūsų vadybininkui el. paštu. Paskambinkite jam — jis padiktuos kodą (galioja 15 min).",
+        "hint": "Vadybininkas taip pat gali sukurti prisijungimo kodą jūsų vairuotojo puslapyje.",
+        "failed": "Nepavyko išsiųsti kodo vadybininkui."
+      }
     },
     "errors": {
       "server": "Serverio klaida ({{status}})",
