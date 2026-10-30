@@ -8,7 +8,10 @@
       "developmentClient": true,
       "distribution": "internal",
       "android": { "buildType": "apk" },
-      "ios": { "simulator": false }
+      "ios": { "simulator": false },
+      "env": {
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+      }
     },
     "preview": {
       "channel": "preview",
@@ -16,6 +19,7 @@
       "android": { "buildType": "apk" },
       "ios": { "simulator": false },
       "env": {
+        "SENTRY_ALLOW_FAILURE": "true",
         "EXPO_PUBLIC_API_URL": "https://api.isfleet.eu",
         "EXPO_PUBLIC_MOCK_AUTH": "false"
       }
@@ -25,6 +29,7 @@
       "autoIncrement": true,
       "android": { "buildType": "app-bundle" },
       "env": {
+        "SENTRY_ALLOW_FAILURE": "true",
         "EXPO_PUBLIC_API_URL": "https://api.isfleet.eu",
         "EXPO_PUBLIC_MOCK_AUTH": "false"
       }

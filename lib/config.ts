@@ -36,6 +36,12 @@ export const PRIVACY_URL = WEB_URL + "/privacy";
 export const TERMS_URL = WEB_URL + "/terms";
 
 /**
+ * Sentry crash reporting (lib/sentry). Set per app in app.json → expo.extra
+ * (SENTRY_DSN) so it reaches both EAS builds and OTA updates. Empty = off.
+ */
+export const SENTRY_DSN = readString("SENTRY_DSN", "");
+
+/**
  * While the backend OTP endpoints aren't ready, we accept any 6-digit code
  * locally and synthesize a fake JWT/user. Flip the env to false to hit the
  * real backend.

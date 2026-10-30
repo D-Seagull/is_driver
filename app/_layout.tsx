@@ -17,6 +17,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ThemeProvider } from '@/hooks/use-theme';
 import { setAppLanguage } from '@/lib/i18n';
 import { queryClient } from '@/lib/query';
+import { initSentry, setSentryUser, wrapRoot } from '@/lib/sentry';
 import { useOtaUpdates } from '@/lib/updates';
 import { useAuthStore } from '@/store/auth';
 
@@ -24,6 +25,9 @@ import { useAuthStore } from '@/store/auth';
 // internals / libraries, not our code, so there's nothing to refactor here —
 // silence it so LogBox stays useful. Remove once the upstream fix lands.
 LogBox.ignoreLogs(['InteractionManager has been deprecated']);
+
+// Before anything renders, so errors during startup are reported too.
+initSentry();
 
 // Tell React Query when the app returns to foreground from background.
 // We track the PREVIOUS state so we only trigger on a real background→active
@@ -53,16 +57,26 @@ function useSyncLanguage() {
   }, [lang]);
 }
 
+// Crash reports carry only the signed-in user id (lib/sentry); cleared on
+// logout or when the session is dropped.
+function useSentryUser() {
+  const id = useAuthStore((s) => s.user?.id);
+  useEffect(() => {
+    setSentryUser(id);
+  }, [id]);
+}
+
 // No `unstable_settings.anchor` here (it came with the Expo template). It
 // mounted a hidden (driver) under `index`; index's <Redirect> then replaced
 // itself with a SECOND (driver), and both stayed mounted — every overlay,
 // socket listener and push handler in that layout ran twice (each trip
 // question popped up twice). The root stack holds one route at a time.
 
-export default function RootLayout() {
+function RootLayout() {
   useAppStateRefetch();
   useOtaUpdates();
   useSyncLanguage();
+  useSentryUser();
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
@@ -92,6 +106,8 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   );
 }
+
+export default wrapRoot(RootLayout);
 
 function NavTheme({ children }: { children: React.ReactNode }) {
   const scheme = useColorScheme();
