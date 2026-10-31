@@ -122,7 +122,7 @@
         "sent": {
           "sms": "Nowy SMS został wysłany.",
           "whatsapp": "Kod wysłano przez WhatsApp.",
-          "telegram": "Kod wysłano przez Telegram.",
+          "telegram": "Kod wysłano do Telegrama — szukaj czatu „Verification Codes”.",
           "manager": "Kod wysłano Twojemu menedżerowi. Zadzwoń do niego — poda Ci kod (ważny 15 min)."
         },
         "failed": "Nie udało się wysłać kodu. Spróbuj ponownie.",

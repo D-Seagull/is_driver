@@ -119,7 +119,7 @@
         "sent": {
           "sms": "A new SMS is on its way.",
           "whatsapp": "The code was sent via WhatsApp.",
-          "telegram": "The code was sent via Telegram.",
+          "telegram": "The code was sent to Telegram — look for the \"Verification Codes\" chat.",
           "manager": "The code was sent to your manager. Call them — they'll read it out to you (valid for 15 min)."
         },
         "failed": "Couldn't send the code. Please try again.",

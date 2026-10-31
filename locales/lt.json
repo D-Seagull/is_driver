@@ -122,7 +122,7 @@
         "sent": {
           "sms": "Naujas SMS išsiųstas.",
           "whatsapp": "Kodas išsiųstas per WhatsApp.",
-          "telegram": "Kodas išsiųstas per Telegram.",
+          "telegram": "Kodas išsiųstas į Telegram — ieškokite pokalbio „Verification Codes“.",
           "manager": "Kodas išsiųstas jūsų vadybininkui. Paskambinkite jam — jis padiktuos kodą (galioja 15 min)."
         },
         "failed": "Nepavyko išsiųsti kodo. Bandykite dar kartą.",
