@@ -1,7 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import axios from "axios";
 import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -12,36 +11,26 @@ import {
   View,
 } from "react-native";
 
+import { OtpFallback } from "@/components/otp-fallback";
 import { Colors, Radius, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { MOCK_AUTH } from "@/lib/config";
 import { useAuthStore } from "@/store/auth";
 
-const MANAGER_CODE_WAIT_S = 60;
-
 export default function OtpScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { phone = "" } = useLocalSearchParams<{ phone?: string }>();
+  const { phone = "", sms = "1" } = useLocalSearchParams<{
+    phone?: string;
+    sms?: string;
+  }>();
+  // Was an SMS sent on the way here? (No, when SMS is switched off.)
+  const smsSent = sms !== "0";
   const c = Colors[useColorScheme() ?? "light"];
   const verifyOtp = useAuthStore((s) => s.verifyOtp);
   const [code, setCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // "SMS didn't come — send the code to my manager". Offered once the SMS
-  // has had a minute to arrive (the server's per-phone cooldown anyway).
-  const requestViaManager = useAuthStore((s) => s.requestOtpViaManager);
-  const [managerWait, setManagerWait] = useState(MANAGER_CODE_WAIT_S);
-  const [managerSending, setManagerSending] = useState(false);
-  const [managerSent, setManagerSent] = useState(false);
-  const [managerError, setManagerError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (managerWait <= 0) return;
-    const id = setTimeout(() => setManagerWait((s) => s - 1), 1000);
-    return () => clearTimeout(id);
-  }, [managerWait]);
-
   // If we land here without a phone (e.g. dev-mode route restore), bounce
   // back to the phone screen so the user can request a code first.
   if (!phone) {
@@ -49,26 +38,6 @@ export default function OtpScreen() {
   }
 
   const canSubmit = code.length === 6 && !submitting;
-
-  const onSendToManager = async () => {
-    setManagerError(null);
-    setManagerSending(true);
-    try {
-      await requestViaManager(phone);
-      setManagerSent(true);
-      setManagerWait(MANAGER_CODE_WAIT_S);
-    } catch (e) {
-      const data = axios.isAxiosError(e)
-        ? (e.response?.data as { message?: string | string[] } | undefined)
-        : undefined;
-      const msg = Array.isArray(data?.message)
-        ? data.message[0]
-        : data?.message;
-      setManagerError(msg ?? t("auth.otp.manager.failed"));
-    } finally {
-      setManagerSending(false);
-    }
-  };
 
   const onSubmit = async () => {
     setError(null);
@@ -98,7 +67,7 @@ export default function OtpScreen() {
       <View style={[styles.iconWrap, { backgroundColor: c.muted }]}>
         <Ionicons
           name="shield-checkmark-outline"
-          size={36}
+          size={28}
           color={c.mutedForeground}
         />
       </View>
@@ -106,7 +75,7 @@ export default function OtpScreen() {
         {t("auth.otp.title")}
       </Text>
       <Text style={[styles.sub, { color: c.mutedForeground }]}>
-        {t("auth.otp.subtitle", {
+        {t(smsSent ? "auth.otp.subtitle" : "auth.otp.subtitlePick", {
           phone: phone || t("auth.otp.subtitleFallback"),
         })}
       </Text>
@@ -169,45 +138,12 @@ export default function OtpScreen() {
         </Text>
       </Pressable>
 
-      <View style={[styles.managerBox, { borderColor: c.border }]}>
-        {managerSent && (
-          <Text style={[styles.managerText, { color: c.foreground }]}>
-            {t("auth.otp.manager.sent")}
-          </Text>
-        )}
-        {managerWait > 0 ? (
-          <Text style={[styles.managerText, { color: c.mutedForeground }]}>
-            {t("auth.otp.manager.wait", { seconds: managerWait })}
-          </Text>
-        ) : (
-          <Pressable
-            onPress={onSendToManager}
-            disabled={managerSending || submitting}
-            style={({ pressed }) => [
-              styles.linkBtn,
-              { opacity: managerSending ? 0.5 : pressed ? 0.6 : 1 },
-            ]}
-          >
-            {managerSending ? (
-              <ActivityIndicator color={c.primary} />
-            ) : (
-              <Text style={[styles.linkText, { color: c.primary }]}>
-                {managerSent
-                  ? t("auth.otp.manager.resend")
-                  : t("auth.otp.manager.send")}
-              </Text>
-            )}
-          </Pressable>
-        )}
-        {managerError && (
-          <Text style={[styles.error, { color: c.destructive }]}>
-            {managerError}
-          </Text>
-        )}
-        <Text style={[styles.hint, { color: c.mutedForeground }]}>
-          {t("auth.otp.manager.hint")}
-        </Text>
-      </View>
+      <OtpFallback
+        phone={phone}
+        smsSent={smsSent}
+        disabled={submitting}
+        c={c}
+      />
     </View>
   );
 }
@@ -216,19 +152,21 @@ const styles = StyleSheet.create({
   wrap: {
     flex: 1,
     paddingHorizontal: Spacing.xl,
-    paddingTop: 96,
-    gap: Spacing.md,
+    // Tighter than the phone screen: the "didn't get the code?" options
+    // below must fit without scrolling.
+    paddingTop: 56,
+    gap: Spacing.sm,
   },
   iconWrap: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: Spacing.sm,
   },
   title: { fontSize: 26, fontWeight: "700" },
-  sub: { fontSize: 14, marginBottom: Spacing.md },
+  sub: { fontSize: 14, marginBottom: Spacing.sm },
   input: {
     borderWidth: 1,
     paddingHorizontal: Spacing.md,
@@ -247,11 +185,4 @@ const styles = StyleSheet.create({
   btnText: { fontSize: 16, fontWeight: "700" },
   linkBtn: { alignItems: "center", paddingVertical: Spacing.sm },
   linkText: { fontSize: 13, fontWeight: "500" },
-  managerBox: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    paddingTop: Spacing.md,
-    marginTop: Spacing.sm,
-    gap: Spacing.sm,
-  },
-  managerText: { fontSize: 13, textAlign: "center" },
 });

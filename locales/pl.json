@@ -112,14 +112,24 @@
       "mockHint": "Tryb testowy — zadziała dowolne 6 cyfr (np. 123456).",
       "verify": "Potwierdź",
       "changePhone": "Zmień numer telefonu",
-      "manager": {
-        "send": "Nie dostałeś SMS-a? Wyślij kod menedżerowi",
-        "resend": "Wyślij kod menedżerowi ponownie",
-        "wait": "Nie dostałeś SMS-a? Za {{seconds}} s możesz wysłać kod swojemu menedżerowi.",
-        "sent": "Kod wysłano e-mailem do Twojego menedżera. Zadzwoń do niego — poda Ci kod (ważny 15 min).",
-        "hint": "Menedżer może też utworzyć kod logowania na Twojej stronie kierowcy.",
-        "failed": "Nie udało się wysłać kodu menedżerowi."
-      }
+      "fallback": {
+        "title": "Nie dostałeś kodu?",
+        "sms": "Wyślij SMS ponownie",
+        "whatsapp": "Wyślij przez WhatsApp",
+        "telegram": "Wyślij przez Telegram",
+        "manager": "Wyślij kod e-mailem do menedżera",
+        "managerNote": "Kod trafi na e-mail menedżera Twojej ciężarówki — zadzwoń do niego. O logowaniu kodem menedżera napisze Ci IS Fleet contact w czacie.",
+        "sent": {
+          "sms": "Nowy SMS został wysłany.",
+          "whatsapp": "Kod wysłano przez WhatsApp.",
+          "telegram": "Kod wysłano do Telegrama — szukaj czatu „Verification Codes”.",
+          "manager": "Kod wysłano Twojemu menedżerowi. Zadzwoń do niego — poda Ci kod (ważny 15 min)."
+        },
+        "failed": "Nie udało się wysłać kodu. Spróbuj ponownie.",
+        "pickTitle": "Jak otrzymać kod?",
+        "smsFirst": "Wyślij SMS"
+      },
+      "subtitlePick": "Wybierz, jak otrzymać kod dla {{phone}}."
     },
     "errors": {
       "server": "Błąd serwera ({{status}})",

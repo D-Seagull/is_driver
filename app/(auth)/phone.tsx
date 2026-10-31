@@ -14,6 +14,7 @@ import {
 
 import { Colors, Radius, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { LOGIN_METHODS } from "@/lib/config";
 import { useAuthStore } from "@/store/auth";
 
 export default function PhoneScreen() {
@@ -32,8 +33,13 @@ export default function PhoneScreen() {
     setError(null);
     setSubmitting(true);
     try {
-      await requestOtp(phone.trim());
-      router.push({ pathname: "/(auth)/otp", params: { phone: phone.trim() } });
+      // SMS switched off in this build: no code goes out yet — the code
+      // screen lets the driver pick a method right away.
+      if (LOGIN_METHODS.sms) await requestOtp(phone.trim());
+      router.push({
+        pathname: "/(auth)/otp",
+        params: { phone: phone.trim(), sms: LOGIN_METHODS.sms ? "1" : "0" },
+      });
     } catch (e) {
       // Surface the real cause so the user can act: bad URL, server down, 400, etc.
       if (axios.isAxiosError(e)) {

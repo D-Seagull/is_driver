@@ -1,5 +1,5 @@
 import { api } from './api';
-import { MOCK_AUTH } from './config';
+import { LOGIN_METHODS, MOCK_AUTH } from './config';
 import { withNetworkRetry } from './net-retry';
 
 export interface DriverTruckSummary {
@@ -145,18 +145,58 @@ export async function requestOtp(phone: string): Promise<void> {
   }
 }
 
+/** How a sign-in code can reach the driver (see backend driver-login). */
+export type OtpChannel = 'sms' | 'whatsapp' | 'telegram' | 'manager';
+
+const ORDER: OtpChannel[] = ['sms', 'whatsapp', 'telegram', 'manager'];
+
+export interface OtpChannels {
+  /** Switched-on methods, `manager` last. */
+  channels: OtpChannel[];
+}
+
+/** The methods this app build has switched on (app.json → extra). */
+export function appLoginMethods(): OtpChannel[] {
+  return ORDER.filter((m) => LOGIN_METHODS[m]);
+}
+
 /**
- * Fallback when the SMS doesn't arrive (UA numbers roaming in DE/AT): the
- * code is emailed to the driver's assigned manager, who dictates it. The
- * driver types it on the same code screen.
+ * Sign-in methods to offer: those switched on both here and on the server.
+ * The answer is the same for every phone. On error we fall back to the
+ * app's own list — the server ignores a method it has switched off anyway.
  */
-export async function requestOtpViaManager(phone: string): Promise<void> {
+export async function fetchOtpChannels(phone: string): Promise<OtpChannels> {
+  const local = appLoginMethods();
+  if (MOCK_AUTH) {
+    await wait(FAKE_DELAY);
+    return { channels: local };
+  }
+  try {
+    const { data } = await api.post<{ channels: string[] }>(
+      '/auth/driver/otp-channels',
+      { phone },
+    );
+    return { channels: local.filter((m) => data.channels.includes(m)) };
+  } catch {
+    return { channels: local };
+  }
+}
+
+/**
+ * Send a fresh code through one channel (SMS again, WhatsApp, …, or to the
+ * truck's manager, who dictates it). The server always answers ok — it never
+ * says whether the channel could reach this phone.
+ */
+export async function requestOtpVia(
+  phone: string,
+  channel: OtpChannel,
+): Promise<void> {
   if (MOCK_AUTH) {
     await wait(FAKE_DELAY);
     return;
   }
   await withNetworkRetry(() =>
-    api.post('/auth/driver/request-otp-manager', { phone }),
+    api.post('/auth/driver/request-otp', { phone, channel }),
   );
 }
 

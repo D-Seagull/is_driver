@@ -109,14 +109,24 @@
       "mockHint": "Mock mode — any 6 digits will work (e.g. 123456).",
       "verify": "Verify",
       "changePhone": "Change phone number",
-      "manager": {
-        "send": "No SMS? Send the code to my manager",
-        "resend": "Send the code to my manager again",
-        "wait": "No SMS? In {{seconds}} s you can send the code to your manager.",
-        "sent": "The code was emailed to your manager. Call them — they'll read it out to you (valid for 15 min).",
-        "hint": "Your manager can also create a login code on your driver page.",
-        "failed": "Couldn't send the code to your manager."
-      }
+      "fallback": {
+        "title": "Didn't get the code?",
+        "sms": "Send the SMS again",
+        "whatsapp": "Send via WhatsApp",
+        "telegram": "Send via Telegram",
+        "manager": "Email the code to my manager",
+        "managerNote": "The code goes to the email of your truck's manager — call them. IS Fleet contact will tell you in the chat about a sign-in with a manager code.",
+        "sent": {
+          "sms": "A new SMS is on its way.",
+          "whatsapp": "The code was sent via WhatsApp.",
+          "telegram": "The code was sent to Telegram — look for the \"Verification Codes\" chat.",
+          "manager": "The code was sent to your manager. Call them — they'll read it out to you (valid for 15 min)."
+        },
+        "failed": "Couldn't send the code. Please try again.",
+        "pickTitle": "How to get the code?",
+        "smsFirst": "Send an SMS"
+      },
+      "subtitlePick": "Choose how to get the code for {{phone}}."
     },
     "errors": {
       "server": "Server error ({{status}})",

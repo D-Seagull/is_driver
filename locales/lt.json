@@ -112,14 +112,24 @@
       "mockHint": "Bandomasis režimas — tiks bet kokie 6 skaitmenys (pvz. 123456).",
       "verify": "Patvirtinti",
       "changePhone": "Keisti telefono numerį",
-      "manager": {
-        "send": "Negavote SMS? Siųsti kodą vadybininkui",
-        "resend": "Siųsti kodą vadybininkui dar kartą",
-        "wait": "Negavote SMS? Po {{seconds}} s galėsite nusiųsti kodą savo vadybininkui.",
-        "sent": "Kodas išsiųstas jūsų vadybininkui el. paštu. Paskambinkite jam — jis padiktuos kodą (galioja 15 min).",
-        "hint": "Vadybininkas taip pat gali sukurti prisijungimo kodą jūsų vairuotojo puslapyje.",
-        "failed": "Nepavyko išsiųsti kodo vadybininkui."
-      }
+      "fallback": {
+        "title": "Negavote kodo?",
+        "sms": "Siųsti SMS dar kartą",
+        "whatsapp": "Siųsti per WhatsApp",
+        "telegram": "Siųsti per Telegram",
+        "manager": "Siųsti kodą vadybininkui el. paštu",
+        "managerNote": "Kodas ateis jūsų vilkiko vadybininkui el. paštu — paskambinkite jam. Apie prisijungimą vadybininko kodu jums parašys IS Fleet contact pokalbyje.",
+        "sent": {
+          "sms": "Naujas SMS išsiųstas.",
+          "whatsapp": "Kodas išsiųstas per WhatsApp.",
+          "telegram": "Kodas išsiųstas į Telegram — ieškokite pokalbio „Verification Codes“.",
+          "manager": "Kodas išsiųstas jūsų vadybininkui. Paskambinkite jam — jis padiktuos kodą (galioja 15 min)."
+        },
+        "failed": "Nepavyko išsiųsti kodo. Bandykite dar kartą.",
+        "pickTitle": "Kaip gauti kodą?",
+        "smsFirst": "Siųsti SMS"
+      },
+      "subtitlePick": "Pasirinkite, kaip gauti kodą numeriui {{phone}}."
     },
     "errors": {
       "server": "Serverio klaida ({{status}})",

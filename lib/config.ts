@@ -48,6 +48,18 @@ export const SENTRY_DSN = readString("SENTRY_DSN", "");
  */
 export const MOCK_AUTH = readBool("MOCK_AUTH", false);
 
+/**
+ * Driver sign-in methods, each switchable on its own (app.json → expo.extra,
+ * changeable by OTA; same names as the backend env). A method shows on the
+ * login screen only when it is on here AND on the backend.
+ */
+export const LOGIN_METHODS = {
+  sms: readBool("LOGIN_SMS_ENABLED", true),
+  whatsapp: readBool("LOGIN_WHATSAPP_ENABLED", false),
+  telegram: readBool("LOGIN_TELEGRAM_ENABLED", false),
+  manager: readBool("LOGIN_MANAGER_EMAIL_ENABLED", true),
+} as const;
+
 // Boot-time sanity log — confirms which API the app is talking to. Remove
 // this once the network setup is stable.
 console.log("[config]", { API_URL, MOCK_AUTH });
