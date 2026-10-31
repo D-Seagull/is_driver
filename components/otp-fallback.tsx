@@ -9,7 +9,7 @@ import { fetchOtpChannels, type OtpChannel, type OtpChannels } from "@/lib/auth-
 import { useAuthStore } from "@/store/auth";
 
 // How long the SMS gets before we offer other ways.
-const FALLBACK_AFTER_S = 45;
+const FALLBACK_AFTER_S = 30;
 
 const ICONS: Record<OtpChannel, ComponentProps<typeof Ionicons>["name"]> = {
   sms: "chatbox-outline",
@@ -19,8 +19,9 @@ const ICONS: Record<OtpChannel, ComponentProps<typeof Ionicons>["name"]> = {
 };
 
 /**
- * "Didn't get the code?" under the code field. Appears ~45 s after the SMS
- * went out — at once when no SMS was sent (SMS switched off) — and offers
+ * "Didn't get the code?" under the code field. Appears 30 s after the SMS
+ * went out (a countdown shows until then) — at once when no SMS was sent
+ * (SMS switched off) — and offers
  * the sign-in methods switched on in this app and on the server, "ask my
  * manager" always last. Every method ends on the same code screen.
  */
@@ -59,7 +60,14 @@ export function OtpFallback({
     };
   }, [wait, offer, phone]);
 
-  if (!offer) return null;
+  if (!offer) {
+    // Counting down to the other ways — so the driver knows they're coming.
+    return wait > 0 ? (
+      <Text style={[styles.countdown, { color: c.mutedForeground }]}>
+        {t("auth.otp.fallback.countdown", { seconds: wait })}
+      </Text>
+    ) : null;
+  }
 
   const send = async (channel: OtpChannel) => {
     setError(null);
@@ -154,5 +162,6 @@ const styles = StyleSheet.create({
   },
   optionText: { fontSize: 14, fontWeight: "500", flexShrink: 1 },
   note: { fontSize: 12 },
+  countdown: { fontSize: 13, textAlign: "center", paddingVertical: Spacing.sm },
   sent: { fontSize: 13, textAlign: "center" },
 });

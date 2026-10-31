@@ -118,7 +118,7 @@
       "MOCK_AUTH": "false",
       "SENTRY_DSN": "",
       "LOGIN_SMS_ENABLED": "true",
-      "LOGIN_WHATSAPP_ENABLED": "true",
+      "LOGIN_WHATSAPP_ENABLED": "false",
       "LOGIN_TELEGRAM_ENABLED": "true",
       "LOGIN_MANAGER_EMAIL_ENABLED": "true",
       "eas": {

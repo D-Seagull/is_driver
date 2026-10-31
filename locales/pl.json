@@ -127,7 +127,8 @@
         },
         "failed": "Nie udało się wysłać kodu. Spróbuj ponownie.",
         "pickTitle": "Jak otrzymać kod?",
-        "smsFirst": "Wyślij SMS"
+        "smsFirst": "Wyślij SMS",
+        "countdown": "Brak kodu? Inne sposoby za {{seconds}} s"
       },
       "subtitlePick": "Wybierz, jak otrzymać kod dla {{phone}}."
     },
