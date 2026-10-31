@@ -115,21 +115,21 @@
       "fallback": {
         "title": "Negavote kodo?",
         "sms": "Siųsti SMS dar kartą",
-        "email": "Siųsti el. paštu",
-        "emailTo": "Siųsti į {{email}}",
         "whatsapp": "Siųsti per WhatsApp",
         "telegram": "Siųsti per Telegram",
-        "manager": "Paprašyti kodo iš vadybininko",
-        "managerNote": "Kodas ateis jūsų vadybininkui el. paštu — paskambinkite jam. Prisijungimas vadybininko kodu bus matomas jūsų pranešimuose.",
+        "manager": "Siųsti kodą vadybininkui el. paštu",
+        "managerNote": "Kodas ateis jūsų vilkiko vadybininkui el. paštu — paskambinkite jam. Apie prisijungimą vadybininko kodu jums parašys IS Fleet contact pokalbyje.",
         "sent": {
           "sms": "Naujas SMS išsiųstas.",
-          "email": "Kodas išsiųstas jūsų el. paštu. Patikrinkite ir šlamšto aplanką.",
           "whatsapp": "Kodas išsiųstas per WhatsApp.",
           "telegram": "Kodas išsiųstas per Telegram.",
           "manager": "Kodas išsiųstas jūsų vadybininkui. Paskambinkite jam — jis padiktuos kodą (galioja 15 min)."
         },
-        "failed": "Nepavyko išsiųsti kodo. Bandykite dar kartą."
-      }
+        "failed": "Nepavyko išsiųsti kodo. Bandykite dar kartą.",
+        "pickTitle": "Kaip gauti kodą?",
+        "smsFirst": "Siųsti SMS"
+      },
+      "subtitlePick": "Pasirinkite, kaip gauti kodą numeriui {{phone}}."
     },
     "errors": {
       "server": "Serverio klaida ({{status}})",

@@ -11,7 +11,6 @@ import {
   View,
 } from "react-native";
 
-import { InsetScrollView } from "@/components/inset-list";
 import { OtpFallback } from "@/components/otp-fallback";
 import { Colors, Radius, Spacing } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -21,7 +20,12 @@ import { useAuthStore } from "@/store/auth";
 export default function OtpScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { phone = "" } = useLocalSearchParams<{ phone?: string }>();
+  const { phone = "", sms = "1" } = useLocalSearchParams<{
+    phone?: string;
+    sms?: string;
+  }>();
+  // Was an SMS sent on the way here? (No, when SMS is switched off.)
+  const smsSent = sms !== "0";
   const c = Colors[useColorScheme() ?? "light"];
   const verifyOtp = useAuthStore((s) => s.verifyOtp);
   const [code, setCode] = useState("");
@@ -59,15 +63,11 @@ export default function OtpScreen() {
   };
 
   return (
-    <InsetScrollView
-      style={{ backgroundColor: c.background }}
-      contentContainerStyle={styles.wrap}
-      keyboardShouldPersistTaps="handled"
-    >
+    <View style={[styles.wrap, { backgroundColor: c.background }]}>
       <View style={[styles.iconWrap, { backgroundColor: c.muted }]}>
         <Ionicons
           name="shield-checkmark-outline"
-          size={36}
+          size={28}
           color={c.mutedForeground}
         />
       </View>
@@ -75,7 +75,7 @@ export default function OtpScreen() {
         {t("auth.otp.title")}
       </Text>
       <Text style={[styles.sub, { color: c.mutedForeground }]}>
-        {t("auth.otp.subtitle", {
+        {t(smsSent ? "auth.otp.subtitle" : "auth.otp.subtitlePick", {
           phone: phone || t("auth.otp.subtitleFallback"),
         })}
       </Text>
@@ -138,28 +138,35 @@ export default function OtpScreen() {
         </Text>
       </Pressable>
 
-      <OtpFallback phone={phone} disabled={submitting} c={c} />
-    </InsetScrollView>
+      <OtpFallback
+        phone={phone}
+        smsSent={smsSent}
+        disabled={submitting}
+        c={c}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: {
-    flexGrow: 1,
+    flex: 1,
     paddingHorizontal: Spacing.xl,
-    paddingTop: 96,
-    gap: Spacing.md,
+    // Tighter than the phone screen: the "didn't get the code?" options
+    // below must fit without scrolling.
+    paddingTop: 56,
+    gap: Spacing.sm,
   },
   iconWrap: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: Spacing.sm,
   },
   title: { fontSize: 26, fontWeight: "700" },
-  sub: { fontSize: 14, marginBottom: Spacing.md },
+  sub: { fontSize: 14, marginBottom: Spacing.sm },
   input: {
     borderWidth: 1,
     paddingHorizontal: Spacing.md,

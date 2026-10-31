@@ -13,7 +13,6 @@ const FALLBACK_AFTER_S = 45;
 
 const ICONS: Record<OtpChannel, ComponentProps<typeof Ionicons>["name"]> = {
   sms: "chatbox-outline",
-  email: "mail-outline",
   whatsapp: "logo-whatsapp",
   telegram: "paper-plane-outline",
   manager: "person-outline",
@@ -21,22 +20,25 @@ const ICONS: Record<OtpChannel, ComponentProps<typeof Ionicons>["name"]> = {
 
 /**
  * "Didn't get the code?" under the code field. Appears ~45 s after the SMS
- * went out and offers the channels the server allows for this phone —
- * email only when the driver has a confirmed one, "ask my manager" always
- * last. Every channel ends on the same code screen.
+ * went out — at once when no SMS was sent (SMS switched off) — and offers
+ * the sign-in methods switched on in this app and on the server, "ask my
+ * manager" always last. Every method ends on the same code screen.
  */
 export function OtpFallback({
   phone,
+  smsSent,
   disabled,
   c,
 }: {
   phone: string;
+  /** False when SMS is switched off: offer the methods right away. */
+  smsSent: boolean;
   disabled: boolean;
   c: (typeof Colors)["light"];
 }) {
   const { t } = useTranslation();
   const requestVia = useAuthStore((s) => s.requestOtpVia);
-  const [wait, setWait] = useState(FALLBACK_AFTER_S);
+  const [wait, setWait] = useState(smsSent ? FALLBACK_AFTER_S : 0);
   const [offer, setOffer] = useState<OtpChannels | null>(null);
   const [sending, setSending] = useState<OtpChannel | null>(null);
   const [sent, setSent] = useState<OtpChannel | null>(null);
@@ -77,8 +79,8 @@ export function OtpFallback({
   };
 
   const label = (ch: OtpChannel) =>
-    ch === "email" && offer.emailHint
-      ? t("auth.otp.fallback.emailTo", { email: offer.emailHint })
+    ch === "sms" && !smsSent
+      ? t("auth.otp.fallback.smsFirst")
       : t(`auth.otp.fallback.${ch}`);
 
   // Direct channels first, then the manager — the last resort.
@@ -112,7 +114,7 @@ export function OtpFallback({
   return (
     <View style={[styles.box, { borderColor: c.border }]}>
       <Text style={[styles.title, { color: c.foreground }]}>
-        {t("auth.otp.fallback.title")}
+        {t(smsSent ? "auth.otp.fallback.title" : "auth.otp.fallback.pickTitle")}
       </Text>
       {direct.map(option)}
       {withManager && (
@@ -138,9 +140,8 @@ export function OtpFallback({
 const styles = StyleSheet.create({
   box: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    paddingTop: Spacing.md,
-    marginTop: Spacing.sm,
-    gap: Spacing.sm,
+    paddingTop: Spacing.sm,
+    gap: Spacing.xs + 2,
   },
   title: { fontSize: 15, fontWeight: "700" },
   option: {
@@ -149,7 +150,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     borderWidth: 1,
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm + 2,
+    paddingVertical: Spacing.sm,
   },
   optionText: { fontSize: 14, fontWeight: "500", flexShrink: 1 },
   note: { fontSize: 12 },

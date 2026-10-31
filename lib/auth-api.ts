@@ -1,5 +1,5 @@
 import { api } from './api';
-import { MOCK_AUTH } from './config';
+import { LOGIN_METHODS, MOCK_AUTH } from './config';
 import { withNetworkRetry } from './net-retry';
 
 export interface DriverTruckSummary {
@@ -146,37 +146,44 @@ export async function requestOtp(phone: string): Promise<void> {
 }
 
 /** How a sign-in code can reach the driver (see backend driver-login). */
-export type OtpChannel = 'sms' | 'email' | 'whatsapp' | 'telegram' | 'manager';
+export type OtpChannel = 'sms' | 'whatsapp' | 'telegram' | 'manager';
+
+const ORDER: OtpChannel[] = ['sms', 'whatsapp', 'telegram', 'manager'];
 
 export interface OtpChannels {
-  /** Offered fallbacks; `manager` is always last. */
+  /** Switched-on methods, `manager` last. */
   channels: OtpChannel[];
-  /** Masked verified email (`d***@gmail.com`), or null. */
-  emailHint: string | null;
+}
+
+/** The methods this app build has switched on (app.json → extra). */
+export function appLoginMethods(): OtpChannel[] {
+  return ORDER.filter((m) => LOGIN_METHODS[m]);
 }
 
 /**
- * "Didn't get the code?" — which fallbacks the server offers for this phone.
- * Unknown phones get the same answer, so a failure here is never a signal;
- * on error we fall back to SMS + manager.
+ * Sign-in methods to offer: those switched on both here and on the server.
+ * The answer is the same for every phone. On error we fall back to the
+ * app's own list — the server ignores a method it has switched off anyway.
  */
 export async function fetchOtpChannels(phone: string): Promise<OtpChannels> {
+  const local = appLoginMethods();
   if (MOCK_AUTH) {
     await wait(FAKE_DELAY);
-    return { channels: ['sms', 'email', 'manager'], emailHint: 'd***@gmail.com' };
+    return { channels: local };
   }
   try {
-    const { data } = await api.post<OtpChannels>('/auth/driver/otp-channels', {
-      phone,
-    });
-    return data;
+    const { data } = await api.post<{ channels: string[] }>(
+      '/auth/driver/otp-channels',
+      { phone },
+    );
+    return { channels: local.filter((m) => data.channels.includes(m)) };
   } catch {
-    return { channels: ['sms', 'manager'], emailHint: null };
+    return { channels: local };
   }
 }
 
 /**
- * Send a fresh code through one channel (SMS again, email, …, or to the
+ * Send a fresh code through one channel (SMS again, WhatsApp, …, or to the
  * truck's manager, who dictates it). The server always answers ok — it never
  * says whether the channel could reach this phone.
  */
