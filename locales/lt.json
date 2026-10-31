@@ -127,7 +127,8 @@
         },
         "failed": "Nepavyko išsiųsti kodo. Bandykite dar kartą.",
         "pickTitle": "Kaip gauti kodą?",
-        "smsFirst": "Siųsti SMS"
+        "smsFirst": "Siųsti SMS",
+        "countdown": "Negavote kodo? Kiti būdai po {{seconds}} s"
       },
       "subtitlePick": "Pasirinkite, kaip gauti kodą numeriui {{phone}}."
     },

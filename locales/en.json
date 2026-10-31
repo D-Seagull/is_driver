@@ -124,7 +124,8 @@
         },
         "failed": "Couldn't send the code. Please try again.",
         "pickTitle": "How to get the code?",
-        "smsFirst": "Send an SMS"
+        "smsFirst": "Send an SMS",
+        "countdown": "No code? Other ways in {{seconds}} s"
       },
       "subtitlePick": "Choose how to get the code for {{phone}}."
     },
