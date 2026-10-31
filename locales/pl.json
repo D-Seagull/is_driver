@@ -112,13 +112,23 @@
       "mockHint": "Tryb testowy — zadziała dowolne 6 cyfr (np. 123456).",
       "verify": "Potwierdź",
       "changePhone": "Zmień numer telefonu",
-      "manager": {
-        "send": "Nie dostałeś SMS-a? Wyślij kod menedżerowi",
-        "resend": "Wyślij kod menedżerowi ponownie",
-        "wait": "Nie dostałeś SMS-a? Za {{seconds}} s możesz wysłać kod swojemu menedżerowi.",
-        "sent": "Kod wysłano e-mailem do Twojego menedżera. Zadzwoń do niego — poda Ci kod (ważny 15 min).",
-        "hint": "Menedżer może też utworzyć kod logowania na Twojej stronie kierowcy.",
-        "failed": "Nie udało się wysłać kodu menedżerowi."
+      "fallback": {
+        "title": "Nie dostałeś kodu?",
+        "sms": "Wyślij SMS ponownie",
+        "email": "Wyślij na e-mail",
+        "emailTo": "Wyślij na {{email}}",
+        "whatsapp": "Wyślij przez WhatsApp",
+        "telegram": "Wyślij przez Telegram",
+        "manager": "Poproś menedżera o kod",
+        "managerNote": "Kod trafi na e-mail Twojego menedżera — zadzwoń do niego. Logowanie kodem menedżera pojawi się w Twoich powiadomieniach.",
+        "sent": {
+          "sms": "Nowy SMS został wysłany.",
+          "email": "Kod wysłano na Twój e-mail. Sprawdź też folder spam.",
+          "whatsapp": "Kod wysłano przez WhatsApp.",
+          "telegram": "Kod wysłano przez Telegram.",
+          "manager": "Kod wysłano Twojemu menedżerowi. Zadzwoń do niego — poda Ci kod (ważny 15 min)."
+        },
+        "failed": "Nie udało się wysłać kodu. Spróbuj ponownie."
       }
     },
     "errors": {

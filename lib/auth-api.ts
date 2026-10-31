@@ -145,18 +145,51 @@ export async function requestOtp(phone: string): Promise<void> {
   }
 }
 
+/** How a sign-in code can reach the driver (see backend driver-login). */
+export type OtpChannel = 'sms' | 'email' | 'whatsapp' | 'telegram' | 'manager';
+
+export interface OtpChannels {
+  /** Offered fallbacks; `manager` is always last. */
+  channels: OtpChannel[];
+  /** Masked verified email (`d***@gmail.com`), or null. */
+  emailHint: string | null;
+}
+
 /**
- * Fallback when the SMS doesn't arrive (UA numbers roaming in DE/AT): the
- * code is emailed to the driver's assigned manager, who dictates it. The
- * driver types it on the same code screen.
+ * "Didn't get the code?" — which fallbacks the server offers for this phone.
+ * Unknown phones get the same answer, so a failure here is never a signal;
+ * on error we fall back to SMS + manager.
  */
-export async function requestOtpViaManager(phone: string): Promise<void> {
+export async function fetchOtpChannels(phone: string): Promise<OtpChannels> {
+  if (MOCK_AUTH) {
+    await wait(FAKE_DELAY);
+    return { channels: ['sms', 'email', 'manager'], emailHint: 'd***@gmail.com' };
+  }
+  try {
+    const { data } = await api.post<OtpChannels>('/auth/driver/otp-channels', {
+      phone,
+    });
+    return data;
+  } catch {
+    return { channels: ['sms', 'manager'], emailHint: null };
+  }
+}
+
+/**
+ * Send a fresh code through one channel (SMS again, email, …, or to the
+ * truck's manager, who dictates it). The server always answers ok — it never
+ * says whether the channel could reach this phone.
+ */
+export async function requestOtpVia(
+  phone: string,
+  channel: OtpChannel,
+): Promise<void> {
   if (MOCK_AUTH) {
     await wait(FAKE_DELAY);
     return;
   }
   await withNetworkRetry(() =>
-    api.post('/auth/driver/request-otp-manager', { phone }),
+    api.post('/auth/driver/request-otp', { phone, channel }),
   );
 }
 
