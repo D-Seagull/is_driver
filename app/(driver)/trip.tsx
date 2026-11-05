@@ -72,6 +72,7 @@ import { formatDate, formatTime } from "@/lib/format-date";
 import { systemMessageText } from "@/lib/system-message";
 import { Trip, StopType } from "@/lib/types";
 import { useUser } from "@/store/auth";
+import { uploadErrorText } from '@/lib/upload-error';
 
 // Reply target for the composer banner — a message or a document quote.
 type TripReplyTarget = {
@@ -477,7 +478,7 @@ function TripWithChat({
       await upload.mutateAsync({ tripId: trip.id, files });
       nearBottomRef.current = true;
     } catch (e) {
-      Alert.alert(t("documents.uploadFailed"), (e as Error).message);
+      Alert.alert(t("documents.uploadFailed"), uploadErrorText(e, t));
     }
   };
 

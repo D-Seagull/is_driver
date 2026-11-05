@@ -39,6 +39,7 @@ import { DriverDocument, UploadFileLocal } from '@/lib/documents-api';
 import { compressPhotos, PICKER_QUALITY } from '@/lib/compress-photo';
 import { formatDate } from '@/lib/format-date';
 import { useUser } from '@/store/auth';
+import { uploadErrorText } from '@/lib/upload-error';
 
 type Tab = 'ALL' | 'PHOTO' | 'DOCUMENT';
 
@@ -161,7 +162,7 @@ export default function DocumentsScreen() {
       if (files.length === 0) return;
       await upload.mutateAsync({ tripId, files });
     } catch (e) {
-      Alert.alert(t('documents.uploadFailed'), (e as Error).message);
+      Alert.alert(t('documents.uploadFailed'), uploadErrorText(e, t));
     }
   };
 
