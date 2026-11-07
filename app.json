@@ -48,7 +48,7 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/IS-driverapp-img.png"
+      "favicon": "./assets/images/icon.png"
     },
     "plugins": [
       "expo-router",
