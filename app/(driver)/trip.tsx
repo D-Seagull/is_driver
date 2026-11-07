@@ -1,4 +1,5 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { OutboxMark } from "@/components/outbox-mark";
 import { openRemoteFile, readableFileName } from "@/lib/open-file";
 import { compressPhotos, PICKER_QUALITY } from "@/lib/compress-photo";
 import { albumSizes, groupAlbums } from "@/lib/albums";
@@ -1252,7 +1253,8 @@ const MessageBubble = memo(function MessageBubble({
           <Text style={[styles.bubbleTime, { color: c.mutedForeground }]}>
             {time}
           </Text>
-          {isMe && !isDeleted && (
+          {isMe && !isDeleted && <OutboxMark msg={message} />}
+          {isMe && !isDeleted && !message.pending && !message.failed && (
             <Text
               style={[
                 styles.bubbleTick,

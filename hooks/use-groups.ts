@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { api } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
+import { useOutboxItems } from '@/lib/outbox';
 import { useAuthStore } from '@/store/auth';
 
 // History page size — matches the backend default `take` for group messages.
@@ -60,6 +61,9 @@ export interface GroupMessage {
   replyToDocument?: DocReplyPreviewLite | null;
   sender: { id: string; firstName: string; lastName: string | null; role: string };
   reactions?: { id: string; userId: string; emoji: string }[];
+  /** Still in the offline outbox / refused by the server. */
+  pending?: boolean;
+  failed?: boolean;
 }
 
 // ─── Query keys ───────────────────────────────────────────────────────────
@@ -166,7 +170,7 @@ export function useGroup(id: string) {
 }
 
 export function useGroupMessages(groupId: string) {
-  return useQuery<GroupMessage[]>({
+  const query = useQuery<GroupMessage[]>({
     queryKey: groupKeys.messages(groupId),
     queryFn: async () => {
       const res = await api.get(`/group-messages/${groupId}`);
@@ -174,6 +178,26 @@ export function useGroupMessages(groupId: string) {
     },
     enabled: !!groupId,
   });
+  // Unsent messages (offline outbox) ride along after the delivered ones.
+  const outbox = useOutboxItems('group', groupId);
+  const me = useAuthStore((s) => s.user);
+  const data = useMemo(() => {
+    if (outbox.length === 0 || !me) return query.data;
+    const pending = outbox.map<GroupMessage>((i) => ({
+      id: `pending:${i.clientId}`,
+      groupId: i.scopeId,
+      senderId: me.id,
+      content: i.content,
+      createdAt: i.createdAt,
+      replyToId: i.replyToId,
+      replyToDocumentId: i.replyToDocumentId,
+      sender: { id: me.id, firstName: me.firstName, lastName: me.lastName ?? null, role: me.role },
+      pending: i.status === 'pending',
+      failed: i.status === 'failed',
+    }) as GroupMessage);
+    return [...(query.data ?? []), ...pending];
+  }, [query.data, outbox, me]);
+  return { ...query, data } as typeof query;
 }
 
 /**

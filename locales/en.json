@@ -189,6 +189,9 @@
     "managerAssigned": "Manager {{name}} assigned to truck {{plate}}"
   },
   "chat": {
+    "outboxFailedTitle": "Could not send",
+    "outboxRetry": "Retry",
+    "outboxDiscard": "Delete",
     "typingOne": "is typing",
     "quotedNotFound": "Message not found — it may have been deleted.",
     "typingMany": "are typing",

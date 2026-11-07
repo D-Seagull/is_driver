@@ -192,6 +192,9 @@
     "managerAssigned": "Менеджер {{name}} назначен на грузовик {{plate}}"
   },
   "chat": {
+    "outboxFailedTitle": "Не удалось отправить",
+    "outboxRetry": "Повторить",
+    "outboxDiscard": "Удалить",
     "typingOne": "печатает",
     "quotedNotFound": "Сообщение не найдено — возможно, оно удалено.",
     "typingMany": "печатают",

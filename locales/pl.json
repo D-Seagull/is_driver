@@ -192,6 +192,9 @@
     "managerAssigned": "Menedżer {{name}} przydzielony do ciężarówki {{plate}}"
   },
   "chat": {
+    "outboxFailedTitle": "Nie udało się wysłać",
+    "outboxRetry": "Ponów",
+    "outboxDiscard": "Usuń",
     "typingOne": "pisze",
     "quotedNotFound": "Nie znaleziono wiadomości — mogła zostać usunięta.",
     "typingMany": "piszą",

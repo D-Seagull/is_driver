@@ -40,6 +40,8 @@ import { MessageActionsSheet, type MessageActions } from '@/components/message-a
 import { UserCardSheet } from '@/components/user-card-sheet';
 import { MessageQuote } from '@/components/message-quote';
 import { MessageReactionsCluster } from '@/components/message-reactions';
+import { OutboxMark } from '@/components/outbox-mark';
+import { enqueueMessage } from '@/lib/outbox';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { InsetFlatList } from '@/components/inset-list';
 import { PhotoGallery } from '@/components/photo-gallery';
@@ -408,8 +410,9 @@ export default function DmScreen() {
     const replyMsgId = replyingTo?.targetType === 'msg' ? replyingTo.id : null;
     const replyDocId = replyingTo?.targetType === 'doc' ? replyingTo.id : null;
     typing.notifyStopTyping();
-    getSocket().emit('send_direct_message', {
-      receiverId: peerId,
+    enqueueMessage({
+      kind: 'dm',
+      scopeId: peerId,
       content: trimmed,
       replyToId: replyMsgId,
       replyToDocumentId: replyDocId,
@@ -983,7 +986,8 @@ const MessageBubble = memo(function MessageBubble({
         <Text style={[styles.metaText, { color: c.mutedForeground }]}>
           {time}
         </Text>
-        {isOwn && !isDeleted && (
+        {isOwn && !isDeleted && <OutboxMark msg={msg} />}
+        {isOwn && !isDeleted && !msg.pending && !msg.failed && (
           <Text
             style={[
               styles.metaText,

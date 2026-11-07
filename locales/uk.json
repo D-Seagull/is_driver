@@ -192,6 +192,9 @@
     "managerAssigned": "До вантажівки {{plate}} призначений менеджер {{name}}"
   },
   "chat": {
+    "outboxFailedTitle": "Не вдалося надіслати",
+    "outboxRetry": "Повторити",
+    "outboxDiscard": "Видалити",
     "typingOne": "набирає",
     "quotedNotFound": "Повідомлення не знайдено — можливо, його видалено.",
     "typingMany": "набирають",

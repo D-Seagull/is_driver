@@ -192,6 +192,9 @@
     "managerAssigned": "Vadovas {{name}} priskirtas vilkikui {{plate}}"
   },
   "chat": {
+    "outboxFailedTitle": "Nepavyko išsiųsti",
+    "outboxRetry": "Bandyti dar kartą",
+    "outboxDiscard": "Ištrinti",
     "typingOne": "rašo",
     "quotedNotFound": "Žinutė nerasta — galbūt ji ištrinta.",
     "typingMany": "rašo",

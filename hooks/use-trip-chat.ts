@@ -14,6 +14,7 @@ import { deleteTripMessage, editTripMessage, fetchTripMessages } from '@/lib/tri
 import { getSocket } from '@/lib/socket';
 import { useAppActive } from '@/hooks/use-app-active';
 import { notifyIncomingMessage, notifyIncomingReaction } from '@/lib/message-alert';
+import { enqueueMessage, onOutboxDelivered, useOutboxItems } from '@/lib/outbox';
 import { useAuthStore } from '@/store/auth';
 
 import { fullName } from "@/lib/format";
@@ -52,6 +53,10 @@ export interface ChatMessage {
     uploader: { id: string; firstName: string; lastName: string | null };
   } | null;
   reactions?: { id: string; userId: string; emoji: string }[];
+  /** Still in the offline outbox (not acknowledged by the server yet). */
+  pending?: boolean;
+  /** The server refused it — tap the mark to retry or delete. */
+  failed?: boolean;
 }
 
 export function useTripChat(
@@ -426,31 +431,36 @@ export function useTripChat(
   }, [isFocused, tripId, token]);
 
   // ── Send ────────────────────────────────────────────────────────────────
-  // No optimistic insert — server echoes the message back via `newMessage`,
-  // and the optimistic copy would dupe (its temp id can't match the server id).
+  // Goes through the offline outbox: shown at once as pending, delivered as
+  // soon as there is a connection (and kept across app restarts).
   const sendMessage = (
     content: string,
     opts?: { replyToId?: string | null; replyToDocumentId?: string | null },
   ) => {
     const trimmed = content.trim();
     if (!tripId || !trimmed || !myId) return;
-
-    const sock = getSocket(token ?? undefined);
-
-    if (!sock.connected) {
-      console.warn('[chat] send failed — not connected');
-      return;
-    }
-
-    console.log('[chat] emit sendMessage tripId=', tripId, 'content=', trimmed.slice(0, 30));
-    sock.emit('sendMessage', {
-      tripId,
+    enqueueMessage({
+      kind: 'trip',
+      scopeId: tripId,
       content: trimmed,
       replyToId: opts?.replyToId ?? null,
       replyToDocumentId: opts?.replyToDocumentId ?? null,
     });
     notifyStopTyping();
   };
+
+  // The server's answer to an outbox send: show the saved message even when
+  // the room broadcast was missed (the socket had just reconnected).
+  useEffect(() => {
+    if (!tripId) return;
+    return onOutboxDelivered((item, res) => {
+      if (item.kind !== 'trip' || item.scopeId !== tripId) return;
+      const msg = res as unknown as ChatMessage;
+      if (!msg?.id || seenIds.current.has(msg.id)) return;
+      seenIds.current.add(msg.id);
+      setMessages((prev) => [...prev, msg]);
+    });
+  }, [tripId]);
 
   // Edit via HTTP PATCH — server enforces author + 15-min window, then
   // broadcasts the updated row; we also patch optimistically.
@@ -586,8 +596,33 @@ export function useTripChat(
     return run;
   }, [tripId, hasMore]);
 
+  // Unsent messages of this trip, after the delivered ones.
+  const outboxItems = useOutboxItems('trip', tripId);
+  const withPending = useMemo<ChatMessage[]>(() => {
+    if (outboxItems.length === 0 || !user) return visible;
+    const pending = outboxItems.map<ChatMessage>((i) => ({
+      id: `pending:${i.clientId}`,
+      tripId: i.scopeId,
+      senderId: user.id,
+      content: i.content,
+      createdAt: i.createdAt,
+      isRead: false,
+      replyToId: i.replyToId,
+      replyToDocumentId: i.replyToDocumentId,
+      sender: {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName ?? null,
+        role: user.role,
+      },
+      pending: i.status === 'pending',
+      failed: i.status === 'failed',
+    }));
+    return [...visible, ...pending];
+  }, [visible, outboxItems, user]);
+
   return {
-    messages: visible,
+    messages: withPending,
     isLoading,
     error,
     connected,

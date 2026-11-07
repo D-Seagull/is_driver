@@ -32,6 +32,8 @@ import { NotificationBell } from '@/components/notification-bell';
 import { MessageActionsSheet, type MessageActions } from '@/components/message-actions-sheet';
 import { UserCardSheet } from '@/components/user-card-sheet';
 import { MessageQuote } from '@/components/message-quote';
+import { OutboxMark } from '@/components/outbox-mark';
+import { enqueueMessage } from '@/lib/outbox';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import { InsetFlatList } from '@/components/inset-list';
 import { PhotoGallery } from '@/components/photo-gallery';
@@ -383,8 +385,9 @@ export default function GroupChatScreen() {
     const replyMsgId = replyingTo?.targetType === 'msg' ? replyingTo.id : null;
     const replyDocId = replyingTo?.targetType === 'doc' ? replyingTo.id : null;
     typing.notifyStopTyping();
-    getSocket().emit('send_group_message', {
-      groupId,
+    enqueueMessage({
+      kind: 'group',
+      scopeId: groupId,
       content: trimmed,
       replyToId: replyMsgId,
       replyToDocumentId: replyDocId,
@@ -1098,6 +1101,7 @@ const GroupBubble = memo(function GroupBubble({
           </Text>
         )}
         <Text style={[styles.metaText, { color: c.mutedForeground }]}>{time}</Text>
+        {isOwn && !isDeleted && <OutboxMark msg={msg} />}
       </View>
     </View>
   );
