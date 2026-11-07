@@ -290,7 +290,9 @@
       "all": "Wszystko",
       "photos": "Zdjęcia",
       "documents": "Dokumenty"
-    }
+    },
+    "fileTooLarge": "Plik jest za duży: do 20 MB na dokument, 10 MB na zdjęcie profilowe, do 10 plików naraz.",
+    "fileTypeNotSupported": "Ten typ pliku nie jest obsługiwany. Dozwolone: zdjęcia, PDF, Word, Excel, TXT, CSV."
   },
   "truck": {
     "status": {

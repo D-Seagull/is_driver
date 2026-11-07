@@ -286,7 +286,9 @@
       "all": "All",
       "photos": "Photos",
       "documents": "Documents"
-    }
+    },
+    "fileTooLarge": "File too large: up to 20 MB per document, 10 MB for a profile photo, up to 10 files at once.",
+    "fileTypeNotSupported": "This file type is not supported. Allowed: photos, PDF, Word, Excel, TXT, CSV."
   },
   "truck": {
     "status": {

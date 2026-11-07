@@ -290,7 +290,9 @@
       "all": "Visi",
       "photos": "Nuotraukos",
       "documents": "Dokumentai"
-    }
+    },
+    "fileTooLarge": "Failas per didelis: iki 20 MB dokumentui, 10 MB profilio nuotraukai, iki 10 failų vienu metu.",
+    "fileTypeNotSupported": "Šis failo tipas nepalaikomas. Leidžiama: nuotraukos, PDF, Word, Excel, TXT, CSV."
   },
   "truck": {
     "status": {

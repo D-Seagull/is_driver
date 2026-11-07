@@ -41,6 +41,7 @@ import { ReliableNotifications } from '@/components/reliable-notifications';
 import { PRIVACY_URL, TERMS_URL } from '@/lib/config';
 import { useAlertPrefs } from '@/store/alert-prefs';
 import { useAuthStore, useUser } from '@/store/auth';
+import { uploadErrorText } from '@/lib/upload-error';
 
 // The five languages the app ships UI translations for.
 const LANGUAGE_LABELS: Partial<Record<DriverLanguage, string>> = {
@@ -162,7 +163,10 @@ export default function DriverSettingsScreen() {
       });
       setUser(me);
     } catch (err) {
-      Alert.alert(t('common.error'), t('settings.errors.uploadAvatar'));
+      Alert.alert(
+        t('common.error'),
+        uploadErrorText(err, t, t('settings.errors.uploadAvatar')),
+      );
       console.warn('[settings] uploadAvatar failed', err);
     } finally {
       setAvatarBusy(null);
