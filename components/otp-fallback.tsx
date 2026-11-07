@@ -15,7 +15,8 @@ const ICONS: Record<OtpChannel, ComponentProps<typeof Ionicons>["name"]> = {
   sms: "chatbox-outline",
   whatsapp: "logo-whatsapp",
   telegram: "paper-plane-outline",
-  manager: "person-outline",
+  manager: "mail-outline",
+  manager_code: "key-outline",
 };
 
 /**
@@ -91,9 +92,10 @@ export function OtpFallback({
       ? t("auth.otp.fallback.smsFirst")
       : t(`auth.otp.fallback.${ch}`);
 
-  // Direct channels first, then the manager — the last resort.
-  const direct = offer.channels.filter((ch) => ch !== "manager");
-  const withManager = offer.channels.includes("manager");
+  // Direct channels first, then the two manager methods — the last resort.
+  const viaManager = (ch: OtpChannel) => ch === "manager" || ch === "manager_code";
+  const direct = offer.channels.filter((ch) => !viaManager(ch));
+  const managerOptions = offer.channels.filter(viaManager);
 
   const option = (ch: OtpChannel) => (
     <Pressable
@@ -125,9 +127,9 @@ export function OtpFallback({
         {t(smsSent ? "auth.otp.fallback.title" : "auth.otp.fallback.pickTitle")}
       </Text>
       {direct.map(option)}
-      {withManager && (
+      {managerOptions.length > 0 && (
         <>
-          {option("manager")}
+          {managerOptions.map(option)}
           <Text style={[styles.note, { color: c.mutedForeground }]}>
             {t("auth.otp.fallback.managerNote")}
           </Text>

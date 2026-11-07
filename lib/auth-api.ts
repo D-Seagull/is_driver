@@ -146,9 +146,15 @@ export async function requestOtp(phone: string): Promise<void> {
 }
 
 /** How a sign-in code can reach the driver (see backend driver-login). */
-export type OtpChannel = 'sms' | 'whatsapp' | 'telegram' | 'manager';
+export type OtpChannel =
+  | 'sms'
+  | 'whatsapp'
+  | 'telegram'
+  // Through the truck's manager — two separate methods:
+  | 'manager' // the code is emailed to the manager
+  | 'manager_code'; // the manager generates a one-time code on the driver card
 
-const ORDER: OtpChannel[] = ['sms', 'whatsapp', 'telegram', 'manager'];
+const ORDER: OtpChannel[] = ['sms', 'whatsapp', 'telegram', 'manager', 'manager_code'];
 
 export interface OtpChannels {
   /** Switched-on methods, `manager` last. */

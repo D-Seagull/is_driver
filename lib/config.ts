@@ -58,6 +58,7 @@ export const LOGIN_METHODS = {
   whatsapp: readBool("LOGIN_WHATSAPP_ENABLED", false),
   telegram: readBool("LOGIN_TELEGRAM_ENABLED", false),
   manager: readBool("LOGIN_MANAGER_EMAIL_ENABLED", true),
+  manager_code: readBool("MANAGER_LOGIN_CODE_ENABLED", true),
 } as const;
 
 // Boot-time sanity log — confirms which API the app is talking to. Remove

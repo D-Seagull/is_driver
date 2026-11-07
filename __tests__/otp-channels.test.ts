@@ -2,10 +2,10 @@ import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 
 const mockPost = jest.fn<(url: string, body: unknown) => Promise<unknown>>();
 
-// This "build": SMS + manager on, WhatsApp off, Telegram on.
+// This "build": SMS + both manager methods on, WhatsApp off, Telegram on.
 jest.mock('@/lib/config', () => ({
   MOCK_AUTH: false,
-  LOGIN_METHODS: { sms: true, whatsapp: false, telegram: true, manager: true },
+  LOGIN_METHODS: { sms: true, whatsapp: false, telegram: true, manager: true, manager_code: true },
 }));
 jest.mock('@/lib/api', () => ({ api: { post: (u: string, b: unknown) => mockPost(u, b) } }));
 
@@ -17,7 +17,7 @@ describe('driver sign-in methods', () => {
   });
 
   it('app flags give the local list, manager last', () => {
-    expect(appLoginMethods()).toEqual(['sms', 'telegram', 'manager']);
+    expect(appLoginMethods()).toEqual(['sms', 'telegram', 'manager', 'manager_code']);
   });
 
   it('offers only what is on both here and on the server', async () => {
@@ -40,7 +40,14 @@ describe('driver sign-in methods', () => {
   it("falls back to the app's own list when the request fails", async () => {
     mockPost.mockRejectedValue(new Error('offline'));
     await expect(fetchOtpChannels('+380971234567')).resolves.toEqual({
-      channels: ['sms', 'telegram', 'manager'],
+      channels: ['sms', 'telegram', 'manager', 'manager_code'],
+    });
+  });
+
+  it('email and generate-code are separate: each can be off on the server', async () => {
+    mockPost.mockResolvedValue({ data: { channels: ['sms', 'manager_code'] } });
+    await expect(fetchOtpChannels('+380971234567')).resolves.toEqual({
+      channels: ['sms', 'manager_code'],
     });
   });
 

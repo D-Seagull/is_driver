@@ -114,18 +114,20 @@
         "sms": "Send the SMS again",
         "whatsapp": "Send via WhatsApp",
         "telegram": "Send via Telegram",
-        "manager": "Ask my manager for a code",
-        "managerNote": "Your truck's manager gets the request — call them and they'll give you the code. IS Fleet contact will tell you in the chat about a sign-in with a manager code.",
+        "manager": "Email the code to my manager",
+        "managerNote": "Your truck's manager gets the code — call them and they'll give it to you. IS Fleet contact will tell you in the chat about a sign-in with a manager code.",
         "sent": {
           "sms": "A new SMS is on its way.",
           "whatsapp": "The code was sent via WhatsApp.",
           "telegram": "The code was sent to Telegram — look for the \"Verification Codes\" chat.",
-          "manager": "The request was sent to your manager. Call them — they'll read the code to you (the request is valid for 15 min)."
+          "manager": "The code was emailed to your manager. Call them — they'll read it to you (valid for 15 min).",
+          "manager_code": "The request was sent to your manager — they'll generate a code. Call them so they read it to you (the request is valid for 15 min)."
         },
         "failed": "Couldn't send the code. Please try again.",
         "pickTitle": "How to get the code?",
         "smsFirst": "Send an SMS",
-        "countdown": "No code? Other ways in {{seconds}} s"
+        "countdown": "No code? Other ways in {{seconds}} s",
+        "manager_code": "Ask my manager to generate a code"
       },
       "subtitlePick": "Choose how to get the code for {{phone}}."
     },

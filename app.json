@@ -125,6 +125,7 @@
       "LOGIN_WHATSAPP_ENABLED": "false",
       "LOGIN_TELEGRAM_ENABLED": "false",
       "LOGIN_MANAGER_EMAIL_ENABLED": "true",
+      "MANAGER_LOGIN_CODE_ENABLED": "true",
       "eas": {
         "projectId": "8bb837ef-9e50-4f36-b896-35fcd5e3920f"
       }
