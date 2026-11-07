@@ -117,13 +117,13 @@
         "sms": "Wyślij SMS ponownie",
         "whatsapp": "Wyślij przez WhatsApp",
         "telegram": "Wyślij przez Telegram",
-        "manager": "Wyślij kod e-mailem do menedżera",
-        "managerNote": "Kod trafi na e-mail menedżera Twojej ciężarówki — zadzwoń do niego. O logowaniu kodem menedżera napisze Ci IS Fleet contact w czacie.",
+        "manager": "Poproś menedżera o kod",
+        "managerNote": "Prośbę otrzyma menedżer Twojej ciężarówki — zadzwoń do niego, przekaże Ci kod. O logowaniu kodem menedżera napisze Ci IS Fleet contact w czacie.",
         "sent": {
           "sms": "Nowy SMS został wysłany.",
           "whatsapp": "Kod wysłano przez WhatsApp.",
           "telegram": "Kod wysłano do Telegrama — szukaj czatu „Verification Codes”.",
-          "manager": "Kod wysłano Twojemu menedżerowi. Zadzwoń do niego — poda Ci kod (ważny 15 min)."
+          "manager": "Prośbę wysłano do Twojego menedżera. Zadzwoń do niego — poda Ci kod (prośba jest ważna 15 min)."
         },
         "failed": "Nie udało się wysłać kodu. Spróbuj ponownie.",
         "pickTitle": "Jak otrzymać kod?",
