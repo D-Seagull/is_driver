@@ -117,18 +117,20 @@
         "sms": "Siųsti SMS dar kartą",
         "whatsapp": "Siųsti per WhatsApp",
         "telegram": "Siųsti per Telegram",
-        "manager": "Paprašyti kodo iš vadybininko",
-        "managerNote": "Prašymą gaus jūsų vilkiko vadybininkas — paskambinkite jam, jis perduos jums kodą. Apie prisijungimą vadybininko kodu jums parašys IS Fleet contact pokalbyje.",
+        "manager": "Siųsti kodą vadybininkui el. paštu",
+        "managerNote": "Kodą gaus jūsų vilkiko vadybininkas — paskambinkite jam, jis perduos jums kodą. Apie prisijungimą vadybininko kodu jums parašys IS Fleet contact pokalbyje.",
         "sent": {
           "sms": "Naujas SMS išsiųstas.",
           "whatsapp": "Kodas išsiųstas per WhatsApp.",
           "telegram": "Kodas išsiųstas į Telegram — ieškokite pokalbio „Verification Codes“.",
-          "manager": "Prašymas išsiųstas jūsų vadybininkui. Paskambinkite jam — jis padiktuos kodą (prašymas galioja 15 min)."
+          "manager": "Kodas išsiųstas jūsų vadybininkui el. paštu. Paskambinkite jam — jis padiktuos kodą (galioja 15 min).",
+          "manager_code": "Prašymas išsiųstas jūsų vadybininkui — jis sugeneruos kodą. Paskambinkite jam, kad padiktuotų kodą (prašymas galioja 15 min)."
         },
         "failed": "Nepavyko išsiųsti kodo. Bandykite dar kartą.",
         "pickTitle": "Kaip gauti kodą?",
         "smsFirst": "Siųsti SMS",
-        "countdown": "Negavote kodo? Kiti būdai po {{seconds}} s"
+        "countdown": "Negavote kodo? Kiti būdai po {{seconds}} s",
+        "manager_code": "Paprašyti vadybininko sugeneruoti kodą"
       },
       "subtitlePick": "Pasirinkite, kaip gauti kodą numeriui {{phone}}."
     },
