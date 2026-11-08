@@ -191,7 +191,20 @@
     "memberRemoved": "Pašalinta: {{name}}",
     "managerAssigned": "Vadovas {{name}} priskirtas vilkikui {{plate}}"
   },
+  "voice": {
+    "record": "Įrašyti balso žinutę",
+    "cancel": "Atšaukti įrašymą",
+    "send": "Siųsti balso žinutę",
+    "micDenied": "Mikrofono prieiga užblokuota. Leiskite ją telefono nustatymuose.",
+    "recordFailed": "Nepavyko pradėti įrašymo",
+    "message": "Balso žinutė",
+    "play": "Groti",
+    "pause": "Pauzė"
+  },
   "chat": {
+    "outboxFailedTitle": "Nepavyko išsiųsti",
+    "outboxRetry": "Bandyti dar kartą",
+    "outboxDiscard": "Ištrinti",
     "typingOne": "rašo",
     "quotedNotFound": "Žinutė nerasta — galbūt ji ištrinta.",
     "typingMany": "rašo",

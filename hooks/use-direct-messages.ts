@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { api } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
+import { useOutboxItems } from '@/lib/outbox';
 import { useAuthStore } from '@/store/auth';
 
 // History page size — matches the backend default `take` for direct messages.
@@ -20,7 +21,7 @@ export interface MessageReplyPreview {
 export interface DocReplyPreviewLite {
   id: string;
   fileName: string;
-  fileType: 'PHOTO' | 'DOCUMENT';
+  fileType: 'PHOTO' | 'DOCUMENT' | 'AUDIO';
   deletedAt: string | null;
   uploader: { id: string; firstName: string; lastName: string | null };
 }
@@ -42,6 +43,9 @@ export interface DirectMessage {
   replyToDocument?: DocReplyPreviewLite | null;
   sender: { id: string; firstName: string; lastName: string | null; role: string };
   reactions?: { id: string; userId: string; emoji: string }[];
+  /** Still in the offline outbox / refused by the server. */
+  pending?: boolean;
+  failed?: boolean;
 }
 
 export interface Conversation {
@@ -111,7 +115,7 @@ export function useDmUnreadSync() {
 }
 
 export function useDirectMessages(otherUserId: string) {
-  return useQuery<DirectMessage[]>({
+  const query = useQuery<DirectMessage[]>({
     queryKey: dmKeys.messages(otherUserId),
     queryFn: async () => {
       const res = await api.get(`/direct-messages/${otherUserId}`);
@@ -119,6 +123,27 @@ export function useDirectMessages(otherUserId: string) {
     },
     enabled: !!otherUserId,
   });
+  // Unsent messages (offline outbox) ride along after the delivered ones.
+  const outbox = useOutboxItems('dm', otherUserId);
+  const me = useAuthStore((s) => s.user);
+  const data = useMemo(() => {
+    if (outbox.length === 0 || !me) return query.data;
+    const pending = outbox.map<DirectMessage>((i) => ({
+      id: `pending:${i.clientId}`,
+      senderId: me.id,
+      receiverId: i.scopeId,
+      content: i.content,
+      isRead: false,
+      createdAt: i.createdAt,
+      replyToId: i.replyToId,
+      replyToDocumentId: i.replyToDocumentId,
+      sender: { id: me.id, firstName: me.firstName, lastName: me.lastName ?? null, role: me.role },
+      pending: i.status === 'pending',
+      failed: i.status === 'failed',
+    }));
+    return [...(query.data ?? []), ...pending];
+  }, [query.data, outbox, me]);
+  return { ...query, data } as typeof query;
 }
 
 /**

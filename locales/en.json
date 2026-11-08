@@ -188,7 +188,20 @@
     "memberRemoved": "Removed {{name}}",
     "managerAssigned": "Manager {{name}} assigned to truck {{plate}}"
   },
+  "voice": {
+    "record": "Record a voice message",
+    "cancel": "Cancel recording",
+    "send": "Send voice message",
+    "micDenied": "Microphone access is blocked. Allow it in your phone settings.",
+    "recordFailed": "Couldn't start recording",
+    "message": "Voice message",
+    "play": "Play",
+    "pause": "Pause"
+  },
   "chat": {
+    "outboxFailedTitle": "Could not send",
+    "outboxRetry": "Retry",
+    "outboxDiscard": "Delete",
     "typingOne": "is typing",
     "quotedNotFound": "Message not found — it may have been deleted.",
     "typingMany": "are typing",

@@ -31,6 +31,7 @@ import { Colors, Radius, Spacing, ThemeColors } from "@/constants/theme";
 import { bottomBarPadding } from "@/lib/insets";
 import { useAppStatePresence } from "@/hooks/use-app-state-presence";
 import { useChatAlerts } from "@/hooks/use-chat-alerts";
+import { startOutboxRunner } from "@/lib/outbox";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useConversations, useDmUnreadSync } from "@/hooks/use-direct-messages";
 import {
@@ -208,6 +209,8 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
   useTruckChangedSync();
   useTripsSync();
   useChatAlerts();
+  // Offline outbox: re-send queued chat messages when the connection is back.
+  React.useEffect(() => startOutboxRunner(), []);
 
   // The socket syncs keep counts live, but also hard-refresh both unread
   // sources every time the drawer opens — so the bell always reflects the

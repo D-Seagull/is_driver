@@ -10,7 +10,7 @@ import type {
   MessageReplyPreview,
 } from './use-direct-messages';
 
-export type FileDocType = 'PHOTO' | 'DOCUMENT';
+export type FileDocType = 'PHOTO' | 'DOCUMENT' | 'AUDIO';
 
 // ─── Conversation document (DM attachment) ────────────────────────────────
 
@@ -31,6 +31,10 @@ export interface ConversationDocumentFull {
   isRead: boolean;
   createdAt: string;
   deletedAt?: string | null;
+  /** Voice messages (fileType AUDIO): length in ms. */
+  durationMs?: number | null;
+  /** Voice messages: loudness bars ("12,40,…"), absent on older ones. */
+  waveform?: string | null;
   caption?: string | null;
   /** Reply pointing at a DirectMessage. */
   replyToMessageId?: string | null;
@@ -75,11 +79,15 @@ export function useUploadConversationDocs(otherUserId: string) {
       replyToMessageId,
       replyToDocumentId,
       caption,
+      durationMs,
+      waveform,
     }: {
       files: { uri: string; name: string; type: string }[];
       replyToMessageId?: string | null;
       replyToDocumentId?: string | null;
       caption?: string | null;
+      durationMs?: number | null;
+      waveform?: string | null;
     }) => {
       const form = new FormData();
       form.append('otherUserId', otherUserId);
@@ -87,6 +95,8 @@ export function useUploadConversationDocs(otherUserId: string) {
       if (replyToDocumentId)
         form.append('replyToDocumentId', replyToDocumentId);
       if (caption) form.append('caption', caption);
+      if (durationMs) form.append('durationMs', String(durationMs));
+      if (waveform) form.append('waveform', waveform);
       files.forEach((f) => {
         // RN FormData wants {uri, name, type} for file fields.
         form.append('files', {

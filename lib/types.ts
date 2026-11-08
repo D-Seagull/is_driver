@@ -48,7 +48,7 @@ export interface TripDocument {
   tripId: string;
   fileName: string;
   fileUrl: string;
-  fileType: 'PHOTO' | 'DOCUMENT';
+  fileType: 'PHOTO' | 'DOCUMENT' | 'AUDIO';
   uploadedBy: string;
   createdAt: string;
 }

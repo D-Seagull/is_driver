@@ -1,4 +1,5 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { OutboxMark } from "@/components/outbox-mark";
 import { openRemoteFile, readableFileName } from "@/lib/open-file";
 import { compressPhotos, PICKER_QUALITY } from "@/lib/compress-photo";
 import { albumSizes, groupAlbums } from "@/lib/albums";
@@ -44,6 +45,13 @@ import { TypingDots } from "@/components/typing-indicator";
 import EmojiPicker from "rn-emoji-keyboard";
 
 import { MessageReactionsCluster } from "@/components/message-reactions";
+import {
+  useVoiceRecorder,
+  VoiceMicButton,
+  VoiceRecordingBar,
+  type VoiceFile,
+} from "@/components/voice-recorder";
+import { VoiceMessagePlayer } from "@/components/voice-message-player";
 import { ChatBackground } from "@/components/chat-background";
 import { MessageActionsSheet, type MessageActions } from "@/components/message-actions-sheet";
 import { UserCardSheet } from "@/components/user-card-sheet";
@@ -338,7 +346,8 @@ function TripWithChat({
   // A quoted file that belongs to an album reads "Album · N files".
   const albumSize = useMemo(() => albumSizes(tripDocs), [tripDocs]);
   const docLabel = useCallback(
-    (d: { fileName: string; batchId?: string | null }) => {
+    (d: { fileName: string; batchId?: string | null; fileType?: string }) => {
+      if (d.fileType === "AUDIO") return `🎤 ${t("voice.message")}`;
       const count = d.batchId ? albumSize.get(d.batchId) : undefined;
       return count ? t("common.album", { count }) : d.fileName;
     },
@@ -482,6 +491,29 @@ function TripWithChat({
     }
   };
 
+  // Voice message: recorded in the composer, sent at once as its own bubble.
+  const sendVoice = async (
+    file: VoiceFile,
+    durationMs: number,
+    waveform: string | null,
+  ) => {
+    try {
+      await upload.mutateAsync({
+        tripId: trip.id,
+        files: [{ uri: file.uri, name: file.name, mimeType: file.mimeType }],
+        durationMs,
+        waveform,
+      });
+      nearBottomRef.current = true;
+      listRef.current?.scrollToOffset({ offset: 0, animated: true });
+    } catch (e) {
+      Alert.alert(t("documents.uploadFailed"), uploadErrorText(e, t));
+    }
+  };
+  const voice = useVoiceRecorder(
+    (file, durationMs, waveform) => void sendVoice(file, durationMs, waveform),
+  );
+
   const showUploadSheet = () => {
     Alert.alert(t("trip.attachSheet.title"), t("documents.uploadSheet.subtitle"), [
       { text: t("documents.uploadSheet.camera"), onPress: () => pickAndUpload("camera") },
@@ -593,7 +625,11 @@ function TripWithChat({
         trip={trip}
         onRefresh={onRefresh}
         refreshing={refreshing}
-        docsCount={tripDocs.filter((d) => !d.deletedAt && d.signedUrl).length}
+        docsCount={
+          tripDocs.filter(
+            (d) => !d.deletedAt && d.signedUrl && d.fileType !== "AUDIO",
+          ).length
+        }
         onOpenDocs={() => setDocsOpen(true)}
       />
 
@@ -883,6 +919,14 @@ function TripWithChat({
               },
             ]}
           >
+          {voice.active ? (
+            <VoiceRecordingBar
+              elapsedMs={voice.elapsedMs}
+              onCancel={voice.cancel}
+              onSend={voice.send}
+            />
+          ) : (
+          <>
           <Pressable
             onPress={showUploadSheet}
             disabled={upload.isPending}
@@ -945,6 +989,13 @@ function TripWithChat({
             returnKeyType="default"
             blurOnSubmit={false}
           />
+          {/* Empty composer → the mic takes the Send button's place. */}
+          {!editing && !text.trim() ? (
+            <VoiceMicButton
+              onPress={() => void voice.start()}
+              disabled={upload.isPending}
+            />
+          ) : (
           <Pressable
             onPress={handleSend}
             disabled={!text.trim() || !connected}
@@ -958,6 +1009,9 @@ function TripWithChat({
           >
             <Ionicons name="send" size={16} color="#fff" />
           </Pressable>
+          )}
+          </>
+          )}
           </View>
         </>
       )}
@@ -1043,7 +1097,7 @@ function TripWithChat({
       <TripDocsModal
         open={docsOpen}
         onClose={() => setDocsOpen(false)}
-        docs={tripDocs}
+        docs={tripDocs.filter((d) => d.fileType !== "AUDIO")}
         onUpload={showUploadSheet}
         uploading={upload.isPending}
         onOpenDoc={handleOpenDoc}
@@ -1108,7 +1162,9 @@ const MessageBubble = memo(function MessageBubble({
   onLongPress?: (m: ChatMessage) => void;
   onReplyJump: (targetId: string) => void;
   onOpenUser?: (userId: string) => void;
-  docLabel: (d: { fileName: string; batchId?: string | null }) => string;
+  docLabel: (
+    d: { fileName: string; batchId?: string | null; fileType?: string },
+  ) => string;
 }) {
   const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? "light"];
@@ -1252,7 +1308,8 @@ const MessageBubble = memo(function MessageBubble({
           <Text style={[styles.bubbleTime, { color: c.mutedForeground }]}>
             {time}
           </Text>
-          {isMe && !isDeleted && (
+          {isMe && !isDeleted && <OutboxMark msg={message} />}
+          {isMe && !isDeleted && !message.pending && !message.failed && (
             <Text
               style={[
                 styles.bubbleTick,
@@ -1480,6 +1537,7 @@ const DocBubble = memo(function DocBubble({
   const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? "light"];
   const isPhoto = doc.fileType === "PHOTO";
+  const isAudio = doc.fileType === "AUDIO";
   const time = formatTime(doc.createdAt, { hour: "2-digit", minute: "2-digit" });
   const isManager = doc.uploader?.role !== "DRIVER";
   const roleIcon = roleBadgeIcon(doc.uploader?.role);
@@ -1543,7 +1601,7 @@ const DocBubble = memo(function DocBubble({
         <View style={[styles.bubbleInlineRow, styles.bubbleInlineRowDoc]}>
         {isMe && sidekick}
         <Pressable
-          onPress={() => onOpen(doc)}
+          onPress={isAudio ? undefined : () => onOpen(doc)}
           onLongPress={onLongPress ? () => onLongPress(doc) : undefined}
           delayLongPress={350}
           style={
@@ -1552,7 +1610,28 @@ const DocBubble = memo(function DocBubble({
               : undefined
           }
         >
-          {isPhoto ? (
+          {isAudio ? (
+            <View
+              style={[
+                styles.docBubble,
+                { paddingHorizontal: 0, paddingVertical: 0 },
+                isMe
+                  ? { backgroundColor: c.primary }
+                  : {
+                      backgroundColor: c.card,
+                      borderWidth: StyleSheet.hairlineWidth,
+                      borderColor: c.border,
+                    },
+              ]}
+            >
+              <VoiceMessagePlayer
+                uri={doc.signedUrl}
+                durationMs={doc.durationMs}
+            waveform={doc.waveform}
+                isOwn={isMe}
+              />
+            </View>
+          ) : isPhoto ? (
             <Image source={{ uri: doc.thumbUrl || doc.signedUrl }} style={styles.docThumb} />
           ) : (
             <View
