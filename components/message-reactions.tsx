@@ -16,7 +16,13 @@ import type {
   ReactionTarget,
 } from '@/hooks/use-message-reactions';
 
-const PICKER_EMOJIS = ['👍', '😮', '😢'] as const;
+/** Quick row of the picker. Mirrors BASE_EMOJI in the backend. */
+const PICKER_EMOJIS = ['👍', '😂', '😮', '😢', '😡'] as const;
+/** Behind the picker's "+". Mirrors EXTRA_EMOJI in the backend. */
+const MORE_EMOJIS = [
+  '❤️', '🙏', '🔥', '🎉', '👎', '💩', '🤔', '👀', '😍', '🤝', '😅', '🫡',
+  '👏', '💪', '😭', '🤣', '😎', '🥳', '😴', '✅', '❌', '🚛',
+] as const;
 
 // ─── Reactions cluster (sidekick next to the bubble) ─────────────────────
 
@@ -25,6 +31,8 @@ interface ClusterProps {
   targetId: string;
   reactions: MessageReactionRow[];
   currentUserId?: string;
+  /** Groups: others' reactions live in the Bar under the bubble instead. */
+  hideOthers?: boolean;
 }
 
 /**
@@ -38,6 +46,7 @@ export function MessageReactionsCluster({
   targetId,
   reactions,
   currentUserId,
+  hideOthers = false,
 }: ClusterProps) {
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
@@ -46,12 +55,13 @@ export function MessageReactionsCluster({
   // Group others' reactions (everyone except me) by emoji.
   const others = useMemo(() => {
     const map = new Map<string, number>();
+    if (hideOthers) return [];
     for (const r of reactions) {
       if (r.userId === currentUserId) continue;
       map.set(r.emoji, (map.get(r.emoji) ?? 0) + 1);
     }
     return [...map.entries()].map(([emoji, count]) => ({ emoji, count }));
-  }, [reactions, currentUserId]);
+  }, [reactions, currentUserId, hideOthers]);
 
   return (
     <View style={styles.clusterRow}>
@@ -200,6 +210,8 @@ export function MessageReactionsTrigger({
   const scheme = useColorScheme() ?? 'light';
   const c = Colors[scheme];
   const [open, setOpen] = useState(false);
+  // The "+" grid with the extra emojis; collapsed again on every open.
+  const [more, setMore] = useState(false);
   const toggle = useToggleReaction();
 
   const myReaction = currentUserId
@@ -243,7 +255,10 @@ export function MessageReactionsTrigger({
     <>
       <Pressable
         onPress={tapToggle}
-        onLongPress={() => setOpen(true)}
+        onLongPress={() => {
+          setMore(false);
+          setOpen(true);
+        }}
         delayLongPress={300}
         hitSlop={10}
         style={({ pressed }) => [
@@ -286,7 +301,7 @@ export function MessageReactionsTrigger({
               { backgroundColor: c.card, borderColor: c.border },
             ]}
           >
-            {PICKER_EMOJIS.map((e) => (
+            {(more ? [...PICKER_EMOJIS, ...MORE_EMOJIS] : PICKER_EMOJIS).map((e) => (
               <Pressable
                 key={e}
                 onPress={() => pick(e)}
@@ -302,6 +317,19 @@ export function MessageReactionsTrigger({
                 <Text style={styles.pickerEmoji}>{e}</Text>
               </Pressable>
             ))}
+            {!more && (
+              <Pressable
+                onPress={() => setMore(true)}
+                style={({ pressed }) => [
+                  styles.pickerItem,
+                  { opacity: pressed ? 0.6 : 1 },
+                ]}
+              >
+                <Text style={[styles.pickerEmoji, { color: c.mutedForeground }]}>
+                  +
+                </Text>
+              </Pressable>
+            )}
           </Pressable>
         </Pressable>
       </Modal>
@@ -362,6 +390,9 @@ const styles = StyleSheet.create({
   },
   pickerCard: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    maxWidth: 340,
     padding: Spacing.sm,
     borderRadius: Radius.lg,
     borderWidth: StyleSheet.hairlineWidth,

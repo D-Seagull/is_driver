@@ -190,8 +190,8 @@ function TripRow({
     month: 'short',
     year: 'numeric',
   });
-  const unreadBg = scheme === 'dark' ? 'rgba(59,130,246,0.12)' : '#eff6ff';
-  const unreadBorder = scheme === 'dark' ? 'rgba(59,130,246,0.35)' : '#93c5fd';
+  const unreadBg = scheme === 'dark' ? 'rgba(59,130,246,0.28)' : '#dbeafe';
+  const unreadBorder = scheme === 'dark' ? 'rgba(59,130,246,0.7)' : '#3b82f6';
   const activeBg = scheme === 'dark' ? 'rgba(16,185,129,0.14)' : 'rgba(16,185,129,0.10)';
 
   const bg = isActive ? activeBg : hasUnread ? unreadBg : c.card;
