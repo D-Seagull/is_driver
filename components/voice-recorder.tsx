@@ -1,13 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import {
+  AudioModule,
   AudioQuality,
   RecordingPresets,
   requestRecordingPermissionsAsync,
   setAudioModeAsync,
-  useAudioRecorder,
-  useAudioRecorderState,
+  type AudioRecorder,
   type RecordingOptions,
 } from 'expo-audio';
+import { createRecordingOptions } from 'expo-audio/build/utils/options';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -61,8 +62,10 @@ export function useVoiceRecorder(
   onDone: (file: VoiceFile, durationMs: number, waveform: string | null) => void,
 ) {
   const { t } = useTranslation();
-  const recorder = useAudioRecorder(VOICE_OPTIONS);
-  const state = useAudioRecorderState(recorder, 200);
+  // The native recorder is created on the first mic tap, never on opening a
+  // chat — an idle chat must not touch the microphone module at all.
+  const recorderRef = useRef<AudioRecorder | null>(null);
+  const [elapsedMs, setElapsedMs] = useState(0);
   const [active, setActive] = useState(false);
   const activeRef = useRef(false);
   const startedAt = useRef(0);
@@ -74,6 +77,16 @@ export function useVoiceRecorder(
   useEffect(() => {
     onDoneRef.current = onDone;
   });
+
+  const releaseRecorder = useCallback(() => {
+    const r = recorderRef.current;
+    recorderRef.current = null;
+    try {
+      r?.release();
+    } catch {
+      /* already gone */
+    }
+  }, []);
 
   const start = useCallback(async () => {
     if (starting.current || activeRef.current) return;
@@ -87,24 +100,32 @@ export function useVoiceRecorder(
       // iOS: recording needs the session switched on; played back normally
       // afterwards (see finish).
       await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+      // eslint-disable-next-line import/namespace -- AudioModule is a native object, not an ES namespace
+      const recorder = new AudioModule.AudioRecorder(createRecordingOptions(VOICE_OPTIONS));
+      recorderRef.current = recorder;
       await recorder.prepareToRecordAsync();
       recorder.record();
       startedAt.current = Date.now();
       levels.current = [];
+      setElapsedMs(0);
       meter.current = setInterval(() => {
-        const db = recorder.getStatus().metering;
-        if (db !== undefined) levels.current.push(dbToLevel(db));
+        const st = recorder.getStatus();
+        if (st.metering !== undefined) levels.current.push(dbToLevel(st.metering));
+        setElapsedMs(Date.now() - startedAt.current);
       }, 100);
       activeRef.current = true;
       setActive(true);
     } catch (e) {
       console.warn('[voice] start failed', e);
+      if (meter.current) clearInterval(meter.current);
+      meter.current = null;
+      releaseRecorder();
       await setAudioModeAsync({ allowsRecording: false }).catch(() => undefined);
       Alert.alert('', t('voice.recordFailed'));
     } finally {
       starting.current = false;
     }
-  }, [recorder, t]);
+  }, [releaseRecorder, t]);
 
   const finish = useCallback(
     async (send: boolean) => {
@@ -114,13 +135,15 @@ export function useVoiceRecorder(
       if (meter.current) clearInterval(meter.current);
       meter.current = null;
       const durationMs = Date.now() - startedAt.current;
+      const recorder = recorderRef.current;
       try {
-        await recorder.stop();
+        await recorder?.stop();
       } catch (e) {
         console.warn('[voice] stop failed', e);
       }
       await setAudioModeAsync({ allowsRecording: false }).catch(() => undefined);
-      const uri = recorder.uri;
+      const uri = recorder?.uri;
+      releaseRecorder();
       if (!send || !uri || durationMs < VOICE_MIN_MS) return;
       onDoneRef.current(
         { uri, name: `voice-${Date.now()}.m4a`, mimeType: 'audio/mp4' },
@@ -128,13 +151,13 @@ export function useVoiceRecorder(
         waveformToString(buildWaveform(levels.current)),
       );
     },
-    [recorder],
+    [releaseRecorder],
   );
 
   // The one-minute cap sends what has been recorded.
   useEffect(() => {
-    if (active && state.durationMillis >= VOICE_MAX_MS) void finish(true);
-  }, [active, state.durationMillis, finish]);
+    if (active && elapsedMs >= VOICE_MAX_MS) void finish(true);
+  }, [active, elapsedMs, finish]);
 
   // Leaving the chat mid-recording throws the take away and frees the mic.
   useEffect(
@@ -142,16 +165,17 @@ export function useVoiceRecorder(
       if (meter.current) clearInterval(meter.current);
       if (activeRef.current) {
         activeRef.current = false;
-        void recorder.stop().catch(() => undefined);
+        void recorderRef.current?.stop().catch(() => undefined);
         void setAudioModeAsync({ allowsRecording: false }).catch(() => undefined);
       }
+      releaseRecorder();
     },
-    [recorder],
+    [releaseRecorder],
   );
 
   return {
     active,
-    elapsedMs: state.durationMillis,
+    elapsedMs,
     start,
     send: () => finish(true),
     cancel: () => finish(false),
