@@ -13,23 +13,25 @@ import { useTranslation } from 'react-i18next';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Colors } from '@/constants/theme';
+import { buildWaveform, dbToLevel, waveformToString } from '@/lib/waveform';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
-/** Longest voice message, in ms — the server caps the file at 5 MB. */
-export const VOICE_MAX_MS = 5 * 60 * 1000;
+/** Longest voice message, in ms (the server accepts up to ~65 s). */
+export const VOICE_MAX_MS = 60 * 1000;
 /** Shorter taps are an accident, not a message. */
 const VOICE_MIN_MS = 700;
 
-// Speech, not music: mono AAC at 32 kbps is ~1.2 MB for the full 5 minutes
-// (the preset's 128 kbps stereo would sit right at the server's 5 MB cap).
+// Speech, not music: mono AAC at 32 kbps is ~240 KB for the full minute.
 const VOICE_OPTIONS: RecordingOptions = {
   ...RecordingPresets.HIGH_QUALITY,
   sampleRate: 24000,
   numberOfChannels: 1,
   bitRate: 32000,
+  // Levels for the waveform drawn in the message bubble.
+  isMeteringEnabled: true,
   android: {
     ...RecordingPresets.HIGH_QUALITY.android,
-    maxFileSize: 4_800_000,
+    maxFileSize: 1_500_000,
   },
   ios: {
     ...RecordingPresets.HIGH_QUALITY.ios,
@@ -50,12 +52,13 @@ export function formatClock(ms: number): string {
 }
 
 /**
- * Records a voice message with expo-audio. `onDone` gets the finished file
- * and its length — only when sent, never for a cancelled or too-short take.
+ * Records a voice message with expo-audio. `onDone` gets the finished file,
+ * its length and its waveform (the "12,40,…" string, null if too short to
+ * draw) — only when sent, never for a cancelled or too-short take.
  * The microphone permission is asked on the first recording.
  */
 export function useVoiceRecorder(
-  onDone: (file: VoiceFile, durationMs: number) => void,
+  onDone: (file: VoiceFile, durationMs: number, waveform: string | null) => void,
 ) {
   const { t } = useTranslation();
   const recorder = useAudioRecorder(VOICE_OPTIONS);
@@ -64,6 +67,9 @@ export function useVoiceRecorder(
   const activeRef = useRef(false);
   const startedAt = useRef(0);
   const starting = useRef(false);
+  // Mic levels (0…1), sampled ten times a second while recording.
+  const levels = useRef<number[]>([]);
+  const meter = useRef<ReturnType<typeof setInterval> | null>(null);
   const onDoneRef = useRef(onDone);
   useEffect(() => {
     onDoneRef.current = onDone;
@@ -84,6 +90,11 @@ export function useVoiceRecorder(
       await recorder.prepareToRecordAsync();
       recorder.record();
       startedAt.current = Date.now();
+      levels.current = [];
+      meter.current = setInterval(() => {
+        const db = recorder.getStatus().metering;
+        if (db !== undefined) levels.current.push(dbToLevel(db));
+      }, 100);
       activeRef.current = true;
       setActive(true);
     } catch (e) {
@@ -100,6 +111,8 @@ export function useVoiceRecorder(
       if (!activeRef.current) return;
       activeRef.current = false;
       setActive(false);
+      if (meter.current) clearInterval(meter.current);
+      meter.current = null;
       const durationMs = Date.now() - startedAt.current;
       try {
         await recorder.stop();
@@ -112,12 +125,13 @@ export function useVoiceRecorder(
       onDoneRef.current(
         { uri, name: `voice-${Date.now()}.m4a`, mimeType: 'audio/mp4' },
         Math.min(durationMs, VOICE_MAX_MS),
+        waveformToString(buildWaveform(levels.current)),
       );
     },
     [recorder],
   );
 
-  // The 5-minute cap sends what has been recorded.
+  // The one-minute cap sends what has been recorded.
   useEffect(() => {
     if (active && state.durationMillis >= VOICE_MAX_MS) void finish(true);
   }, [active, state.durationMillis, finish]);
@@ -125,6 +139,7 @@ export function useVoiceRecorder(
   // Leaving the chat mid-recording throws the take away and frees the mic.
   useEffect(
     () => () => {
+      if (meter.current) clearInterval(meter.current);
       if (activeRef.current) {
         activeRef.current = false;
         void recorder.stop().catch(() => undefined);

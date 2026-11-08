@@ -22,6 +22,8 @@ export interface DriverDocument {
   caption?: string | null;
   /** Voice messages (fileType AUDIO): length in ms. */
   durationMs?: number | null;
+  /** Voice messages: loudness bars ("12,40,…"), absent on older ones. */
+  waveform?: string | null;
   reactions?: MessageReactionRow[];
   uploader?: { id: string; firstName: string; lastName: string | null; role: string };
   trip?: {
@@ -66,11 +68,12 @@ export interface UploadFileLocal {
 export async function uploadDocuments(
   tripId: string,
   files: UploadFileLocal[],
-  opts: { durationMs?: number | null } = {},
+  opts: { durationMs?: number | null; waveform?: string | null } = {},
 ): Promise<DriverDocument[]> {
   const fd = new FormData();
   fd.append('tripId', tripId);
   if (opts.durationMs) fd.append('durationMs', String(opts.durationMs));
+  if (opts.waveform) fd.append('waveform', opts.waveform);
   for (const f of files) {
     // React Native FormData accepts { uri, name, type } shape.
     fd.append('files', {

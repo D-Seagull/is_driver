@@ -10,6 +10,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { parseWaveform, placeholderWaveform } from '@/lib/waveform';
 
 import { formatClock } from './voice-recorder';
 
@@ -22,13 +23,14 @@ interface Props {
   uri: string;
   /** Length from the server — a recorded file's own header can't be trusted. */
   durationMs?: number | null;
+  /** Loudness bars from the server ("12,40,…"); older messages have none. */
+  waveform?: string | null;
   /** Own message: drawn on the primary bubble, so light on dark. */
   isOwn: boolean;
 }
 
 /**
- * Voice message in a chat bubble: play / pause, a progress bar you can tap
- * to seek, the length (counting up while playing) and a 1× / 1.5× / 2× toggle.
+ * Voice message in a chat bubble: play / pause, the waveform (tap to seek), the length (counting up while playing) and a 1× / 1.5× / 2× toggle.
  *
  * The native player is created only on the first tap — a long chat holds
  * many of these, and an idle one must cost nothing.
@@ -39,7 +41,7 @@ export function VoiceMessagePlayer(props: Props) {
   return <LivePlayer {...props} />;
 }
 
-function LivePlayer({ uri, durationMs, isOwn }: Props) {
+function LivePlayer({ uri, durationMs, waveform, isOwn }: Props) {
   const player = useAudioPlayer(uri);
   const status = useAudioPlayerStatus(player);
   const [speedIdx, setSpeedIdx] = useState(0);
@@ -85,6 +87,7 @@ function LivePlayer({ uri, durationMs, isOwn }: Props) {
     <PlayerView
       uri={uri}
       durationMs={durationMs}
+      waveform={waveform}
       isOwn={isOwn}
       playing={status.playing}
       currentMs={currentMs}
@@ -103,6 +106,7 @@ function LivePlayer({ uri, durationMs, isOwn }: Props) {
 function PlayerView({
   isOwn,
   durationMs,
+  waveform,
   playing = false,
   currentMs = 0,
   totalMs,
@@ -128,8 +132,10 @@ function PlayerView({
   const progress = total ? Math.min(1, currentMs / total) : 0;
   const fg = isOwn ? c.primaryForeground : c.foreground;
   const muted = isOwn ? `${c.primaryForeground}B3` : c.mutedForeground;
-  const track = isOwn ? `${c.primaryForeground}40` : `${c.primary}26`;
+  const track = isOwn ? `${c.primaryForeground}55` : `${c.primary}40`;
   const fill = isOwn ? c.primaryForeground : c.primary;
+  const bars = parseWaveform(waveform) ?? placeholderWaveform();
+  const playedBars = Math.round(progress * bars.length);
 
   return (
     <View style={styles.row}>
@@ -157,12 +163,21 @@ function PlayerView({
               onSeek?.(Math.min(1, Math.max(0, e.nativeEvent.locationX / barWidth)));
             }
           }}
-          hitSlop={{ top: 10, bottom: 10 }}
-          style={[styles.track, { backgroundColor: track }]}
+          hitSlop={{ top: 6, bottom: 6 }}
+          style={styles.wave}
         >
-          <View
-            style={[styles.fill, { width: `${progress * 100}%`, backgroundColor: fill }]}
-          />
+          {bars.map((v, i) => (
+            <View
+              key={i}
+              style={[
+                styles.bar,
+                {
+                  height: 3 + (v / 100) * 21,
+                  backgroundColor: i < playedBars ? fill : track,
+                },
+              ]}
+            />
+          ))}
         </Pressable>
         <Text style={[styles.time, { color: muted }]}>
           {formatClock(playing || currentMs > 0 ? currentMs : total)}
@@ -182,7 +197,7 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    width: 230,
+    width: 250,
   },
   playBtn: {
     width: 36,
@@ -191,9 +206,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  mid: { flex: 1, gap: 6 },
-  track: { height: 5, borderRadius: 3, overflow: 'hidden' },
-  fill: { height: 5, borderRadius: 3 },
+  mid: { flex: 1, gap: 4 },
+  wave: { height: 26, flexDirection: 'row', alignItems: 'center', gap: 2 },
+  bar: { flex: 1, borderRadius: 2, minWidth: 2 },
   time: { fontSize: 11, fontVariant: ['tabular-nums'] },
   speed: { fontSize: 11, fontWeight: '700', width: 26, textAlign: 'center' },
 });

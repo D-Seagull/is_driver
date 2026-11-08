@@ -492,12 +492,17 @@ function TripWithChat({
   };
 
   // Voice message: recorded in the composer, sent at once as its own bubble.
-  const sendVoice = async (file: VoiceFile, durationMs: number) => {
+  const sendVoice = async (
+    file: VoiceFile,
+    durationMs: number,
+    waveform: string | null,
+  ) => {
     try {
       await upload.mutateAsync({
         tripId: trip.id,
         files: [{ uri: file.uri, name: file.name, mimeType: file.mimeType }],
         durationMs,
+        waveform,
       });
       nearBottomRef.current = true;
       listRef.current?.scrollToOffset({ offset: 0, animated: true });
@@ -505,7 +510,9 @@ function TripWithChat({
       Alert.alert(t("documents.uploadFailed"), uploadErrorText(e, t));
     }
   };
-  const voice = useVoiceRecorder((file, durationMs) => void sendVoice(file, durationMs));
+  const voice = useVoiceRecorder(
+    (file, durationMs, waveform) => void sendVoice(file, durationMs, waveform),
+  );
 
   const showUploadSheet = () => {
     Alert.alert(t("trip.attachSheet.title"), t("documents.uploadSheet.subtitle"), [
@@ -1620,6 +1627,7 @@ const DocBubble = memo(function DocBubble({
               <VoiceMessagePlayer
                 uri={doc.signedUrl}
                 durationMs={doc.durationMs}
+            waveform={doc.waveform}
                 isOwn={isMe}
               />
             </View>

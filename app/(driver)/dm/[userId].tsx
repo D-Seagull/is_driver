@@ -365,13 +365,18 @@ export default function DmScreen() {
 
   // Voice message: recorded in the composer, sent at once as its own bubble
   // (an active reply target travels with it).
-  const sendVoice = async (file: VoiceFile, durationMs: number) => {
+  const sendVoice = async (
+    file: VoiceFile,
+    durationMs: number,
+    waveform: string | null,
+  ) => {
     const reply = replyingTo;
     setReplyingTo(null);
     try {
       await uploadDocs.mutateAsync({
         files: [{ uri: file.uri, name: file.name, type: file.mimeType }],
         durationMs,
+        waveform,
         replyToMessageId: reply?.targetType === 'msg' ? reply.id : null,
         replyToDocumentId: reply?.targetType === 'doc' ? reply.id : null,
       });
@@ -380,7 +385,9 @@ export default function DmScreen() {
       Alert.alert(t('documents.uploadFailed'), uploadErrorText(e, t));
     }
   };
-  const voice = useVoiceRecorder((file, durationMs) => void sendVoice(file, durationMs));
+  const voice = useVoiceRecorder(
+    (file, durationMs, waveform) => void sendVoice(file, durationMs, waveform),
+  );
 
   const openDoc = useCallback(
     async (doc: ConversationDocumentFull) => {
@@ -1217,6 +1224,7 @@ const DocBubble = memo(function DocBubble({
           <VoiceMessagePlayer
             uri={doc.signedUrl}
             durationMs={doc.durationMs}
+            waveform={doc.waveform}
             isOwn={isOwn}
           />
         ) : isPhoto ? (

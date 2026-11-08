@@ -43,12 +43,14 @@ export function useUploadDocuments() {
       tripId,
       files,
       durationMs,
+      waveform,
     }: {
       tripId: string;
       files: UploadFileLocal[];
       /** Voice message: its length in ms. */
       durationMs?: number | null;
-    }) => uploadDocuments(tripId, files, { durationMs }),
+      waveform?: string | null;
+    }) => uploadDocuments(tripId, files, { durationMs, waveform }),
     onSuccess: (_data, { tripId }) => {
       qc.invalidateQueries({ queryKey: documentKeys.trip(tripId) });
       qc.invalidateQueries({ queryKey: documentKeys.all });
