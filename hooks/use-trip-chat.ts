@@ -46,7 +46,7 @@ export interface ChatMessage {
   replyToDocument?: {
     id: string;
     fileName: string;
-    fileType: 'PHOTO' | 'DOCUMENT';
+    fileType: 'PHOTO' | 'DOCUMENT' | 'AUDIO';
     deletedAt: string | null;
     /** Set when the quoted file is part of an album. */
     batchId?: string | null;

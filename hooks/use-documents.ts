@@ -39,8 +39,16 @@ export function useTruckDocuments(truckId: string | null | undefined) {
 export function useUploadDocuments() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ tripId, files }: { tripId: string; files: UploadFileLocal[] }) =>
-      uploadDocuments(tripId, files),
+    mutationFn: ({
+      tripId,
+      files,
+      durationMs,
+    }: {
+      tripId: string;
+      files: UploadFileLocal[];
+      /** Voice message: its length in ms. */
+      durationMs?: number | null;
+    }) => uploadDocuments(tripId, files, { durationMs }),
     onSuccess: (_data, { tripId }) => {
       qc.invalidateQueries({ queryKey: documentKeys.trip(tripId) });
       qc.invalidateQueries({ queryKey: documentKeys.all });

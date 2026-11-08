@@ -6,7 +6,7 @@ export interface DriverDocument {
   tripId: string;
   fileName: string;
   fileUrl: string;
-  fileType: 'PHOTO' | 'DOCUMENT';
+  fileType: 'PHOTO' | 'DOCUMENT' | 'AUDIO';
   uploadedBy: string;
   isRead: boolean;
   createdAt: string;
@@ -20,6 +20,8 @@ export interface DriverDocument {
   /** Files sent together in one message share it (an album); null otherwise. */
   batchId?: string | null;
   caption?: string | null;
+  /** Voice messages (fileType AUDIO): length in ms. */
+  durationMs?: number | null;
   reactions?: MessageReactionRow[];
   uploader?: { id: string; firstName: string; lastName: string | null; role: string };
   trip?: {
@@ -64,9 +66,11 @@ export interface UploadFileLocal {
 export async function uploadDocuments(
   tripId: string,
   files: UploadFileLocal[],
+  opts: { durationMs?: number | null } = {},
 ): Promise<DriverDocument[]> {
   const fd = new FormData();
   fd.append('tripId', tripId);
+  if (opts.durationMs) fd.append('durationMs', String(opts.durationMs));
   for (const f of files) {
     // React Native FormData accepts { uri, name, type } shape.
     fd.append('files', {

@@ -191,6 +191,16 @@
     "memberRemoved": "Usunięto: {{name}}",
     "managerAssigned": "Menedżer {{name}} przydzielony do ciężarówki {{plate}}"
   },
+  "voice": {
+    "record": "Nagraj wiadomość głosową",
+    "cancel": "Anuluj nagrywanie",
+    "send": "Wyślij wiadomość głosową",
+    "micDenied": "Brak dostępu do mikrofonu. Zezwól na niego w ustawieniach telefonu.",
+    "recordFailed": "Nie udało się rozpocząć nagrywania",
+    "message": "Wiadomość głosowa",
+    "play": "Odtwórz",
+    "pause": "Pauza"
+  },
   "chat": {
     "outboxFailedTitle": "Nie udało się wysłać",
     "outboxRetry": "Ponów",

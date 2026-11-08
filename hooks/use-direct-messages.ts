@@ -21,7 +21,7 @@ export interface MessageReplyPreview {
 export interface DocReplyPreviewLite {
   id: string;
   fileName: string;
-  fileType: 'PHOTO' | 'DOCUMENT';
+  fileType: 'PHOTO' | 'DOCUMENT' | 'AUDIO';
   deletedAt: string | null;
   uploader: { id: string; firstName: string; lastName: string | null };
 }
