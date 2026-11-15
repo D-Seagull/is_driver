@@ -90,7 +90,9 @@
           "color": "#1E7AFD",
           "sounds": [
             "./assets/sounds/push_message.mp3",
-            "./assets/sounds/is_alarm.mp3"
+            "./assets/sounds/is_alarm.mp3",
+            "./assets/sounds/push_message_ios.wav",
+            "./assets/sounds/is_alarm_ios.wav"
           ]
         }
       ],
