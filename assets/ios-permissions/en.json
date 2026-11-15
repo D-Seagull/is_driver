@@ -1,0 +1,6 @@
+{
+  "NSCameraUsageDescription": "The app needs camera access to take photos of documents and send them in chat.",
+  "NSPhotoLibraryUsageDescription": "The app needs access to your photos to attach images to chats and documents and to set your profile picture.",
+  "NSPhotoLibraryAddUsageDescription": "The app needs access to your photos to save pictures from chat to your gallery.",
+  "NSMicrophoneUsageDescription": "The app needs microphone access to record voice messages in chat."
+}
