@@ -49,3 +49,9 @@ export function parseWaveform(raw?: string | null): number[] | null {
 export function placeholderWaveform(bars = WAVEFORM_BARS): number[] {
   return Array.from({ length: bars }, (_, i) => 28 + Math.round(14 * Math.sin(i * 0.9)));
 }
+
+/** "0:07" / "12:03". */
+export function formatClock(ms: number): string {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+}

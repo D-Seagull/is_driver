@@ -48,7 +48,9 @@ import { MessageReactionsCluster } from "@/components/message-reactions";
 import {
   useVoiceRecorder,
   VoiceMicButton,
+  VoicePreviewBar,
   VoiceRecordingBar,
+  VoiceSendButton,
   type VoiceFile,
 } from "@/components/voice-recorder";
 import { VoiceMessagePlayer } from "@/components/voice-message-player";
@@ -919,14 +921,12 @@ function TripWithChat({
               },
             ]}
           >
-          {voice.active ? (
-            <VoiceRecordingBar
-              elapsedMs={voice.elapsedMs}
-              onCancel={voice.cancel}
-              onSend={voice.send}
-            />
-          ) : (
-          <>
+          {voice.recording ? (
+          <VoiceRecordingBar elapsedMs={voice.elapsedMs} />
+        ) : voice.draft ? (
+          <VoicePreviewBar draft={voice.draft} onDiscard={voice.discardDraft} />
+        ) : (
+        <>
           <Pressable
             onPress={showUploadSheet}
             disabled={upload.isPending}
@@ -989,14 +989,20 @@ function TripWithChat({
             returnKeyType="default"
             blurOnSubmit={false}
           />
-          {/* Empty composer → the mic takes the Send button's place. */}
-          {!editing && !text.trim() ? (
-            <VoiceMicButton
-              onPress={() => void voice.start()}
-              disabled={upload.isPending}
-            />
-          ) : (
-          <Pressable
+          </>
+        )}
+        {/* One button for the whole hold: the composer changes around it. */}
+        {voice.draft ? (
+          <VoiceSendButton onPress={voice.sendDraft} />
+        ) : !editing && !text.trim() ? (
+          <VoiceMicButton
+            onHoldStart={() => void voice.startHold()}
+            onHoldEnd={voice.endHold}
+            recording={voice.recording}
+            disabled={upload.isPending}
+          />
+        ) : (
+        <Pressable
             onPress={handleSend}
             disabled={!text.trim() || !connected}
             style={({ pressed }) => [
@@ -1009,9 +1015,7 @@ function TripWithChat({
           >
             <Ionicons name="send" size={16} color="#fff" />
           </Pressable>
-          )}
-          </>
-          )}
+        )}
           </View>
         </>
       )}

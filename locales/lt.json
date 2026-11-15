@@ -58,6 +58,12 @@
       "last": "Pavardė (nebūtina)",
       "lastPlaceholder": "Kazlauskas"
     },
+    "theme": {
+      "title": "Tema",
+      "system": "Sistemos",
+      "light": "Šviesi",
+      "dark": "Tamsi"
+    },
     "language": {
       "title": "Kalba",
       "pick": "Pasirinkite kalbą"
@@ -199,7 +205,9 @@
     "recordFailed": "Nepavyko pradėti įrašymo",
     "message": "Balso žinutė",
     "play": "Groti",
-    "pause": "Pauzė"
+    "pause": "Pauzė",
+    "release": "Atleiskite, kad sustabdytumėte",
+    "holdHint": "Laikykite mikrofoną, kad įrašytumėte"
   },
   "chat": {
     "outboxFailedTitle": "Nepavyko išsiųsti",
