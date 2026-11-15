@@ -120,6 +120,13 @@ export interface AuthResult {
   refreshToken: string;
 }
 
+// Log only the status and message of a failed call: the full axios error
+// carries the request body (phone number, one-time code) into the device log.
+function errText(err: unknown): string {
+  const e = err as { response?: { status?: number }; message?: string };
+  return `${e?.response?.status ?? 'no response'} ${e?.message ?? ''}`.trim();
+}
+
 const FAKE_DELAY = 600;
 const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
@@ -134,13 +141,13 @@ export async function requestOtp(phone: string): Promise<void> {
     return;
   }
   try {
-    console.log('[auth-api] requestOtp →', { phone });
+    console.log('[auth-api] requestOtp →');
     const res = await withNetworkRetry(() =>
       api.post('/auth/driver/request-otp', { phone }),
     );
-    console.log('[auth-api] requestOtp ✓', res.status, res.data);
+    console.log('[auth-api] requestOtp ✓', res.status);
   } catch (err) {
-    console.warn('[auth-api] requestOtp ✗', err);
+    console.warn('[auth-api] requestOtp ✗', errText(err));
     throw err;
   }
 }
@@ -239,7 +246,7 @@ export async function verifyOtp(phone: string, code: string): Promise<AuthResult
     };
   }
   try {
-    console.log('[auth-api] verifyOtp →', { phone, code });
+    console.log('[auth-api] verifyOtp →');
     // Backend returns { access_token, refresh_token, user }. We expose the
     // access token as `token` throughout the app for symmetry with the auth
     // store / api interceptor; `refreshToken` is kept for silent re-auth.
@@ -257,7 +264,7 @@ export async function verifyOtp(phone: string, code: string): Promise<AuthResult
       user: data.user,
     };
   } catch (err) {
-    console.warn('[auth-api] verifyOtp ✗', err);
+    console.warn('[auth-api] verifyOtp ✗', errText(err));
     throw err;
   }
 }
