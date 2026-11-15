@@ -270,6 +270,7 @@
     "DELIVERED": "Dostarczona"
   },
   "trips": {
+    "writeManager": "Napisz do menedżera",
     "searchPlaceholder": "Szukaj po trasie, nr zamówienia, adresie…",
     "active": "Aktywna",
     "next": "Nadchodzące",

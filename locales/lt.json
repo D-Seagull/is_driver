@@ -270,6 +270,7 @@
     "DELIVERED": "Pristatytas"
   },
   "trips": {
+    "writeManager": "Rašyti vadybininkui",
     "searchPlaceholder": "Ieškoti pagal maršrutą, užsakymo nr., adresą…",
     "active": "Aktyvus",
     "next": "Būsimi",

@@ -266,6 +266,7 @@
     "DELIVERED": "Delivered"
   },
   "trips": {
+    "writeManager": "Message your manager",
     "searchPlaceholder": "Search by route, order #, address…",
     "active": "Active",
     "next": "Upcoming",
