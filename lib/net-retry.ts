@@ -32,3 +32,30 @@ export async function withNetworkRetry<T>(
   }
   throw lastErr;
 }
+
+/**
+ * Retry a session call (the token refresh) on anything that is NOT a clear
+ * "your session is invalid" from our backend: no response, a timeout, a 5xx,
+ * a 429, an HTML page from a proxy / captive portal. Crossing a border, the
+ * phone switches networks and the first tries often fail — a few quiet
+ * retries (1 s, 2 s, 4 s) ride that out instead of failing the request.
+ * `isRejected` decides what is final; tests pass `baseDelayMs` 0.
+ */
+export async function withSessionRetry<T>(
+  fn: () => Promise<T>,
+  isRejected: (err: unknown) => boolean,
+  attempts = 3,
+  baseDelayMs = 1000,
+): Promise<T> {
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (isRejected(err) || i === attempts - 1) throw err;
+      lastErr = err;
+      if (baseDelayMs > 0) await wait(baseDelayMs * 2 ** i);
+    }
+  }
+  throw lastErr;
+}

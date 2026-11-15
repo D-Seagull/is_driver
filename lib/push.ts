@@ -153,7 +153,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
   }
 
   const token = tokenResponse.data;
-  console.log('[push] got Expo token:', token);
+  console.log('[push] got Expo token');
 
   try {
     await registerPushToken(

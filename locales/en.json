@@ -55,6 +55,12 @@
       "last": "Last name (optional)",
       "lastPlaceholder": "Smith"
     },
+    "theme": {
+      "title": "Theme",
+      "system": "System",
+      "light": "Light",
+      "dark": "Dark"
+    },
     "language": {
       "title": "Language",
       "pick": "Choose language"
@@ -196,7 +202,9 @@
     "recordFailed": "Couldn't start recording",
     "message": "Voice message",
     "play": "Play",
-    "pause": "Pause"
+    "pause": "Pause",
+    "release": "Release to stop",
+    "holdHint": "Hold the microphone to record"
   },
   "chat": {
     "outboxFailedTitle": "Could not send",
@@ -258,6 +266,7 @@
     "DELIVERED": "Delivered"
   },
   "trips": {
+    "writeManager": "Message your manager",
     "searchPlaceholder": "Search by route, order #, address…",
     "active": "Active",
     "next": "Upcoming",

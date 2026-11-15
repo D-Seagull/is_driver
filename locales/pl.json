@@ -58,6 +58,12 @@
       "last": "Nazwisko (opcjonalnie)",
       "lastPlaceholder": "Kowalski"
     },
+    "theme": {
+      "title": "Motyw",
+      "system": "Systemowy",
+      "light": "Jasny",
+      "dark": "Ciemny"
+    },
     "language": {
       "title": "Język",
       "pick": "Wybierz język"
@@ -199,7 +205,9 @@
     "recordFailed": "Nie udało się rozpocząć nagrywania",
     "message": "Wiadomość głosowa",
     "play": "Odtwórz",
-    "pause": "Pauza"
+    "pause": "Pauza",
+    "release": "Puść, aby zakończyć",
+    "holdHint": "Przytrzymaj mikrofon, aby nagrać"
   },
   "chat": {
     "outboxFailedTitle": "Nie udało się wysłać",
@@ -262,6 +270,7 @@
     "DELIVERED": "Dostarczona"
   },
   "trips": {
+    "writeManager": "Napisz do menedżera",
     "searchPlaceholder": "Szukaj po trasie, nr zamówienia, adresie…",
     "active": "Aktywna",
     "next": "Nadchodzące",

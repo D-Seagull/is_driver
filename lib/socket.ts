@@ -53,9 +53,36 @@ export function configureSocketAuth(fn: TokenProvider) {
   getAuthToken = fn;
 }
 
+// The server dropped us ("io server disconnect") — it does that when the
+// handshake token is rejected (expired by the server's clock, which can
+// differ from the phone's). socket.io does NOT reconnect by itself after a
+// server-side disconnect, so: force a token refresh (never trusting the
+// phone's clock), then reconnect. Injected from the auth store; resolves
+// false when the session is gone (no reconnect — the app is signing out).
+type Reauth = () => Promise<boolean>;
+let reauthAfterServerDrop: Reauth = async () => false;
+let lastReauthAt = 0;
+const REAUTH_MIN_GAP_MS = 5_000;
+export function configureSocketReauth(fn: Reauth) {
+  reauthAfterServerDrop = fn;
+}
+
+/** Exported for tests. */
+export function handleSocketDisconnect(reason: string): void {
+  if (reason !== 'io server disconnect') return;
+  const now = Date.now();
+  if (now - lastReauthAt < REAUTH_MIN_GAP_MS) return; // no tight loop
+  lastReauthAt = now;
+  void reauthAfterServerDrop()
+    .catch(() => true) // unreachable — try again; the handshake asks again
+    .then((reconnect) => {
+      if (reconnect && socket && !socket.connected) socket.connect();
+    });
+}
+
 export function getSocket(token?: string): Socket {
   if (!socket) {
-    console.log('[socket] creating → ', API_URL, 'token:', token ? token.slice(0, 20) + '…' : 'NONE');
+    console.log('[socket] creating → ', API_URL, 'token:', token ? 'present' : 'NONE');
 
     socket = io(API_URL, {
       // Function form → fresh token on every (re)connect (a silent refresh may
@@ -93,7 +120,10 @@ export function getSocket(token?: string): Socket {
       lastActivityAt = Date.now();
       console.log('[socket] ✅ connected id=', socket?.id, 'transport=', socket?.io.engine.transport.name);
     });
-    socket.on('disconnect', (r) => console.log('[socket] ❌ disconnected reason=', r));
+    socket.on('disconnect', (r) => {
+      console.log('[socket] ❌ disconnected reason=', r);
+      handleSocketDisconnect(r);
+    });
     socket.on('connect_error', (e) => console.warn('[socket] ⚠️ error=', e.message));
     // engine 'upgrade' isn't in the Manager's typed event map — listen on the engine.
     socket.io.engine?.on('upgrade', (t: { name: string }) =>

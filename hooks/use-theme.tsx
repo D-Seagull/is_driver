@@ -1,5 +1,8 @@
-import { createContext, ReactNode, useContext, useMemo, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useColorScheme as useSystemColorScheme } from 'react-native';
+
+const STORAGE_KEY = 'theme_mode';
 
 export type ThemeMode = 'system' | 'light' | 'dark';
 export type ResolvedScheme = 'light' | 'dark';
@@ -15,7 +18,19 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const system = useSystemColorScheme();
-  const [mode, setMode] = useState<ThemeMode>('system');
+  const [mode, setModeState] = useState<ThemeMode>('system');
+
+  // Restore the saved preference on launch.
+  useEffect(() => {
+    void AsyncStorage.getItem(STORAGE_KEY).then((saved) => {
+      if (saved === 'light' || saved === 'dark' || saved === 'system') setModeState(saved);
+    });
+  }, []);
+
+  const setMode = useCallback((m: ThemeMode) => {
+    setModeState(m);
+    void AsyncStorage.setItem(STORAGE_KEY, m);
+  }, []);
 
   const resolved: ResolvedScheme =
     mode === 'system' ? (system === 'dark' ? 'dark' : 'light') : mode;
@@ -27,7 +42,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       setMode,
       toggle: () => setMode(resolved === 'dark' ? 'light' : 'dark'),
     }),
-    [mode, resolved],
+    [mode, resolved, setMode],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
@@ -36,7 +51,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 export function useThemeMode(): ThemeContextValue {
   const ctx = useContext(ThemeContext);
   if (!ctx) {
-    // Safe fallback if provider is missing — keeps Storybook/tests usable.
+    // Safe fallback if provider is missing — keeps tests usable.
     const system = useSystemColorScheme();
     const resolved: ResolvedScheme = system === 'dark' ? 'dark' : 'light';
     return {

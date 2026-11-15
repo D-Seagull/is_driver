@@ -85,6 +85,14 @@ export function useChatEvents(opts: Options) {
               : m,
           ),
       );
+      // Files I sent to that user flip too (voice messages, photos…).
+      qc.setQueryData<{ id: string; uploadedBy: string; isRead: boolean }[]>(
+        ['conversation-documents', readBy],
+        (prev) =>
+          prev?.map((d) =>
+            d.uploadedBy === myUserId ? { ...d, isRead: true } : d,
+          ),
+      );
       qc.invalidateQueries({ queryKey: dmKeys.conversations });
     };
 

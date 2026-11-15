@@ -10,9 +10,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { parseWaveform, placeholderWaveform } from '@/lib/waveform';
-
-import { formatClock } from './voice-recorder';
+import { formatClock, parseWaveform, placeholderWaveform } from '@/lib/waveform';
 
 // One voice message at a time: the one playing is paused when another starts.
 let pauseCurrent: (() => void) | null = null;
@@ -27,6 +25,8 @@ interface Props {
   waveform?: string | null;
   /** Own message: drawn on the primary bubble, so light on dark. */
   isOwn: boolean;
+  /** Take the whole width of the parent (the composer's preview) instead of a bubble's fixed one. */
+  fullWidth?: boolean;
 }
 
 /**
@@ -41,7 +41,7 @@ export function VoiceMessagePlayer(props: Props) {
   return <LivePlayer {...props} />;
 }
 
-function LivePlayer({ uri, durationMs, waveform, isOwn }: Props) {
+function LivePlayer({ uri, durationMs, waveform, isOwn, fullWidth }: Props) {
   const player = useAudioPlayer(uri);
   const status = useAudioPlayerStatus(player);
   const [speedIdx, setSpeedIdx] = useState(0);
@@ -89,6 +89,7 @@ function LivePlayer({ uri, durationMs, waveform, isOwn }: Props) {
       durationMs={durationMs}
       waveform={waveform}
       isOwn={isOwn}
+      fullWidth={fullWidth}
       playing={status.playing}
       currentMs={currentMs}
       totalMs={totalMs}
@@ -107,6 +108,7 @@ function PlayerView({
   isOwn,
   durationMs,
   waveform,
+  fullWidth,
   playing = false,
   currentMs = 0,
   totalMs,
@@ -138,7 +140,7 @@ function PlayerView({
   const playedBars = Math.round(progress * bars.length);
 
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, fullWidth && styles.rowFill]}>
       <Pressable
         onPress={onPlay}
         accessibilityLabel={playing ? t('voice.pause') : t('voice.play')}
@@ -199,6 +201,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     width: 250,
   },
+  rowFill: { width: undefined, flex: 1 },
   playBtn: {
     width: 36,
     height: 36,

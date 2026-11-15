@@ -19,6 +19,7 @@ import { InsetFlatList, InsetScrollView } from '@/components/inset-list';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useDriverUnread } from '@/hooks/use-driver-unread';
 import { useActiveTrip, useMyTrips } from '@/hooks/use-trips';
+import { useDriverTruck } from '@/hooks/use-truck';
 import { formatDate } from '@/lib/format-date';
 import { Trip } from '@/lib/types';
 
@@ -31,6 +32,8 @@ export default function TripsScreen() {
   const { t } = useTranslation();
   const c = Colors[useColorScheme() ?? 'light'];
   const { data: trips = [], isLoading, refetch } = useMyTrips();
+  const router = useRouter();
+  const managerId = useDriverTruck().data?.manager?.id;
   const { data: activeTrip } = useActiveTrip();
   const activeId = activeTrip?.id ?? null;
   const { data: unreadData } = useDriverUnread();
@@ -125,6 +128,15 @@ export default function TripsScreen() {
             icon="list-outline"
             title={t('trips.empty.title')}
             subtitle={t('trips.empty.subtitle')}
+            action={
+              managerId
+                ? {
+                    label: t('trips.writeManager'),
+                    icon: 'chatbubble-ellipses-outline',
+                    onPress: () => router.push(`/(driver)/dm/${managerId}` as never),
+                  }
+                : undefined
+            }
           />
         </InsetScrollView>
       ) : filtered.length === 0 ? (
