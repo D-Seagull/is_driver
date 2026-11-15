@@ -25,6 +25,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Radius, Spacing, ThemeColors } from '@/constants/theme';
 import { bottomBarPadding } from '@/lib/insets';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useThemeMode, type ThemeMode } from '@/hooks/use-theme';
 import {
   DriverLanguage,
   DriverUserStatus,
@@ -55,6 +56,12 @@ const LANGUAGE_LABELS: Partial<Record<DriverLanguage, string>> = {
 export default function DriverSettingsScreen() {
   const { t, i18n } = useTranslation();
   const c = Colors[useColorScheme() ?? 'light'];
+  const { mode: themeMode, setMode: setThemeMode } = useThemeMode();
+  const THEME_OPTIONS: { key: ThemeMode; icon: keyof typeof Ionicons.glyphMap }[] = [
+    { key: 'system', icon: 'phone-portrait-outline' },
+    { key: 'light', icon: 'sunny-outline' },
+    { key: 'dark', icon: 'moon-outline' },
+  ];
   const insets = useSafeAreaInsets();
   // Shorter phones (e.g. Xiaomi Mi 9 SE) can't fit the whole settings page —
   // scale spacing/sizes down so it fits without a scroll on small screens.
@@ -505,6 +512,42 @@ export default function DriverSettingsScreen() {
           </Pressable>
         </SectionCard>
 
+        {/* ── Theme (system / light / dark) ────────────────────────── */}
+        <SectionCard colors={c} compact={compact} title={t('settings.theme.title')}>
+          <View style={styles.segment}>
+            {THEME_OPTIONS.map((opt) => {
+              const active = opt.key === themeMode;
+              return (
+                <Pressable
+                  key={opt.key}
+                  onPress={() => setThemeMode(opt.key)}
+                  style={[
+                    styles.segmentBtn,
+                    {
+                      borderColor: c.border,
+                      backgroundColor: active ? c.primary : 'transparent',
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name={opt.icon}
+                    size={16}
+                    color={active ? c.primaryForeground : c.mutedForeground}
+                  />
+                  <Text
+                    style={[
+                      styles.segmentText,
+                      { color: active ? c.primaryForeground : c.foreground },
+                    ]}
+                  >
+                    {t(`settings.theme.${opt.key}`)}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </SectionCard>
+
         {/* ── Notifications (sound / vibration) ────────────────────── */}
         <SectionCard colors={c} compact={compact} title={t('settings.notifications.title')}>
           <View style={{ gap: Spacing.sm }}>
@@ -798,6 +841,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   rowText: { flex: 1, fontSize: 15 },
+  segment: { flexDirection: 'row', gap: Spacing.sm },
+  segmentBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    borderWidth: 1,
+    borderRadius: Radius.sm,
+    paddingVertical: 9,
+  },
+  segmentText: { fontSize: 13, fontWeight: '600' },
   saveBtn: {
     alignItems: 'center',
     justifyContent: 'center',
