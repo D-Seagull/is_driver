@@ -3,6 +3,7 @@ import { Alert } from 'react-native';
 
 import { API_URL } from './config';
 import i18n from './i18n';
+import { SessionUnreachableError } from './session-errors';
 
 export const api = axios.create({
   baseURL: API_URL,
@@ -85,9 +86,16 @@ api.interceptors.response.use(
       let newToken: string | null;
       try {
         newToken = await refreshOnce();
-      } catch {
+      } catch (refreshErr) {
         // Server unreachable: fail just this request, keep the session.
-        return Promise.reject(error);
+        // Reject with "unreachable", NOT the original 401 — a caller like
+        // the launch check (hydrate) would read that 401 as "session
+        // rejected" and log the driver out at the first border crossing.
+        return Promise.reject(
+          refreshErr instanceof SessionUnreachableError
+            ? refreshErr
+            : new SessionUnreachableError(),
+        );
       }
       if (newToken) {
         // Retry the original request with the fresh access token.

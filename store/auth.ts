@@ -10,6 +10,7 @@ import {
 
 import { configureApiAuth } from '@/lib/api';
 import { isSessionRejected, SessionUnreachableError } from '@/lib/session-errors';
+import { withSessionRetry } from '@/lib/net-retry';
 import {
   AuthUser,
   fetchMe,
@@ -22,6 +23,7 @@ import {
 } from '@/lib/auth-api';
 import {
   configureSocketAuth,
+  configureSocketReauth,
   disconnectSocket,
   getSocket,
 } from '@/lib/socket';
@@ -34,6 +36,32 @@ const TOKEN_KEY = 'auth_token';
 const REFRESH_KEY = 'auth_refresh';
 
 const isWeb = Platform.OS === 'web';
+
+// Set when the keychain could not be READ (it threw — e.g. still locked, a
+// keystore hiccup). The tokens in it may be perfectly fine, so until we have
+// read or written them again, a `null` in the state must not be written
+// back as "delete the tokens" — that turned one failed read into a
+// permanent logout. Cleared on the next successful read / token write, and
+// overridden by an intentional sign-out (see clearSessionOnPurpose).
+let keychainUnreadable = false;
+// The next persist write is a deliberate sign-out: delete the tokens even if
+// the keychain was unreadable.
+let clearOnPurpose = false;
+
+async function readSecure(key: string): Promise<string | null> {
+  try {
+    return await SecureStore.getItemAsync(key);
+  } catch {
+    // One quiet retry: a keystore that was busy a moment ago usually answers.
+    await new Promise((r) => setTimeout(r, 300));
+    try {
+      return await SecureStore.getItemAsync(key);
+    } catch {
+      keychainUnreadable = true;
+      return null;
+    }
+  }
+}
 
 // Refresh tokens are single-use (rotated on every refresh). If two callers race
 // (e.g. the socket reconnect handshake AND an api 401 retry, both firing after
@@ -73,18 +101,9 @@ const secureAuthStorage: StateStorage = {
   getItem: async (name) => {
     const rest = await AsyncStorage.getItem(name);
     if (isWeb) return rest;
-    let token: string | null = null;
-    let refreshToken: string | null = null;
-    try {
-      token = await SecureStore.getItemAsync(TOKEN_KEY);
-    } catch {
-      token = null;
-    }
-    try {
-      refreshToken = await SecureStore.getItemAsync(REFRESH_KEY);
-    } catch {
-      refreshToken = null;
-    }
+    keychainUnreadable = false;
+    const token = await readSecure(TOKEN_KEY);
+    const refreshToken = await readSecure(REFRESH_KEY);
     if (!rest) {
       return token || refreshToken
         ? JSON.stringify({
@@ -114,13 +133,22 @@ const secureAuthStorage: StateStorage = {
       ...parsed,
       state: { ...parsed.state, token: null, refreshToken: null },
     };
+    // A `null` token is a real sign-out only if we know what the keychain
+    // holds (it was readable) or the sign-out is deliberate.
+    const mayDelete = !keychainUnreadable || clearOnPurpose;
+    clearOnPurpose = false;
+    if (token || refreshToken) keychainUnreadable = false;
     await Promise.all([
       token
         ? SecureStore.setItemAsync(TOKEN_KEY, token)
-        : SecureStore.deleteItemAsync(TOKEN_KEY).catch(() => {}),
+        : mayDelete
+          ? SecureStore.deleteItemAsync(TOKEN_KEY).catch(() => {})
+          : Promise.resolve(),
       refreshToken
         ? SecureStore.setItemAsync(REFRESH_KEY, refreshToken)
-        : SecureStore.deleteItemAsync(REFRESH_KEY).catch(() => {}),
+        : mayDelete
+          ? SecureStore.deleteItemAsync(REFRESH_KEY).catch(() => {})
+          : Promise.resolve(),
       AsyncStorage.setItem(name, JSON.stringify(stripped)),
     ]);
   },
@@ -136,6 +164,11 @@ const secureAuthStorage: StateStorage = {
     ]);
   },
 };
+
+/** Mark the next persisted write as a deliberate sign-out (see setItem). */
+function clearSessionOnPurpose() {
+  clearOnPurpose = true;
+}
 
 interface AuthState {
   user: AuthUser | null;
@@ -215,6 +248,7 @@ export const useAuthStore = create<AuthState>()(
           // Лише водії можуть користуватись застосунком водія. Персистована сесія
           // менеджера/адміна (напр. з тестів) має вилетіти на логін.
           if (user.role !== 'DRIVER') {
+            clearSessionOnPurpose();
             set({ user: null, token: null, refreshToken: null, isLoading: false });
             return;
           }
@@ -224,6 +258,7 @@ export const useAuthStore = create<AuthState>()(
           // app with it — requests retry once the network is back. Only the
           // server rejecting the session (401 / 403) sends the user to login.
           if (isSessionRejected(err)) {
+            clearSessionOnPurpose();
             set({ user: null, token: null, refreshToken: null, isLoading: false });
           } else {
             set({ isLoading: false });
@@ -237,11 +272,24 @@ export const useAuthStore = create<AuthState>()(
         if (refreshInFlight) return refreshInFlight;
         refreshInFlight = (async () => {
           const rt = get().refreshToken;
-          if (!rt) return null;
+          // No refresh token in memory while the keychain couldn't be read:
+          // that's "don't know", not "signed out" — keep the session.
+          if (!rt) {
+            if (keychainUnreadable) throw new SessionUnreachableError();
+            return null;
+          }
           try {
-            const { user, token, refreshToken } = await refreshTokens(rt);
+            // Retries no-response / timeout / 5xx / 429 / proxy pages (1 s,
+            // 2 s, 4 s) — a network switch at a border fails the first tries.
+            // A retry after a lost response reuses the same token; the server
+            // accepts that (grace window / unused-successor rule).
+            const { user, token, refreshToken } = await withSessionRetry(
+              () => refreshTokens(rt),
+              isSessionRejected,
+            );
             // Роль могла змінитись на бекенді — не водій більше не має доступу.
             if (user.role !== 'DRIVER') {
+              clearSessionOnPurpose();
               set({ user: null, token: null, refreshToken: null });
               return null;
             }
@@ -252,8 +300,9 @@ export const useAuthStore = create<AuthState>()(
             // Server unreachable — the refresh token is still good: keep the
             // session and let the caller fail just this request.
             if (!isSessionRejected(err)) throw new SessionUnreachableError();
-            // Refresh token rejected (expired / revoked) — the session is
-            // dead; clear it so the app bounces to login.
+            // Our backend rejected the refresh token (expired / revoked) — the
+            // session is dead; clear it so the app bounces to login.
+            clearSessionOnPurpose();
             set({ user: null, token: null, refreshToken: null });
             return null;
           }
@@ -277,6 +326,7 @@ export const useAuthStore = create<AuthState>()(
         // Best-effort server-side revoke so the refresh token can't be reused.
         if (rt) void revokeRefreshToken(rt);
         disconnectSocket();
+        clearSessionOnPurpose();
         set({ user: null, token: null, refreshToken: null, isLoading: false });
       },
     }),
@@ -317,6 +367,18 @@ configureSocketAuth(async () => {
   // asks again on the next attempt.
   await s.refresh().catch(() => undefined);
   return useAuthStore.getState().token;
+});
+
+// The server dropped the socket (handshake token rejected — its clock is the
+// one that counts): refresh regardless of what the phone's clock thinks, then
+// let the socket reconnect. No session left → no reconnect.
+configureSocketReauth(async () => {
+  if (!useAuthStore.getState().refreshToken) return false;
+  try {
+    return !!(await useAuthStore.getState().refresh());
+  } catch {
+    return true; // server unreachable — keep trying, the session is intact
+  }
 });
 
 // Selectors
