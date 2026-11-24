@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -15,6 +15,7 @@ import { Colors, Radius, Spacing } from '@/constants/theme';
 import { bottomBarPadding } from '@/lib/insets';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { DriverUserStatus, updateMe } from '@/lib/auth-api';
+import { diagLog } from '@/lib/diag-log';
 import { STATUS_HEX } from '@/lib/status';
 import { useAuthStore } from '@/store/auth';
 
@@ -65,6 +66,13 @@ export function PresenceStatusSheet({
   const [sleepOpen, setSleepOpen] = useState(false);
   const [vacationOpen, setVacationOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+
+  // Which of the three sheets is up — for the bug-report log (lib/diag-log):
+  // switching between them is a suspect in the frozen-sidebar reports.
+  const shown = !open ? 'closed' : sleepOpen ? 'sleep' : vacationOpen ? 'vacation' : 'main';
+  useEffect(() => {
+    diagLog(`status sheet → ${shown}`);
+  }, [shown]);
 
   const applyStatus = async (status: DriverUserStatus, hours?: number) => {
     setBusy(true);

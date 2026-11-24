@@ -382,8 +382,15 @@ export function useTripChat(
       });
     };
 
+    // The live room only admits the trip's current driver / manager: whoever
+    // just became one while this chat is open joins now.
+    const onTripUpdated = (payload: { tripId: string }) => {
+      if (payload.tripId === tripId) joinRoom();
+    };
+
     sock.on('connect', onConnect);
     sock.on('disconnect', onDisconnect);
+    sock.on('tripUpdated', onTripUpdated);
     sock.on('newMessage', onNewMessage);
     sock.on('newDocument', onNewDocument);
     sock.on('tripMessagesRead', onMessagesRead);
@@ -404,6 +411,7 @@ export function useTripChat(
       cancelled = true;
       sock.off('connect', onConnect);
       sock.off('disconnect', onDisconnect);
+      sock.off('tripUpdated', onTripUpdated);
       sock.off('newMessage', onNewMessage);
       sock.off('newDocument', onNewDocument);
       sock.off('tripMessagesRead', onMessagesRead);
