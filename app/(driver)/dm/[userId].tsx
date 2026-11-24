@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useIsFocused } from 'expo-router';
+import { useFocusEffect, useIsFocused } from 'expo-router';
+import { diagLog } from '@/lib/diag-log';
 import * as Clipboard from 'expo-clipboard';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
@@ -121,14 +122,19 @@ export default function DmScreen() {
   // a plain back pops to the drawer's initial screen (Trips). Step back to
   // the Chat list explicitly — for both the header chevron and Android's
   // hardware back button.
+  // Only while this screen is focused: the drawer keeps it mounted after you
+  // leave, and a listener left behind sent "back" to Chat from every screen.
   const goBackToChat = () => router.navigate('/(driver)/chat');
-  useEffect(() => {
-    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      router.navigate('/(driver)/chat');
-      return true;
-    });
-    return () => sub.remove();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+        diagLog('back: dm → chat');
+        router.navigate('/(driver)/chat');
+        return true;
+      });
+      return () => sub.remove();
+    }, []),
+  );
 
   // Drawer keeps screens mounted, so this DM screen stays alive after you
   // navigate away. Only mark messages read while it's actually focused —

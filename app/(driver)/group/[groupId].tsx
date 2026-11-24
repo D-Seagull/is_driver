@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useIsFocused } from 'expo-router';
+import { useFocusEffect, useIsFocused } from 'expo-router';
+import { diagLog } from '@/lib/diag-log';
 import * as Clipboard from 'expo-clipboard';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
@@ -122,15 +123,20 @@ export default function GroupChatScreen() {
   // Pushed from the Chat screen's Groups tab but lives as a drawer route, so a
   // plain back pops to the drawer's initial screen (Trips). Step back to the
   // Groups tab explicitly — for the header chevron and Android hardware back.
+  // Only while this screen is focused: the drawer keeps it mounted after you
+  // leave, and a listener left behind sent "back" to Chat from every screen.
   const goBackToGroups = () =>
     router.navigate({ pathname: '/(driver)/chat', params: { tab: 'groups' } });
-  useEffect(() => {
-    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      router.navigate({ pathname: '/(driver)/chat', params: { tab: 'groups' } });
-      return true;
-    });
-    return () => sub.remove();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+        diagLog('back: group → chat');
+        router.navigate({ pathname: '/(driver)/chat', params: { tab: 'groups' } });
+        return true;
+      });
+      return () => sub.remove();
+    }, []),
+  );
 
   // ─── Data ──────────────────────────────────────────────────────────
   const { data: messages = [], isLoading } = useGroupMessages(groupId);

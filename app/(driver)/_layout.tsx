@@ -46,6 +46,7 @@ import { useTimezoneSync } from "@/hooks/use-timezone-sync";
 import { useTripsSync } from "@/hooks/use-trips";
 import { useDriverTruck, useTruckChangedSync } from "@/hooks/use-truck";
 import { useUserStatusSync } from "@/hooks/use-user-status-sync";
+import { diagLog } from "@/lib/diag-log";
 import { systemMessageText } from "@/lib/system-message";
 import { useAuthStore, useUser } from "@/store/auth";
 
@@ -79,6 +80,32 @@ const ITEMS: SidebarItem[] = [
   { name: "alarm", renderIcon: ion("alarm-outline") },
 ];
 
+// Diagnostics for "the sidebar froze until the app was killed" (2026-11-24):
+// every drawer gesture / transition goes to the bug-report log (lib/diag-log),
+// and a transition that never finishes is flagged — so the next report shows
+// what the drawer was doing at that moment.
+const DRAWER_STUCK_MS = 2000;
+let drawerStuckTimer: ReturnType<typeof setTimeout> | null = null;
+const drawerDiagListeners = {
+  gestureStart: () => diagLog("drawer gesture start"),
+  gestureEnd: () => diagLog("drawer gesture end"),
+  gestureCancel: () => diagLog("drawer gesture cancel"),
+  transitionStart: (e: { data: { closing: boolean } }) => {
+    const what = e.data.closing ? "closing" : "opening";
+    diagLog(`drawer ${what}`);
+    if (drawerStuckTimer) clearTimeout(drawerStuckTimer);
+    drawerStuckTimer = setTimeout(() => {
+      drawerStuckTimer = null;
+      diagLog(`drawer STUCK: ${what} did not finish in ${DRAWER_STUCK_MS} ms`);
+    }, DRAWER_STUCK_MS);
+  },
+  transitionEnd: (e: { data: { closing: boolean } }) => {
+    if (drawerStuckTimer) clearTimeout(drawerStuckTimer);
+    drawerStuckTimer = null;
+    diagLog(`drawer ${e.data.closing ? "closed" : "opened"}`);
+  },
+};
+
 export default function DriverLayout() {
   const { t } = useTranslation();
   const scheme = useColorScheme() ?? "light";
@@ -95,6 +122,7 @@ export default function DriverLayout() {
     <>
       <Drawer
         drawerContent={(props) => <DriverDrawerContent {...props} />}
+        screenListeners={drawerDiagListeners}
         screenOptions={{
           headerStyle: { backgroundColor: c.background },
           headerTintColor: c.foreground,
@@ -217,6 +245,7 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
   // latest state the moment the user looks at it.
   const drawerStatus = useDrawerStatus();
   React.useEffect(() => {
+    diagLog(`drawer status → ${drawerStatus}`);
     if (drawerStatus === "open") {
       void refetchUnread();
       void refetchConversations();
