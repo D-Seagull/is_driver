@@ -14,7 +14,7 @@ import { deleteTripMessage, editTripMessage, fetchTripMessages } from '@/lib/tri
 import { getSocket } from '@/lib/socket';
 import { useAppActive } from '@/hooks/use-app-active';
 import { notifyIncomingMessage, notifyIncomingReaction } from '@/lib/message-alert';
-import { enqueueMessage, onOutboxDelivered, useOutboxItems } from '@/lib/outbox';
+import { enqueueMessage, onOutboxDelivered, undeliveredItems, useOutboxItems } from '@/lib/outbox';
 import { useAuthStore } from '@/store/auth';
 
 import { fullName } from "@/lib/format";
@@ -608,7 +608,10 @@ export function useTripChat(
   const outboxItems = useOutboxItems('trip', tripId);
   const withPending = useMemo<ChatMessage[]>(() => {
     if (outboxItems.length === 0 || !user) return visible;
-    const pending = outboxItems.map<ChatMessage>((i) => ({
+    // Already echoed back by the server → shown once, as the saved message.
+    const waiting = undeliveredItems(outboxItems, visible, user.id);
+    if (waiting.length === 0) return visible;
+    const pending = waiting.map<ChatMessage>((i) => ({
       id: `pending:${i.clientId}`,
       tripId: i.scopeId,
       senderId: user.id,
