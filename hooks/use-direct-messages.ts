@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { api } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
-import { useOutboxItems } from '@/lib/outbox';
+import { onOutboxDelivered, undeliveredItems, useOutboxItems } from '@/lib/outbox';
 import { useAuthStore } from '@/store/auth';
 
 // History page size — matches the backend default `take` for direct messages.
@@ -128,7 +128,10 @@ export function useDirectMessages(otherUserId: string) {
   const me = useAuthStore((s) => s.user);
   const data = useMemo(() => {
     if (outbox.length === 0 || !me) return query.data;
-    const pending = outbox.map<DirectMessage>((i) => ({
+    // Already echoed back by the server → shown once, as the saved message.
+    const waiting = undeliveredItems(outbox, query.data, me.id);
+    if (waiting.length === 0) return query.data;
+    const pending = waiting.map<DirectMessage>((i) => ({
       id: `pending:${i.clientId}`,
       senderId: me.id,
       receiverId: i.scopeId,
@@ -143,6 +146,20 @@ export function useDirectMessages(otherUserId: string) {
     }));
     return [...(query.data ?? []), ...pending];
   }, [query.data, outbox, me]);
+
+  // The server's answer to an outbox send: show the saved message even when
+  // the socket echo was missed (the socket had just reconnected).
+  const qc = useQueryClient();
+  useEffect(() => {
+    if (!otherUserId) return;
+    return onOutboxDelivered((item, res) => {
+      if (item.kind !== 'dm' || item.scopeId !== otherUserId) return;
+      const msg = res as unknown as DirectMessage;
+      qc.setQueryData<DirectMessage[]>(dmKeys.messages(otherUserId), (prev) =>
+        !prev || prev.some((m) => m.id === msg.id) ? prev : [...prev, msg],
+      );
+    });
+  }, [qc, otherUserId]);
   return { ...query, data } as typeof query;
 }
 

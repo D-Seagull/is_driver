@@ -242,3 +242,56 @@ export function startOutboxRunner(): () => void {
     clearInterval(timer);
   };
 }
+
+// ─── Echo dedupe ────────────────────────────────────────────────────────
+
+// Server and phone clocks differ a little; a delivered copy may carry a
+// timestamp slightly before the one the phone gave the outbox item.
+const ECHO_SKEW_MS = 60_000;
+
+interface DeliveredLike {
+  senderId: string;
+  content: string;
+  createdAt: string;
+  replyToId?: string | null;
+  replyToDocumentId?: string | null;
+}
+
+/**
+ * Outbox items whose message has NOT come back from the server yet.
+ *
+ * The server echoes a sent message to the sender's own sockets before it
+ * answers the send itself, so for a moment the saved copy and the pending
+ * bubble are both on screen — the message showed twice, then one vanished and
+ * the list jumped. Each saved message of mine (same text and quote, sent no
+ * earlier than the item) hides one pending item, oldest first; refused items
+ * always stay.
+ */
+export function undeliveredItems(
+  items: OutboxItem[],
+  delivered: DeliveredLike[] | undefined,
+  myId: string,
+): OutboxItem[] {
+  if (items.length === 0 || !delivered?.length) return items;
+  const since = Math.min(...items.map((i) => new Date(i.createdAt).getTime())) - ECHO_SKEW_MS;
+  const mine = delivered
+    .filter((m) => m.senderId === myId && new Date(m.createdAt).getTime() >= since)
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  if (mine.length === 0) return items;
+  const used = new Set<DeliveredLike>();
+  return items.filter((item) => {
+    if (item.status !== 'pending') return true;
+    const from = new Date(item.createdAt).getTime() - ECHO_SKEW_MS;
+    const match = mine.find(
+      (m) =>
+        !used.has(m) &&
+        new Date(m.createdAt).getTime() >= from &&
+        m.content.trim() === item.content &&
+        (m.replyToId ?? null) === item.replyToId &&
+        (m.replyToDocumentId ?? null) === item.replyToDocumentId,
+    );
+    if (!match) return true;
+    used.add(match);
+    return false;
+  });
+}

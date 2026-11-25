@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { api } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
-import { useOutboxItems } from '@/lib/outbox';
+import { onOutboxDelivered, undeliveredItems, useOutboxItems } from '@/lib/outbox';
 import { useAuthStore } from '@/store/auth';
 
 // History page size — matches the backend default `take` for group messages.
@@ -183,7 +183,10 @@ export function useGroupMessages(groupId: string) {
   const me = useAuthStore((s) => s.user);
   const data = useMemo(() => {
     if (outbox.length === 0 || !me) return query.data;
-    const pending = outbox.map<GroupMessage>((i) => ({
+    // Already echoed back by the server → shown once, as the saved message.
+    const waiting = undeliveredItems(outbox, query.data, me.id);
+    if (waiting.length === 0) return query.data;
+    const pending = waiting.map<GroupMessage>((i) => ({
       id: `pending:${i.clientId}`,
       groupId: i.scopeId,
       senderId: me.id,
@@ -197,6 +200,20 @@ export function useGroupMessages(groupId: string) {
     }) as GroupMessage);
     return [...(query.data ?? []), ...pending];
   }, [query.data, outbox, me]);
+
+  // The server's answer to an outbox send: show the saved message even when
+  // the socket echo was missed (the socket had just reconnected).
+  const qc = useQueryClient();
+  useEffect(() => {
+    if (!groupId) return;
+    return onOutboxDelivered((item, res) => {
+      if (item.kind !== 'group' || item.scopeId !== groupId) return;
+      const msg = res as unknown as GroupMessage;
+      qc.setQueryData<GroupMessage[]>(groupKeys.messages(groupId), (prev) =>
+        !prev || prev.some((m) => m.id === msg.id) ? prev : [...prev, msg],
+      );
+    });
+  }, [qc, groupId]);
   return { ...query, data } as typeof query;
 }
 
