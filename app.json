@@ -45,7 +45,7 @@
         "android.permission.READ_MEDIA_VIDEO",
         "android.permission.READ_MEDIA_VISUAL_USER_SELECTED"
       ],
-      "versionCode": 5,
+      "versionCode": 7,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundImage": "./assets/images/adaptive-icon-background.png",
@@ -131,7 +131,7 @@
       "router": {},
       "API_URL": "https://api.isfleet.eu",
       "MOCK_AUTH": "false",
-      "SENTRY_DSN": "",
+      "SENTRY_DSN": "https://51408ebbe9080b8e737b41c579dd89f5@o4512086189080576.ingest.de.sentry.io/4512347009056848",
       "LOGIN_SMS_ENABLED": "true",
       "LOGIN_WHATSAPP_ENABLED": "false",
       "LOGIN_TELEGRAM_ENABLED": "false",
