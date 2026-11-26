@@ -45,6 +45,34 @@ export function ensureSocketAlive(): void {
   }
 }
 
+// ─── Probe on resume ──────────────────────────────────────────────────────
+// After the phone is unlocked the socket may still say `connected` although the
+// transport died while the screen was off — the watchdog alone would only
+// notice after 40 s of silence. So on every return to the foreground we ask the
+// server for something it always answers (`requestPresence` →
+// `presenceSnapshot`); no packet back within PROBE_MS → reconnect right away.
+const PROBE_MS = 2_500;
+let probeTimer: ReturnType<typeof setTimeout> | null = null;
+
+export function probeSocketLiveness(): void {
+  const s = getSocket();
+  if (!s.connected) {
+    s.connect();
+    return;
+  }
+  if (probeTimer) return; // a probe is already waiting for its answer
+  const sentAt = Date.now();
+  s.emit('requestPresence');
+  probeTimer = setTimeout(() => {
+    probeTimer = null;
+    if (socket !== s || !s.connected) return; // signed out / already reconnecting
+    if (lastActivityAt >= sentAt) return; // the server answered — alive
+    lastActivityAt = Date.now(); // avoid a tight reconnect loop
+    s.disconnect();
+    s.connect();
+  }, PROBE_MS);
+}
+
 // Injected from the auth store (avoids a socket ↔ store circular import — the
 // same pattern as configureApiAuth). Returns the current in-memory access token.
 type TokenProvider = () => string | null | Promise<string | null>;
@@ -134,6 +162,10 @@ export function getSocket(token?: string): Socket {
 }
 
 export function disconnectSocket() {
+  if (probeTimer) {
+    clearTimeout(probeTimer);
+    probeTimer = null;
+  }
   if (socket) {
     socket.disconnect();
     socket = null;
