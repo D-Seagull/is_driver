@@ -31,6 +31,7 @@ import { Colors, Radius, Spacing, ThemeColors } from "@/constants/theme";
 import { bottomBarPadding } from "@/lib/insets";
 import { useAppStatePresence } from "@/hooks/use-app-state-presence";
 import { useChatAlerts } from "@/hooks/use-chat-alerts";
+import { useChatReadTray } from "@/hooks/use-chat-read-tray";
 import { startOutboxRunner } from "@/lib/outbox";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useConversations, useDmUnreadSync } from "@/hooks/use-direct-messages";
@@ -237,6 +238,8 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
   useTruckChangedSync();
   useTripsSync();
   useChatAlerts();
+  // Chat read on the web / another device → its banners leave the tray.
+  useChatReadTray();
   // Offline outbox: re-send queued chat messages when the connection is back.
   React.useEffect(() => startOutboxRunner(), []);
 

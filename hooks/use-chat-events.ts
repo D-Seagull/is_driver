@@ -1,8 +1,12 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 
 import { useQueryClient } from '@tanstack/react-query';
 
+import { api } from '@/lib/api';
+import { mergeById } from '@/lib/merge-by-id';
 import { getSocket } from '@/lib/socket';
+
+import { useChatResync } from './use-chat-resync';
 
 import type { DirectMessage } from './use-direct-messages';
 import { dmKeys } from './use-direct-messages';
@@ -28,6 +32,40 @@ interface Options {
 export function useChatEvents(opts: Options) {
   const qc = useQueryClient();
   const { dmOtherUserId, groupId, myUserId } = opts;
+
+  // ── Catch-up: phone unlocked / socket reconnected ──────────────────
+  // Events sent while the socket was dead are gone for good, so fetch the
+  // latest page of the open thread and merge it in by id (no duplicates;
+  // older pages loaded by scrolling stay). Files are a full fetch → refetch.
+  const resync = useCallback(() => {
+    if (dmOtherUserId) {
+      api
+        .get<DirectMessage[]>(`/direct-messages/${dmOtherUserId}`)
+        .then((res) =>
+          qc.setQueryData<DirectMessage[]>(dmKeys.messages(dmOtherUserId), (prev) =>
+            mergeById(prev, res.data ?? []),
+          ),
+        )
+        .catch(() => {
+          /* still offline — the next reconnect retries */
+        });
+      void qc.invalidateQueries({ queryKey: ['conversation-documents', dmOtherUserId] });
+    }
+    if (groupId) {
+      api
+        .get<GroupMessage[]>(`/group-messages/${groupId}`)
+        .then((res) =>
+          qc.setQueryData<GroupMessage[]>(groupKeys.messages(groupId), (prev) =>
+            mergeById(prev, res.data ?? []),
+          ),
+        )
+        .catch(() => {
+          /* still offline — the next reconnect retries */
+        });
+      void qc.invalidateQueries({ queryKey: ['group-documents', groupId] });
+    }
+  }, [qc, dmOtherUserId, groupId]);
+  useChatResync(dmOtherUserId || groupId ? resync : null);
 
   useEffect(() => {
     const socket = getSocket();
@@ -163,8 +201,13 @@ export function useJoinGroupRoom(groupId: string | null) {
   useEffect(() => {
     if (!groupId) return;
     const socket = getSocket();
-    socket.emit('join_group', { groupId });
+    const join = () => socket.emit('join_group', { groupId });
+    join();
+    // A reconnect starts with no rooms beyond the server's defaults — join
+    // again, or the open group stays silent after the phone was locked.
+    socket.on('connect', join);
     return () => {
+      socket.off('connect', join);
       socket.emit('leave_group', { groupId });
     };
   }, [groupId]);

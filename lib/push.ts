@@ -3,7 +3,10 @@ import * as Device from 'expo-device';
 import type { ExpoPushToken } from 'expo-notifications';
 import { AppState, Platform } from 'react-native';
 
+import { clearTrayChat } from './chat-notifications';
+import { chatReadTag } from './chat-ref';
 import { diagLog } from './diag-log';
+import { registerPushBackgroundTask } from './push-background';
 import i18n from './i18n';
 import { registerPushToken, unregisterPushToken } from './push-api';
 
@@ -35,6 +38,12 @@ if (!isExpoGoAndroid) {
     handleNotification: async (n) => {
       const onScreen = AppState.currentState === 'active';
       const type = (n.request.content.data as { type?: unknown } | null)?.type;
+      // Silent "chat read elsewhere" signal: nothing to show, just tidy the tray.
+      const readTag = chatReadTag(n.request.content.data);
+      if (readTag) {
+        void clearTrayChat(readTag);
+        return { shouldShowBanner: false, shouldShowList: false, shouldPlaySound: false, shouldSetBadge: false };
+      }
       const alarm = type === 'ALARM';
       diagLog(`push handler type=${String(type)} appState=${AppState.currentState} → ${onScreen ? 'hidden (on screen)' : 'shown'}`);
       return {
@@ -135,6 +144,10 @@ export async function registerForPushNotifications(): Promise<string | null> {
       },
     });
   }
+
+  // Silent "read on another device" pushes clear the tray while the app is
+  // in the background / closed.
+  await registerPushBackgroundTask();
 
   // EAS / Expo project id — required by Expo Push Service.
   const projectId =

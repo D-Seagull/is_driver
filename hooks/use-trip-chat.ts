@@ -1,5 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AppState, AppStateStatus } from 'react-native';
 
 // History page size — matches the backend default `take` for trip messages.
 const PAGE_SIZE = 50;
@@ -187,7 +188,12 @@ export function useTripChat(
     // merge it in (new ones added, edited / deleted ones refreshed). Without
     // this a message that arrived as a push only showed up after a restart.
     // DM and group chats do the same by invalidating their queries.
+    let lastCatchUpAt = 0;
     const catchUp = () => {
+      // Resume + the reconnect it may cause land together — fetch once.
+      const now = Date.now();
+      if (now - lastCatchUpAt < 1_500) return;
+      lastCatchUpAt = now;
       fetchTripMessages(tripId, { take: PAGE_SIZE })
         .then((latest: ChatMessage[]) => {
           if (cancelled || latest.length === 0) return;
@@ -388,6 +394,14 @@ export function useTripChat(
       if (payload.tripId === tripId) joinRoom();
     };
 
+    // Phone unlocked with this chat open: messages sent while the socket was
+    // dead are not replayed, so fetch them now instead of on the next reopen.
+    let prevAppState = AppState.currentState;
+    const appStateSub = AppState.addEventListener('change', (next: AppStateStatus) => {
+      if (prevAppState !== 'active' && next === 'active') catchUp();
+      prevAppState = next;
+    });
+
     sock.on('connect', onConnect);
     sock.on('disconnect', onDisconnect);
     sock.on('tripUpdated', onTripUpdated);
@@ -409,6 +423,7 @@ export function useTripChat(
 
     return () => {
       cancelled = true;
+      appStateSub.remove();
       sock.off('connect', onConnect);
       sock.off('disconnect', onDisconnect);
       sock.off('tripUpdated', onTripUpdated);
