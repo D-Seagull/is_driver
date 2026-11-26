@@ -1,6 +1,8 @@
 {
-  "NSCameraUsageDescription": "Aplikacja potrzebuje dostępu do aparatu, aby robić zdjęcia dokumentów i wysyłać je na czacie.",
-  "NSPhotoLibraryUsageDescription": "Aplikacja potrzebuje dostępu do zdjęć, aby dołączać obrazy do czatu i dokumentów oraz ustawiać awatar.",
-  "NSPhotoLibraryAddUsageDescription": "Aplikacja potrzebuje dostępu do zdjęć, aby zapisywać zdjęcia z czatu w galerii.",
-  "NSMicrophoneUsageDescription": "Aplikacja potrzebuje dostępu do mikrofonu, aby nagrywać wiadomości głosowe na czacie."
+  "ios": {
+    "NSCameraUsageDescription": "Aplikacja potrzebuje dostępu do aparatu, aby robić zdjęcia dokumentów i wysyłać je na czacie.",
+    "NSPhotoLibraryUsageDescription": "Aplikacja potrzebuje dostępu do zdjęć, aby dołączać obrazy do czatu i dokumentów oraz ustawiać awatar.",
+    "NSPhotoLibraryAddUsageDescription": "Aplikacja potrzebuje dostępu do zdjęć, aby zapisywać zdjęcia z czatu w galerii.",
+    "NSMicrophoneUsageDescription": "Aplikacja potrzebuje dostępu do mikrofonu, aby nagrywać wiadomości głosowe na czacie."
+  }
 }

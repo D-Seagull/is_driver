@@ -1,6 +1,8 @@
 {
-  "NSCameraUsageDescription": "Programėlei reikia prieigos prie kameros, kad galėtumėte fotografuoti dokumentus ir siųsti juos pokalbyje.",
-  "NSPhotoLibraryUsageDescription": "Programėlei reikia prieigos prie nuotraukų, kad galėtumėte pridėti vaizdus prie pokalbių ir dokumentų bei nustatyti profilio nuotrauką.",
-  "NSPhotoLibraryAddUsageDescription": "Programėlei reikia prieigos prie nuotraukų, kad galėtumėte išsaugoti pokalbio nuotraukas savo galerijoje.",
-  "NSMicrophoneUsageDescription": "Programėlei reikia prieigos prie mikrofono, kad galėtumėte įrašyti balso žinutes pokalbyje."
+  "ios": {
+    "NSCameraUsageDescription": "Programėlei reikia prieigos prie kameros, kad galėtumėte fotografuoti dokumentus ir siųsti juos pokalbyje.",
+    "NSPhotoLibraryUsageDescription": "Programėlei reikia prieigos prie nuotraukų, kad galėtumėte pridėti vaizdus prie pokalbių ir dokumentų bei nustatyti profilio nuotrauką.",
+    "NSPhotoLibraryAddUsageDescription": "Programėlei reikia prieigos prie nuotraukų, kad galėtumėte išsaugoti pokalbio nuotraukas savo galerijoje.",
+    "NSMicrophoneUsageDescription": "Programėlei reikia prieigos prie mikrofono, kad galėtumėte įrašyti balso žinutes pokalbyje."
+  }
 }
