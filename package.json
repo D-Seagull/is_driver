@@ -1,6 +1,6 @@
 {
   "name": "is-driver",
-  "main": "expo-router/entry",
+  "main": "index.js",
   "version": "1.0.0",
   "scripts": {
     "start": "expo start",
@@ -53,6 +53,7 @@
     "expo-status-bar": "~57.0.1",
     "expo-symbols": "~57.0.2",
     "expo-system-ui": "~57.0.3",
+    "expo-task-manager": "~57.0.24",
     "expo-updates": "~57.0.23",
     "expo-web-browser": "~57.0.2",
     "i18next": "^26.3.6",
