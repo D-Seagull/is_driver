@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useMemo } from 'react';
 import { create } from 'zustand';
 
+import { diagLog } from '@/lib/diag-log';
 import { getSocket } from '@/lib/socket';
 import { useAuthStore } from '@/store/auth';
 
@@ -190,6 +191,7 @@ export async function flushOutbox(): Promise<void> {
           if (res && typeof res.error === 'string' && res.error !== 'unauthenticated') {
             // Refused for good (not a member, company deactivated…).
             const error = res.error;
+            diagLog(`outbox: ${item.kind} message refused: ${error}`);
             setItems((items) =>
               items.map((i) =>
                 i.clientId === item.clientId ? { ...i, status: 'failed', error } : i,
@@ -204,6 +206,7 @@ export async function flushOutbox(): Promise<void> {
           }
         } catch {
           // Ack timed out / socket dropped: keep it, retry on the next pass.
+          diagLog(`outbox: no ack for ${item.kind} message, will retry`);
           stalled.add(lane);
         }
       }

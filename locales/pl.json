@@ -1,4 +1,13 @@
 {
+  "photoEditor": {
+    "title": "Edytuj zdjęcie",
+    "hint": "Wyrównaj zdjęcie, potem przeciągnij rogi, aby przyciąć",
+    "straighten": "Wyrównaj",
+    "rotate": "Obróć",
+    "skip": "Bez zmian",
+    "next": "Dalej",
+    "done": "Wyślij"
+  },
   "common": {
     "lastSeen": {
       "label": "ostatnio w aplikacji {{when}}",

@@ -36,6 +36,7 @@ import {
 } from '@/lib/auth-api';
 import { fullName, initials } from '@/lib/format';
 import { setAppLanguage } from '@/lib/i18n';
+import { AppVersion } from '@/components/app-version';
 import { StatusDot } from '@/components/status-dot';
 import { PresenceStatusSheet } from '@/components/presence-status-sheet';
 import { ReliableNotifications } from '@/components/reliable-notifications';
@@ -649,6 +650,7 @@ export default function DriverSettingsScreen() {
             </Text>
           </Pressable>
         </View>
+        <AppVersion color={c.mutedForeground} />
       </ScrollView>
 
       {/* ── Status picker — shared sheet with the full set of statuses

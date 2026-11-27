@@ -81,6 +81,7 @@ import { useReactionsSocketSync } from '@/hooks/use-message-reactions';
 import { TypingIndicator } from '@/components/typing-indicator';
 import { albumSizes, groupAlbums } from '@/lib/albums';
 import { compressPhotos, PICKER_QUALITY } from '@/lib/compress-photo';
+import { editPhotos } from '@/lib/photo-edit';
 import { AlbumGrid } from '@/components/album-grid';
 import { EDIT_WINDOW_MS } from '@/lib/constants';
 import { formatDate, formatTime } from '@/lib/format-date';
@@ -323,7 +324,9 @@ export default function DmScreen() {
         if (!perm.granted) return;
         const r = await ImagePicker.launchCameraAsync({ quality: PICKER_QUALITY });
         if (r.canceled) return;
-        files = (await compressPhotos(r.assets)).map((p) => ({
+        const edited = await editPhotos(r.assets);
+        if (!edited) return;
+        files = (await compressPhotos(edited)).map((p) => ({
           uri: p.uri,
           name: p.name,
           type: p.mimeType,
@@ -337,7 +340,9 @@ export default function DmScreen() {
           quality: PICKER_QUALITY,
         });
         if (r.canceled) return;
-        files = (await compressPhotos(r.assets)).map((p) => ({
+        const edited = await editPhotos(r.assets);
+        if (!edited) return;
+        files = (await compressPhotos(edited)).map((p) => ({
           uri: p.uri,
           name: p.name,
           type: p.mimeType,

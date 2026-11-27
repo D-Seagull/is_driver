@@ -1,4 +1,13 @@
 {
+  "photoEditor": {
+    "title": "Edit photo",
+    "hint": "Level the photo, then drag the corners to crop",
+    "straighten": "Straighten",
+    "rotate": "Rotate",
+    "skip": "As is",
+    "next": "Next",
+    "done": "Send"
+  },
   "common": {
     "lastSeen": {
       "label": "last in the app {{when}}",

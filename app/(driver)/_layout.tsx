@@ -6,6 +6,7 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import {
   DrawerContentComponentProps,
   DrawerContentScrollView,
+  useDrawerProgress,
   useDrawerStatus,
 } from "expo-router/drawer";
 import { Redirect, router } from "expo-router";
@@ -14,6 +15,7 @@ import { Image as ExpoImage } from "expo-image";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import {
+  AppState,
   Image,
   Pressable,
   // eslint-disable-next-line no-restricted-imports -- height-capped bell dropdown, not a screen list
@@ -22,11 +24,14 @@ import {
   Text,
   View,
 } from "react-native";
+import { useAnimatedReaction } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { scheduleOnRN } from "react-native-worklets";
 
 import { NextTripOverlay } from "@/components/next-trip-overlay";
 import { HeaderActions, BugReportButton } from "@/components/header-actions";
 import { PushNoticeOverlay } from "@/components/push-notice-overlay";
+import { PhotoEditorHost } from "@/components/photo-editor";
 import { Colors, Radius, Spacing, ThemeColors } from "@/constants/theme";
 import { bottomBarPadding } from "@/lib/insets";
 import { useAppStatePresence } from "@/hooks/use-app-state-presence";
@@ -81,31 +86,25 @@ const ITEMS: SidebarItem[] = [
   { name: "alarm", renderIcon: ion("alarm-outline") },
 ];
 
-// Diagnostics for "the sidebar froze until the app was killed" (2026-11-24):
-// every drawer gesture / transition goes to the bug-report log (lib/diag-log),
-// and a transition that never finishes is flagged — so the next report shows
-// what the drawer was doing at that moment.
+// ── Frozen-sidebar guard (reports 2026-11-24…27) ─────────────────────────
+// The drawer sometimes stopped opening after the app came back from the
+// background, until the app was killed. Its own gesture / transition events
+// can't be listened to here (DrawerView emits them to the navigator's key,
+// which no screen listener receives), so the drawer content watches the
+// drawer's real position (useDrawerProgress) next to its status:
+//  - every change goes to the bug-report log (lib/diag-log);
+//  - status "open" while the drawer never left "closed" for 2 s is a stuck
+//    drawer → the navigator is remounted (fresh gesture + animation state)
+//    and the current screen is opened again;
+//  - after > 60 s in the background the swipe gesture is rebuilt (nothing
+//    remounts, nothing visible).
 const DRAWER_STUCK_MS = 2000;
-let drawerStuckTimer: ReturnType<typeof setTimeout> | null = null;
-const drawerDiagListeners = {
-  gestureStart: () => diagLog("drawer gesture start"),
-  gestureEnd: () => diagLog("drawer gesture end"),
-  gestureCancel: () => diagLog("drawer gesture cancel"),
-  transitionStart: (e: { data: { closing: boolean } }) => {
-    const what = e.data.closing ? "closing" : "opening";
-    diagLog(`drawer ${what}`);
-    if (drawerStuckTimer) clearTimeout(drawerStuckTimer);
-    drawerStuckTimer = setTimeout(() => {
-      drawerStuckTimer = null;
-      diagLog(`drawer STUCK: ${what} did not finish in ${DRAWER_STUCK_MS} ms`);
-    }, DRAWER_STUCK_MS);
-  },
-  transitionEnd: (e: { data: { closing: boolean } }) => {
-    if (drawerStuckTimer) clearTimeout(drawerStuckTimer);
-    drawerStuckTimer = null;
-    diagLog(`drawer ${e.data.closing ? "closed" : "opened"}`);
-  },
-};
+const LONG_BACKGROUND_S = 60;
+const HEAL_MIN_GAP_MS = 30_000;
+const SWIPE_EDGE_WIDTH = 32; // react-native-drawer-layout's default
+
+type DrawerPos = "closed" | "moving" | "open";
+type RestoreHref = { pathname: string; params?: Record<string, string> };
 
 export default function DriverLayout() {
   const { t } = useTranslation();
@@ -113,6 +112,41 @@ export default function DriverLayout() {
   const c = Colors[scheme];
   const token = useAuthStore((s) => s.token);
   const isHydrated = useAuthStore((s) => s.isHydrated);
+
+  // Bumped to remount the drawer navigator (see the guard above).
+  const [drawerGen, setDrawerGen] = React.useState(0);
+  // Bumped to rebuild the swipe gesture: the edge width is part of the pan
+  // gesture's config, so a 1 px change makes a new native handler.
+  const [gestureGen, setGestureGen] = React.useState(0);
+  const restoreRef = React.useRef<RestoreHref | null>(null);
+  const lastHealRef = React.useRef(0);
+
+  const healDrawer = React.useCallback((href: RestoreHref) => {
+    const now = Date.now();
+    if (now - lastHealRef.current < HEAL_MIN_GAP_MS) {
+      diagLog("drawer heal skipped (healed < 30 s ago)");
+      return;
+    }
+    lastHealRef.current = now;
+    restoreRef.current = href;
+    diagLog(`drawer heal: remount, reopen ${JSON.stringify(href)}`);
+    setDrawerGen((g) => g + 1);
+  }, []);
+
+  const rebuildGesture = React.useCallback(() => {
+    diagLog("drawer: swipe gesture rebuilt after long background");
+    setGestureGen((g) => g + 1);
+  }, []);
+
+  // A remounted navigator starts on its initial screen — go back to the one
+  // the driver was on.
+  React.useEffect(() => {
+    const href = restoreRef.current;
+    if (!href) return;
+    restoreRef.current = null;
+    const timer = setTimeout(() => router.navigate(href as never), 0);
+    return () => clearTimeout(timer);
+  }, [drawerGen]);
 
   // Bounce out as soon as the user logs out (or arrives unauthenticated).
   if (isHydrated && !token) {
@@ -122,9 +156,16 @@ export default function DriverLayout() {
   return (
     <>
       <Drawer
-        drawerContent={(props) => <DriverDrawerContent {...props} />}
-        screenListeners={drawerDiagListeners}
+        key={drawerGen}
+        drawerContent={(props) => (
+          <DriverDrawerContent
+            {...props}
+            onStuck={healDrawer}
+            onLongBackground={rebuildGesture}
+          />
+        )}
         screenOptions={{
+          swipeEdgeWidth: SWIPE_EDGE_WIDTH + (gestureGen % 2),
           headerStyle: { backgroundColor: c.background },
           headerTintColor: c.foreground,
           headerTitleStyle: { fontWeight: "600" },
@@ -214,6 +255,7 @@ export default function DriverLayout() {
       </Drawer>
       {/* Foreground push notifications render here (Modal portals over UI). */}
       <PushNoticeOverlay />
+      <PhotoEditorHost />
       {/* Hand-off popup when the current trip is delivered and a next order
           is queued — announces it with OK → ACCEPTED + opens it. */}
       <NextTripOverlay />
@@ -221,7 +263,109 @@ export default function DriverLayout() {
   );
 }
 
-function DriverDrawerContent(props: DrawerContentComponentProps) {
+/** Where the driver is now, as a route the remounted drawer can reopen. */
+function currentHref(
+  state: DrawerContentComponentProps["state"],
+): RestoreHref {
+  const route = state.routes[state.index];
+  const strings = (p: object | undefined) =>
+    Object.fromEntries(
+      Object.entries(p ?? {}).filter(([, v]) => typeof v === "string"),
+    ) as Record<string, string>;
+  // DM / group chats live in their own stack: reopen the chat on top.
+  if (route.name === "dm" || route.name === "group") {
+    const nested = route.state as
+      | { index?: number; routes: { params?: object }[] }
+      | undefined;
+    const top = nested?.routes[nested.index ?? nested.routes.length - 1];
+    const id = strings(top?.params)[route.name === "dm" ? "userId" : "groupId"];
+    return id
+      ? { pathname: `/(driver)/${route.name}/${id}` }
+      : { pathname: "/(driver)/chat" };
+  }
+  return { pathname: `/(driver)/${route.name}`, params: strings(route.params) };
+}
+
+/**
+ * Watches the drawer's real position next to its status (see the guard at
+ * the top of this file): logs both, logs coming back from the background,
+ * and reports a drawer that was told to open but never moved.
+ */
+function useDrawerWatch(
+  state: DrawerContentComponentProps["state"],
+  onStuck: (href: RestoreHref) => void,
+  onLongBackground: () => void,
+) {
+  const status = useDrawerStatus();
+  const progress = useDrawerProgress();
+  const [pos, setPos] = React.useState<DrawerPos>("closed");
+  useAnimatedReaction(
+    () =>
+      progress.value <= 0.02
+        ? "closed"
+        : progress.value >= 0.98
+          ? "open"
+          : "moving",
+    (cur, prev) => {
+      if (cur !== prev) scheduleOnRN(setPos, cur as DrawerPos);
+    },
+  );
+
+  // Latest values for the AppState / timer callbacks below.
+  const latest = React.useRef({ status, pos, state });
+  React.useEffect(() => {
+    latest.current = { status, pos, state };
+  });
+
+  React.useEffect(() => {
+    diagLog(`drawer pos → ${pos}`);
+  }, [pos]);
+
+  React.useEffect(() => {
+    const want: DrawerPos = status === "open" ? "open" : "closed";
+    if (pos === want) return;
+    const timer = setTimeout(() => {
+      if (AppState.currentState !== "active") return;
+      diagLog(
+        `drawer STUCK: status=${status} pos=${pos} for ${DRAWER_STUCK_MS} ms`,
+      );
+      // Told to open, never moved — the frozen-sidebar case. Anything else
+      // (a finger holding the drawer half-way, say) is only logged.
+      if (status === "open" && pos === "closed") {
+        onStuck(currentHref(latest.current.state));
+      }
+    }, DRAWER_STUCK_MS);
+    return () => clearTimeout(timer);
+  }, [status, pos, onStuck]);
+
+  React.useEffect(() => {
+    let backgroundAt = 0;
+    const sub = AppState.addEventListener("change", (next) => {
+      if (next !== "active") {
+        if (!backgroundAt) backgroundAt = Date.now();
+        return;
+      }
+      if (!backgroundAt) return;
+      const secs = Math.round((Date.now() - backgroundAt) / 1000);
+      backgroundAt = 0;
+      const { status: st, pos: ps } = latest.current;
+      diagLog(`back from background ${secs} s, drawer status=${st} pos=${ps}`);
+      if (secs > LONG_BACKGROUND_S) onLongBackground();
+    });
+    return () => sub.remove();
+  }, [onLongBackground]);
+
+  return status;
+}
+
+function DriverDrawerContent({
+  onStuck,
+  onLongBackground,
+  ...props
+}: DrawerContentComponentProps & {
+  onStuck: (href: RestoreHref) => void;
+  onLongBackground: () => void;
+}) {
   const { t } = useTranslation();
   const scheme = useColorScheme() ?? "light";
   const c = Colors[scheme];
@@ -246,7 +390,7 @@ function DriverDrawerContent(props: DrawerContentComponentProps) {
   // The socket syncs keep counts live, but also hard-refresh both unread
   // sources every time the drawer opens — so the bell always reflects the
   // latest state the moment the user looks at it.
-  const drawerStatus = useDrawerStatus();
+  const drawerStatus = useDrawerWatch(props.state, onStuck, onLongBackground);
   React.useEffect(() => {
     diagLog(`drawer status → ${drawerStatus}`);
     if (drawerStatus === "open") {

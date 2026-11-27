@@ -37,6 +37,7 @@ import { useActiveTrip } from '@/hooks/use-trips';
 import { useDriverTruck } from '@/hooks/use-truck';
 import { DriverDocument, UploadFileLocal } from '@/lib/documents-api';
 import { compressPhotos, PICKER_QUALITY } from '@/lib/compress-photo';
+import { editPhotos } from '@/lib/photo-edit';
 import { formatDate } from '@/lib/format-date';
 import { useUser } from '@/store/auth';
 import { uploadErrorText } from '@/lib/upload-error';
@@ -134,7 +135,9 @@ export default function DocumentsScreen() {
         if (!perm.granted) return;
         const r = await ImagePicker.launchCameraAsync({ quality: PICKER_QUALITY });
         if (r.canceled) return;
-        files = await compressPhotos(r.assets);
+        const edited = await editPhotos(r.assets);
+        if (!edited) return;
+        files = await compressPhotos(edited);
       } else if (source === 'gallery') {
         const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!perm.granted) return;
@@ -144,7 +147,9 @@ export default function DocumentsScreen() {
           quality: PICKER_QUALITY,
         });
         if (r.canceled) return;
-        files = await compressPhotos(r.assets);
+        const edited = await editPhotos(r.assets);
+        if (!edited) return;
+        files = await compressPhotos(edited);
       } else {
         const r = await DocumentPicker.getDocumentAsync({
           multiple: true,

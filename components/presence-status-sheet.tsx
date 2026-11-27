@@ -63,13 +63,19 @@ export function PresenceStatusSheet({
 
   const currentStatus =
     (user?.status as DriverUserStatus | undefined) ?? 'ONLINE';
-  const [sleepOpen, setSleepOpen] = useState(false);
-  const [vacationOpen, setVacationOpen] = useState(false);
+  const [step, setStep] = useState<'main' | 'sleep' | 'vacation'>('main');
+  // Every opening starts on the main step (reset while rendering, not on
+  // close — the sheet would flip back to "main" during its fade-out).
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setStep('main');
+  }
   const [busy, setBusy] = useState(false);
 
-  // Which of the three sheets is up — for the bug-report log (lib/diag-log):
+  // Which step of the sheet is up — for the bug-report log (lib/diag-log):
   // switching between them is a suspect in the frozen-sidebar reports.
-  const shown = !open ? 'closed' : sleepOpen ? 'sleep' : vacationOpen ? 'vacation' : 'main';
+  const shown = open ? step : 'closed';
   useEffect(() => {
     diagLog(`status sheet → ${shown}`);
   }, [shown]);
@@ -97,140 +103,145 @@ export function PresenceStatusSheet({
   };
 
   const closeAll = () => {
-    setSleepOpen(false);
-    setVacationOpen(false);
     onClose();
   };
 
   return (
-    <>
-      {/* Main status sheet */}
-      <Modal
-        transparent
-        visible={open && !sleepOpen && !vacationOpen}
-        animationType="fade"
-        onRequestClose={closeAll}
-      >
-        <Pressable style={styles.backdrop} onPress={closeAll}>
-          <Pressable
-            style={[styles.sheet, { backgroundColor: c.card, paddingBottom: sheetPadBottom }]}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <Text style={[styles.title, { color: c.foreground }]}>
-              {t('presence.pickStatus')}
-            </Text>
-            {(['ONLINE', 'BUSY', 'AWAY'] as const).map((s) => {
-              const selected = currentStatus === s;
-              return (
+    // ONE Modal for all three steps. Swapping between three Modals (one
+    // fading out while the next fades in) can leave an invisible window on
+    // Android that swallows every touch — a suspect in the frozen-sidebar
+    // reports (2026-11).
+    <Modal
+      transparent
+      visible={open}
+      animationType="fade"
+      onRequestClose={closeAll}
+    >
+      <Pressable style={styles.backdrop} onPress={closeAll}>
+        <Pressable
+          style={[styles.sheet, { backgroundColor: c.card, paddingBottom: sheetPadBottom }]}
+          onPress={(e) => e.stopPropagation()}
+        >
+          {step === 'main' ? (
+            <>
+              <Text style={[styles.title, { color: c.foreground }]}>
+                {t('presence.pickStatus')}
+              </Text>
+              {(['ONLINE', 'BUSY', 'AWAY'] as const).map((s) => {
+                const selected = currentStatus === s;
+                return (
+                  <Pressable
+                    key={s}
+                    disabled={busy}
+                    onPress={() => {
+                      closeAll();
+                      applyStatus(s);
+                    }}
+                    style={({ pressed }) => [
+                      styles.item,
+                      {
+                        backgroundColor:
+                          selected || pressed ? c.muted : 'transparent',
+                      },
+                    ]}
+                  >
+                    <View style={styles.itemLeft}>
+                      <View
+                        style={[styles.dot, { backgroundColor: STATUS_HEX[s] }]}
+                      />
+                      <Text style={[styles.itemText, { color: c.foreground }]}>
+                        {t(`status.${s}`)}
+                      </Text>
+                    </View>
+                    {selected && (
+                      <Ionicons name="checkmark" size={20} color={c.primary} />
+                    )}
+                  </Pressable>
+                );
+              })}
+              <Pressable
+                disabled={busy}
+                onPress={() => setStep('sleep')}
+                style={({ pressed }) => [
+                  styles.item,
+                  {
+                    backgroundColor:
+                      currentStatus === 'SLEEP' || pressed
+                        ? c.muted
+                        : 'transparent',
+                  },
+                ]}
+              >
+                <View style={styles.itemLeft}>
+                  <View style={[styles.dot, { backgroundColor: STATUS_HEX.SLEEP }]}>
+                    <Ionicons name="moon" size={7} color="#fff" />
+                  </View>
+                  <Text style={[styles.itemText, { color: c.foreground }]}>
+                    {t('presence.sleepEllipsis')}
+                  </Text>
+                </View>
+                <Ionicons
+                  name="chevron-forward"
+                  size={18}
+                  color={c.mutedForeground}
+                />
+              </Pressable>
+              <Pressable
+                disabled={busy}
+                onPress={() => setStep('vacation')}
+                style={({ pressed }) => [
+                  styles.item,
+                  {
+                    backgroundColor:
+                      currentStatus === 'VACATION' || pressed
+                        ? c.muted
+                        : 'transparent',
+                  },
+                ]}
+              >
+                <View style={styles.itemLeft}>
+                  <View style={[styles.dot, { backgroundColor: STATUS_HEX.VACATION }]}>
+                    <Text style={{ fontSize: 7 }}>🌴</Text>
+                  </View>
+                  <Text style={[styles.itemText, { color: c.foreground }]}>
+                    {t('presence.vacationEllipsis')}
+                  </Text>
+                </View>
+                <Ionicons
+                  name="chevron-forward"
+                  size={18}
+                  color={c.mutedForeground}
+                />
+              </Pressable>
+            </>
+          ) : step === 'sleep' ? (
+            <>
+              <Text style={[styles.title, { color: c.foreground }]}>
+                {t('presence.howLong')}
+              </Text>
+              {SLEEP_PRESETS.map((p) => (
                 <Pressable
-                  key={s}
+                  key={p.key}
                   disabled={busy}
                   onPress={() => {
                     closeAll();
-                    applyStatus(s);
+                    applyStatus('SLEEP', p.hours);
                   }}
                   style={({ pressed }) => [
                     styles.item,
-                    {
-                      backgroundColor:
-                        selected || pressed ? c.muted : 'transparent',
-                    },
+                    { backgroundColor: pressed ? c.muted : 'transparent' },
                   ]}
                 >
-                  <View style={styles.itemLeft}>
-                    <View
-                      style={[styles.dot, { backgroundColor: STATUS_HEX[s] }]}
-                    />
-                    <Text style={[styles.itemText, { color: c.foreground }]}>
-                      {t(`status.${s}`)}
-                    </Text>
-                  </View>
-                  {selected && (
-                    <Ionicons name="checkmark" size={20} color={c.primary} />
-                  )}
+                  <Text style={[styles.itemText, { color: c.foreground }]}>
+                    {t(`presence.sleepPresets.${p.key}`)}
+                  </Text>
                 </Pressable>
-              );
-            })}
-            <Pressable
-              disabled={busy}
-              onPress={() => setSleepOpen(true)}
-              style={({ pressed }) => [
-                styles.item,
-                {
-                  backgroundColor:
-                    currentStatus === 'SLEEP' || pressed
-                      ? c.muted
-                      : 'transparent',
-                },
-              ]}
-            >
-              <View style={styles.itemLeft}>
-                <View style={[styles.dot, { backgroundColor: STATUS_HEX.SLEEP }]}>
-                  <Ionicons name="moon" size={7} color="#fff" />
-                </View>
-                <Text style={[styles.itemText, { color: c.foreground }]}>
-                  {t('presence.sleepEllipsis')}
-                </Text>
-              </View>
-              <Ionicons
-                name="chevron-forward"
-                size={18}
-                color={c.mutedForeground}
-              />
-            </Pressable>
-            <Pressable
-              disabled={busy}
-              onPress={() => setVacationOpen(true)}
-              style={({ pressed }) => [
-                styles.item,
-                {
-                  backgroundColor:
-                    currentStatus === 'VACATION' || pressed
-                      ? c.muted
-                      : 'transparent',
-                },
-              ]}
-            >
-              <View style={styles.itemLeft}>
-                <View style={[styles.dot, { backgroundColor: STATUS_HEX.VACATION }]}>
-                  <Text style={{ fontSize: 7 }}>🌴</Text>
-                </View>
-                <Text style={[styles.itemText, { color: c.foreground }]}>
-                  {t('presence.vacationEllipsis')}
-                </Text>
-              </View>
-              <Ionicons
-                name="chevron-forward"
-                size={18}
-                color={c.mutedForeground}
-              />
-            </Pressable>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
-      {/* Sleep duration sheet */}
-      <Modal
-        transparent
-        visible={open && sleepOpen}
-        animationType="fade"
-        onRequestClose={closeAll}
-      >
-        <Pressable style={styles.backdrop} onPress={closeAll}>
-          <Pressable
-            style={[styles.sheet, { backgroundColor: c.card, paddingBottom: sheetPadBottom }]}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <Text style={[styles.title, { color: c.foreground }]}>
-              {t('presence.howLong')}
-            </Text>
-            {SLEEP_PRESETS.map((p) => (
+              ))}
               <Pressable
-                key={p.key}
                 disabled={busy}
                 onPress={() => {
                   closeAll();
-                  applyStatus('SLEEP', p.hours);
+                  applyStatus('SLEEP');
                 }}
                 style={({ pressed }) => [
                   styles.item,
@@ -238,51 +249,38 @@ export function PresenceStatusSheet({
                 ]}
               >
                 <Text style={[styles.itemText, { color: c.foreground }]}>
-                  {t(`presence.sleepPresets.${p.key}`)}
+                  {t('presence.noLimit')}
                 </Text>
               </Pressable>
-            ))}
-            <Pressable
-              disabled={busy}
-              onPress={() => {
-                closeAll();
-                applyStatus('SLEEP');
-              }}
-              style={({ pressed }) => [
-                styles.item,
-                { backgroundColor: pressed ? c.muted : 'transparent' },
-              ]}
-            >
-              <Text style={[styles.itemText, { color: c.foreground }]}>
-                {t('presence.noLimit')}
+            </>
+          ) : (
+            <>
+              <Text style={[styles.title, { color: c.foreground }]}>
+                {t('presence.howLong')}
               </Text>
-            </Pressable>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
-      {/* Vacation duration sheet */}
-      <Modal
-        transparent
-        visible={open && vacationOpen}
-        animationType="fade"
-        onRequestClose={closeAll}
-      >
-        <Pressable style={styles.backdrop} onPress={closeAll}>
-          <Pressable
-            style={[styles.sheet, { backgroundColor: c.card, paddingBottom: sheetPadBottom }]}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <Text style={[styles.title, { color: c.foreground }]}>
-              {t('presence.howLong')}
-            </Text>
-            {VACATION_PRESETS.map((p) => (
+              {VACATION_PRESETS.map((p) => (
+                <Pressable
+                  key={p.key}
+                  disabled={busy}
+                  onPress={() => {
+                    closeAll();
+                    applyStatus('VACATION', p.hours);
+                  }}
+                  style={({ pressed }) => [
+                    styles.item,
+                    { backgroundColor: pressed ? c.muted : 'transparent' },
+                  ]}
+                >
+                  <Text style={[styles.itemText, { color: c.foreground }]}>
+                    {t(`presence.vacationPresets.${p.key}`)}
+                  </Text>
+                </Pressable>
+              ))}
               <Pressable
-                key={p.key}
                 disabled={busy}
                 onPress={() => {
                   closeAll();
-                  applyStatus('VACATION', p.hours);
+                  applyStatus('VACATION');
                 }}
                 style={({ pressed }) => [
                   styles.item,
@@ -290,29 +288,14 @@ export function PresenceStatusSheet({
                 ]}
               >
                 <Text style={[styles.itemText, { color: c.foreground }]}>
-                  {t(`presence.vacationPresets.${p.key}`)}
+                  {t('presence.noLimit')}
                 </Text>
               </Pressable>
-            ))}
-            <Pressable
-              disabled={busy}
-              onPress={() => {
-                closeAll();
-                applyStatus('VACATION');
-              }}
-              style={({ pressed }) => [
-                styles.item,
-                { backgroundColor: pressed ? c.muted : 'transparent' },
-              ]}
-            >
-              <Text style={[styles.itemText, { color: c.foreground }]}>
-                {t('presence.noLimit')}
-              </Text>
-            </Pressable>
-          </Pressable>
+            </>
+          )}
         </Pressable>
-      </Modal>
-    </>
+      </Pressable>
+    </Modal>
   );
 }
 

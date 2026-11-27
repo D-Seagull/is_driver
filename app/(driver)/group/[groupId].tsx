@@ -81,6 +81,7 @@ import { revealInList, retryScrollToIndex } from '@/lib/reveal-in-list';
 import { useFocusMessage } from '@/hooks/use-focus-message';
 import { albumSizes, groupAlbums } from '@/lib/albums';
 import { compressPhotos, PICKER_QUALITY } from '@/lib/compress-photo';
+import { editPhotos } from '@/lib/photo-edit';
 import { AlbumGrid } from '@/components/album-grid';
 import { EDIT_WINDOW_MS } from '@/lib/constants';
 import { fullName } from '@/lib/format';
@@ -299,7 +300,9 @@ export default function GroupChatScreen() {
         if (!perm.granted) return;
         const r = await ImagePicker.launchCameraAsync({ quality: PICKER_QUALITY });
         if (r.canceled) return;
-        files = (await compressPhotos(r.assets)).map((p) => ({
+        const edited = await editPhotos(r.assets);
+        if (!edited) return;
+        files = (await compressPhotos(edited)).map((p) => ({
           uri: p.uri,
           name: p.name,
           type: p.mimeType,
@@ -313,7 +316,9 @@ export default function GroupChatScreen() {
           quality: PICKER_QUALITY,
         });
         if (r.canceled) return;
-        files = (await compressPhotos(r.assets)).map((p) => ({
+        const edited = await editPhotos(r.assets);
+        if (!edited) return;
+        files = (await compressPhotos(edited)).map((p) => ({
           uri: p.uri,
           name: p.name,
           type: p.mimeType,
