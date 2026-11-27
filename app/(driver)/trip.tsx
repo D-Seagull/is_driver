@@ -2,6 +2,7 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { OutboxMark } from "@/components/outbox-mark";
 import { openRemoteFile, readableFileName } from "@/lib/open-file";
 import { compressPhotos, PICKER_QUALITY } from "@/lib/compress-photo";
+import { editPhotos } from "@/lib/photo-edit";
 import { albumSizes, groupAlbums } from "@/lib/albums";
 import { AlbumGrid } from "@/components/album-grid";
 import { EDIT_WINDOW_MS } from "@/lib/constants";
@@ -461,7 +462,9 @@ function TripWithChat({
         if (!perm.granted) return;
         const r = await ImagePicker.launchCameraAsync({ quality: PICKER_QUALITY });
         if (r.canceled) return;
-        files = await compressPhotos(r.assets);
+        const edited = await editPhotos(r.assets);
+        if (!edited) return;
+        files = await compressPhotos(edited);
       } else if (source === "gallery") {
         const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!perm.granted) return;
@@ -471,7 +474,9 @@ function TripWithChat({
           quality: PICKER_QUALITY,
         });
         if (r.canceled) return;
-        files = await compressPhotos(r.assets);
+        const edited = await editPhotos(r.assets);
+        if (!edited) return;
+        files = await compressPhotos(edited);
       } else {
         const r = await DocumentPicker.getDocumentAsync({
           multiple: true,

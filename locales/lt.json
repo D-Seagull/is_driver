@@ -1,4 +1,13 @@
 {
+  "photoEditor": {
+    "title": "Redaguoti nuotrauką",
+    "hint": "Ištiesinkite nuotrauką, tada traukite kampus apkirpti",
+    "straighten": "Ištiesinti",
+    "rotate": "Pasukti",
+    "skip": "Be pakeitimų",
+    "next": "Toliau",
+    "done": "Siųsti"
+  },
   "common": {
     "lastSeen": {
       "label": "paskutinį kartą programėlėje {{when}}",

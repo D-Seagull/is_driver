@@ -31,6 +31,7 @@ import { scheduleOnRN } from "react-native-worklets";
 import { NextTripOverlay } from "@/components/next-trip-overlay";
 import { HeaderActions, BugReportButton } from "@/components/header-actions";
 import { PushNoticeOverlay } from "@/components/push-notice-overlay";
+import { PhotoEditorHost } from "@/components/photo-editor";
 import { Colors, Radius, Spacing, ThemeColors } from "@/constants/theme";
 import { bottomBarPadding } from "@/lib/insets";
 import { useAppStatePresence } from "@/hooks/use-app-state-presence";
@@ -254,6 +255,7 @@ export default function DriverLayout() {
       </Drawer>
       {/* Foreground push notifications render here (Modal portals over UI). */}
       <PushNoticeOverlay />
+      <PhotoEditorHost />
       {/* Hand-off popup when the current trip is delivered and a next order
           is queued — announces it with OK → ACCEPTED + opens it. */}
       <NextTripOverlay />

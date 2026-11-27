@@ -32,6 +32,11 @@ function loadManipulator(): Manipulator | null {
 
 const manipulator = loadManipulator();
 
+/** The native image library, or null in a build made before it was added. */
+export function getManipulator(): Manipulator | null {
+  return manipulator;
+}
+
 /**
  * `quality` for launchCameraAsync / launchImageLibraryAsync. 1 = no extra
  * encode in the picker when we compress ourselves; without the manipulator
