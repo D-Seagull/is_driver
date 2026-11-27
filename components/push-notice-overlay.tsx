@@ -21,6 +21,8 @@ import { Colors, Radius, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { tripKeys, useMyTrips } from '@/hooks/use-trips';
 import { truckKeys } from '@/hooks/use-truck';
+import { clearTrayChat } from '@/lib/chat-notifications';
+import { chatReadTag } from '@/lib/chat-ref';
 import { registerTripActionCategories, TRIP_ACTIONS } from '@/lib/push';
 import { openChatFromPush } from '@/lib/push-route';
 import { getSocket } from '@/lib/socket';
@@ -359,6 +361,14 @@ export function PushNoticeOverlay() {
     // it explicitly so only the modal remains.
     const recvSub = N.addNotificationReceivedListener((n) => {
       const { title, body, data } = n.request.content;
+      // The silent "chat read elsewhere" push (and any push with nothing to
+      // say) is never a modal — it only tidies the tray.
+      const readTag = chatReadTag(data);
+      if (readTag) {
+        void clearTrayChat(readTag);
+        return;
+      }
+      if (!title && !body) return;
       const payload = (data as Payload) ?? undefined;
       // This listener also runs while the app is alive OFF screen (phone
       // locked with the app open, app just sent to the background). Only an
